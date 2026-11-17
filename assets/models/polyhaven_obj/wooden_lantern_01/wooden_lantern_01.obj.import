@@ -1,0 +1,22 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://4hg55boue4nv"
+path="res://.godot/imported/wooden_lantern_01.obj-9d8ead44b1b2c194c60cf7ede06f2013.mesh"
+
+[deps]
+
+files=["res://.godot/imported/wooden_lantern_01.obj-9d8ead44b1b2c194c60cf7ede06f2013.mesh"]
+
+source_file="res://assets/models/polyhaven_obj/wooden_lantern_01/wooden_lantern_01.obj"
+dest_files=["res://.godot/imported/wooden_lantern_01.obj-9d8ead44b1b2c194c60cf7ede06f2013.mesh", "res://.godot/imported/wooden_lantern_01.obj-9d8ead44b1b2c194c60cf7ede06f2013.mesh"]
+
+[params]
+
+generate_tangents=true
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+optimize_mesh=true
+force_disable_mesh_compression=false

@@ -1,0 +1,4 @@
+.godot/
+tests/logs/
+tests/shots/
+*.tmp

@@ -1,0 +1,43 @@
+; Engine configuration file.
+; Правит только агент CORE (или по инструкции в ARCH.md).
+
+config_version=5
+
+[application]
+
+config/name="Острова"
+config/description="Выживание на архипелаге: защити флаг, строй мосты, переживи акул."
+run/main_scene="res://scenes/test/test_island.tscn"
+config/features=PackedStringArray("4.7", "Forward Plus")
+
+[autoload]
+
+Settings="*res://scripts/core/settings.gd"
+Events="*res://scripts/core/events.gd"
+Items="*res://scripts/core/items.gd"
+Game="*res://scripts/core/game.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/aspect="expand"
+
+[physics]
+
+common/physics_ticks_per_second=60
+3d/default_gravity=19.6
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
+renderer/rendering_method.mobile="gl_compatibility"
+anti_aliasing/quality/msaa_3d=1
+anti_aliasing/quality/screen_space_aa=1
+lights_and_shadows/directional_shadow/size=4096
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=3
+environment/defaults/default_clear_color=Color(0.55, 0.72, 0.85, 1)
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/terrain_3d/plugin.cfg", "res://addons/sky_3d/plugin.cfg", "res://addons/multimesh_scatter/plugin.cfg")

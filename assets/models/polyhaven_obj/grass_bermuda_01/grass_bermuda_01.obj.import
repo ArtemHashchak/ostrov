@@ -1,0 +1,22 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://bykvi6hhx2v3o"
+path="res://.godot/imported/grass_bermuda_01.obj-80448a0aa0a3e44fc5509ed7e18d1180.mesh"
+
+[deps]
+
+files=["res://.godot/imported/grass_bermuda_01.obj-80448a0aa0a3e44fc5509ed7e18d1180.mesh"]
+
+source_file="res://assets/models/polyhaven_obj/grass_bermuda_01/grass_bermuda_01.obj"
+dest_files=["res://.godot/imported/grass_bermuda_01.obj-80448a0aa0a3e44fc5509ed7e18d1180.mesh", "res://.godot/imported/grass_bermuda_01.obj-80448a0aa0a3e44fc5509ed7e18d1180.mesh"]
+
+[params]
+
+generate_tangents=true
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+optimize_mesh=true
+force_disable_mesh_compression=false

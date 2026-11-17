@@ -1,0 +1,22 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://cpklmw1shrod6"
+path="res://.godot/imported/calathea_orbifolia_01.obj-62257e1eb0c873c433221f41716e7646.mesh"
+
+[deps]
+
+files=["res://.godot/imported/calathea_orbifolia_01.obj-62257e1eb0c873c433221f41716e7646.mesh"]
+
+source_file="res://assets/models/polyhaven_obj/calathea_orbifolia_01/calathea_orbifolia_01.obj"
+dest_files=["res://.godot/imported/calathea_orbifolia_01.obj-62257e1eb0c873c433221f41716e7646.mesh", "res://.godot/imported/calathea_orbifolia_01.obj-62257e1eb0c873c433221f41716e7646.mesh"]
+
+[params]
+
+generate_tangents=true
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+optimize_mesh=true
+force_disable_mesh_compression=false

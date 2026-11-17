@@ -1,0 +1,22 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://d0i0iceprpamq"
+path="res://.godot/imported/grass_medium_02.obj-33944e17c1c201921ddc521ed69cd544.mesh"
+
+[deps]
+
+files=["res://.godot/imported/grass_medium_02.obj-33944e17c1c201921ddc521ed69cd544.mesh"]
+
+source_file="res://assets/models/polyhaven_obj/grass_medium_02/grass_medium_02.obj"
+dest_files=["res://.godot/imported/grass_medium_02.obj-33944e17c1c201921ddc521ed69cd544.mesh", "res://.godot/imported/grass_medium_02.obj-33944e17c1c201921ddc521ed69cd544.mesh"]
+
+[params]
+
+generate_tangents=true
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+optimize_mesh=true
+force_disable_mesh_compression=false

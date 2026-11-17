@@ -1,0 +1,22 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://bsayvadafa1m4"
+path="res://.godot/imported/brass_pot_01.obj-022e14af48b6211652a85a95a848b6d9.mesh"
+
+[deps]
+
+files=["res://.godot/imported/brass_pot_01.obj-022e14af48b6211652a85a95a848b6d9.mesh"]
+
+source_file="res://assets/models/polyhaven_obj/brass_pot_01/brass_pot_01.obj"
+dest_files=["res://.godot/imported/brass_pot_01.obj-022e14af48b6211652a85a95a848b6d9.mesh", "res://.godot/imported/brass_pot_01.obj-022e14af48b6211652a85a95a848b6d9.mesh"]
+
+[params]
+
+generate_tangents=true
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+optimize_mesh=true
+force_disable_mesh_compression=false

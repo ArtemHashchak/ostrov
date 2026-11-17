@@ -1,0 +1,22 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://bk37mhpej8p5q"
+path="res://.godot/imported/periwinkle_plant.obj-dd292db8da77fd48b2c391ac53dc1c86.mesh"
+
+[deps]
+
+files=["res://.godot/imported/periwinkle_plant.obj-dd292db8da77fd48b2c391ac53dc1c86.mesh"]
+
+source_file="res://assets/models/polyhaven_obj/periwinkle_plant/periwinkle_plant.obj"
+dest_files=["res://.godot/imported/periwinkle_plant.obj-dd292db8da77fd48b2c391ac53dc1c86.mesh", "res://.godot/imported/periwinkle_plant.obj-dd292db8da77fd48b2c391ac53dc1c86.mesh"]
+
+[params]
+
+generate_tangents=true
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+optimize_mesh=true
+force_disable_mesh_compression=false

@@ -1,0 +1,22 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://drcy7ubppxvam"
+path="res://.godot/imported/ceramic_pot.obj-c3fc3508244ee0547875cbf5e482112b.mesh"
+
+[deps]
+
+files=["res://.godot/imported/ceramic_pot.obj-c3fc3508244ee0547875cbf5e482112b.mesh"]
+
+source_file="res://assets/models/polyhaven_obj/ceramic_pot/ceramic_pot.obj"
+dest_files=["res://.godot/imported/ceramic_pot.obj-c3fc3508244ee0547875cbf5e482112b.mesh", "res://.godot/imported/ceramic_pot.obj-c3fc3508244ee0547875cbf5e482112b.mesh"]
+
+[params]
+
+generate_tangents=true
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+optimize_mesh=true
+force_disable_mesh_compression=false
