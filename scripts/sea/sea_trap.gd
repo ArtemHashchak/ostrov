@@ -31,7 +31,7 @@ func _ready() -> void:
 	basket.mesh = SeaMeshes.trap_basket()
 	basket.material_override = wood
 	basket.rotation.z = PI * 0.5
-	basket.position.y = 0.32
+	basket.position.y = 0.26
 	add_child(basket)
 	for i in 3:
 		var f := MeshInstance3D.new()
