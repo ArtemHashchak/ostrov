@@ -44,6 +44,10 @@ static func smoke_column(parent: Node3D, color: Color, wind: Vector3 = Vector3(0
 
 static var _smoke_mat: StandardMaterial3D
 
+## Сброс кэша (при выходе модуля из дерева — иначе материал «утекает» при закрытии игры).
+static func clear_caches() -> void:
+	_smoke_mat = null
+
 ## Цвет с другой прозрачностью (явно по каналам: Color(c, a) в рампе частиц давал чёрный).
 static func _ca(c: Color, a: float) -> Color:
 	return Color(c.r, c.g, c.b, a)

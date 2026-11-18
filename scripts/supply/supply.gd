@@ -54,6 +54,7 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	SupplyModels.clear_caches()
+	SupplyFx.clear_caches()
 
 func _on_spawned(ch: Node) -> void:
 	if ch.is_in_group(&"player"):
