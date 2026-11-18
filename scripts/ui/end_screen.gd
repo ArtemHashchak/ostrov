@@ -53,7 +53,8 @@ func _ready() -> void:
 	v.add_child(bh)
 	_watch = PauseMenu.menu_button("Наблюдать", func() -> void:
 		visible = false
-		_set_player_ui(false))
+		_set_player_ui(false)
+		SpectatorCam.start(get_tree(), _player_team()))
 	bh.add_child(_watch)
 	_again = PauseMenu.menu_button("Ещё раз", func() -> void: GameLauncher.restart(get_tree()))
 	bh.add_child(_again)

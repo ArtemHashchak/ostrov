@@ -154,7 +154,9 @@ func _on_flag_destroyed(t: int, _by: Node) -> void:
 	if t != team or fallen:
 		return
 	fallen = true
-	BuildEnv.toast("Флаг команды «%s» уничтожен!" % Game.TEAM_NAMES[team])
+	# в матче объявление даёт MatchDirector — здесь только вне матча (тесты, песочница)
+	if MatchDirector.instance() == null:
+		BuildEnv.toast("Флаг команды «%s» уничтожен!" % Game.TEAM_NAMES[team])
 	var tw := create_tween()
 	tw.tween_property(_pole_root, ^"rotation:z", -PI * 0.47, 1.1).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 	_cloth_mat.set_shader_parameter(&"color", Game.team_color(team).darkened(0.6))

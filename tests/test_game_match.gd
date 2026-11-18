@@ -101,4 +101,12 @@ func run() -> void:
 	check(int(Game.stats[p.get_instance_id()].flags) == 2 and int(Game.stats[p.get_instance_id()].deaths) == 2, "статистика игрока: 2 флага, 2 смерти")
 	await shot("05_end_screen")
 	get_tree().paused = false
+	# наблюдение: камера облетает живого бота
+	ui.end_screen.visible = false
+	var sc := SpectatorCam.start(get_tree(), 0)
+	await wait(1.0)
+	check(sc != null and sc.current and sc.global_position.distance_to(e3.global_position) < 30.0,
+		"камера наблюдения следит за живым персонажем")
+	await shot("06_spectate")
+	sc.queue_free()
 	Game.end_session()

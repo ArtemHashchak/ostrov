@@ -2,4 +2,4 @@
 tests/logs/
 tests/shots/
 *.tmp
-build/
+/build/
