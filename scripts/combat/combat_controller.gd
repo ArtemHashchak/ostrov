@@ -149,7 +149,7 @@ func _equip() -> void:
 		hands.left_arm.get_node(^"Hand").add_child(_bow_fp)
 		# лук вертикально в кулаке (рука повёрнута ребром), слегка «завален» вправо
 		_bow_fp.basis = Basis(Vector3.BACK, deg_to_rad(-80.0)) * Basis(Vector3.BACK, deg_to_rad(-10.0))
-		_bow_fp.position = Vector3(0.0, 0.0, -0.045)
+		_bow_fp.position = Vector3.ZERO # Hand — ось кулака (FPHands.GRIP)
 		_arrow_fp = CombatModels.projectile(&"arrow")
 		hands.add_child(_arrow_fp)
 		_arrow_fp.visible = false
@@ -437,7 +437,7 @@ func _pose_bow() -> void:
 	hands.pose_lr = Vector3(deg_to_rad(4.0), deg_to_rad(8.0), deg_to_rad(80.0))
 	# правая — у тетивы, при натяжении к щеке
 	var rest := Vector3(0.06, -0.2, -0.46).lerp(Vector3(-0.02, -0.1, -0.5), a)
-	hands.pose_r = rest.lerp(Vector3(0.025, -0.075, -0.13), k)
+	hands.pose_r = rest.lerp(Vector3(0.035, -0.085, -0.19), k)
 	hands.pose_rr = Vector3(deg_to_rad(10.0), deg_to_rad(-20.0), deg_to_rad(-70.0))
 
 func _pose_throw() -> void:

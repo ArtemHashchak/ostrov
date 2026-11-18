@@ -40,10 +40,10 @@ func run() -> void:
 				var yw := k * TAU / 12.0
 				var f := -Vector3(sin(yw), 0.0, cos(yw))
 				var ok := true
-				var h0 := ground(c.x, c.z)
+				var h0 := ground_y(c.x, c.z)
 				for d in [0.0, 4.0, 8.0, 12.0, 16.0]:
 					var q: Vector3 = c + f * float(d)
-					var h := ground(q.x, q.z)
+					var h := ground_y(q.x, q.z)
 					if h < wl + 0.6 or absf(h - h0) > 1.2:
 						ok = false
 						break
@@ -57,7 +57,7 @@ func run() -> void:
 		if found:
 			break
 	check(found, "найдено ровное место на суше")
-	base.y = ground(base.x, base.z) + 0.2
+	base.y = ground_y(base.x, base.z) + 0.2
 	teleport(base)
 	p.set_look(yaw, 0.0)
 	await wait(0.3)
@@ -65,7 +65,7 @@ func run() -> void:
 	dummy = TrainingDummy.new()
 	scene.add_child(dummy)
 	var dp := base + fwd * 12.0
-	dp.y = ground(dp.x, dp.z) - 0.02
+	dp.y = ground_y(dp.x, dp.z) - 0.02
 	dummy.global_position = dp
 	dummy.look_at(Vector3(base.x, dp.y, base.z), Vector3.UP)
 	await wait(0.3)

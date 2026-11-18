@@ -33,5 +33,5 @@ func equip(id: StringName) -> void:
 			break
 	await wait(0.4)
 
-func ground(x: float, z: float) -> float:
+func ground_y(x: float, z: float) -> float:
 	return BuildEnv.height_at(x, z)
