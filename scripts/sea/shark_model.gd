@@ -12,7 +12,7 @@ const SPECIES := {
 		"name": "Рифовая акула", "length": 1.9, "girth": 0.082, "snout": 0.7,
 		"back": Color(0.42, 0.45, 0.48), "belly": Color(0.88, 0.87, 0.84), "line": 0.42, "soft": 0.16,
 		"stripes": 0.0, "tip_dark": 0.85, "dorsal_h": 0.12,
-		"hp": 110.0, "bite": 15.0, "speed": 2.6, "burst": 6.5, "turn": 2.1, "sense": 30.0,
+		"hp": 110.0, "bite": 18.0, "speed": 2.6, "burst": 6.5, "turn": 2.1, "sense": 30.0,
 	},
 	&"tiger": {
 		"name": "Тигровая акула", "length": 3.4, "girth": 0.092, "snout": 0.35,

@@ -36,6 +36,8 @@ var _scare := Vector3.ZERO
 var _scare_t := 0.0
 var _goal_t := 0.0
 var _rng := RandomNumberGenerator.new()
+var _hitbox: StaticBody3D = null
+var _density: float = 1.0
 
 func _ready() -> void:
 	add_to_group(&"fish_schools")
@@ -69,6 +71,59 @@ func _ready() -> void:
 		c = c.lightened(_rng.randf_range(-0.1, 0.1))
 		mm.set_instance_custom_data(i, Color(c.r, c.g, c.b, _phase[i]))
 		mm.set_instance_transform(i, Transform3D(Basis(), _fpos[i]))
+	# хитбокс стаи для подводной охоты копьём/стрелами (слой как у акул)
+	_hitbox = StaticBody3D.new()
+	_hitbox.name = "Hitbox"
+	_hitbox.collision_layer = Shark.HIT_LAYER
+	_hitbox.collision_mask = 0
+	var cs := CollisionShape3D.new()
+	var sp := SphereShape3D.new()
+	sp.radius = radius * 0.8
+	cs.shape = sp
+	_hitbox.add_child(cs)
+	add_child(_hitbox)
+	_hitbox.top_level = true
+	_hitbox.global_position = _pos
+
+## Доля оставшейся рыбы 0..1: часть стаи исчезает, когда воды вылавливают.
+func set_density(k: float) -> void:
+	_density = clampf(k, 0.0, 1.0)
+	multimesh.visible_instance_count = int(ceil(count * _density)) if _density > 0.0 else 0
+	if _hitbox:
+		_hitbox.collision_layer = Shark.HIT_LAYER if _density > 0.0 else 0
+
+## Удар по стае (копьё, стрела, гарпун): шанс добыть рыбу из запаса этих вод.
+func apply_damage(_amount: float, source: Node, kind: StringName = &"melee") -> void:
+	var sea := get_parent()
+	if sea == null or not sea.has_method(&"take_fish"):
+		return
+	var chance := 0.55
+	if kind == &"arrow" or kind == &"bullet":
+		chance = 0.4
+	elif kind == &"explosion":
+		chance = 1.0
+	if source and source.has_method(&"held_item") and StringName(source.call(&"held_item")) == &"spear":
+		chance = 0.7
+	scare(_pos - Vector3(0.5, 0, 0.5), 1.4)
+	if _rng.randf() > chance * (0.4 + 0.6 * _density):
+		return
+	var n := 3 if kind == &"explosion" else 1
+	var got: int = sea.call(&"take_fish", _pos, n)
+	if got <= 0:
+		return
+	sea.call(&"add_blood", _pos, 3.0, true)
+	var inv: Node = source.get_node_or_null(^"Inventory") if source else null
+	if inv and source is Node3D and (source as Node3D).global_position.distance_to(_pos) < 8.0 and inv.has_method(&"add"):
+		var left: int = inv.call(&"add", &"fish_raw", got)
+		got = left
+		if left == 0:
+			Events.toast.emit("Рыба на копье!")
+	if got > 0:
+		var arr: Array[Dictionary] = [{"id": &"fish_raw", "n": got}]
+		ItemPickup.spawn(sea, _pos, arr)
+
+func hit_zone(_pos_hit: Vector3) -> StringName:
+	return &"body"
 
 ## Спугнуть стаю (акула, пловец, всплеск).
 func scare(from: Vector3, strength: float = 1.0) -> void:
@@ -97,6 +152,8 @@ func _physics_process(delta: float) -> void:
 	_vel = _vel.lerp(want, clampf(delta * 1.5, 0.0, 1.0))
 	_pos += _vel * delta
 	_pos = _clamp_depth(_pos)
+	if _hitbox:
+		_hitbox.global_position = _pos
 	var spread := 1.0 + (_scare_t / 2.5) * 1.5
 	var t := Time.get_ticks_msec() * 0.001
 	var mm := multimesh

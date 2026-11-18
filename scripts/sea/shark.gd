@@ -39,6 +39,14 @@ var _rng := RandomNumberGenerator.new()
 var _dead_t: float = 0.0
 var _leap: float = 0.0
 var _last_aggressor: Node = null
+var _hitbox: StaticBody3D = null
+var bait_t: float = 0.0          # >0 — кормится у приманки (почти не ищет людей)
+var _bump_cd: float = 0.0
+
+## Слой коллизии для попаданий оружием (лучи Combat видят все слои; игрок/боты — нет).
+const HIT_LAYER := 1 << 9
+## Добыча с туши: [мясо, зубы].
+const LOOT := {&"reef": [3, 2], &"tiger": [5, 4], &"white": [8, 6]}
 
 func setup(p_species: StringName, p_sea: Node, p_home: Vector2, p_home_r: float, seed_i: int) -> void:
 	species = p_species
@@ -63,6 +71,19 @@ func _ready() -> void:
 	add_child(_model)
 	_mat = (_model.get_node(^"Body") as MeshInstance3D).material_override as ShaderMaterial
 	yaw = rotation.y
+	# хитбокс для копья/стрел/пуль: капсула вдоль тела (нос в -Z)
+	_hitbox = StaticBody3D.new()
+	_hitbox.name = "Hitbox"
+	_hitbox.collision_layer = HIT_LAYER
+	_hitbox.collision_mask = 0
+	var cs := CollisionShape3D.new()
+	var cap := CapsuleShape3D.new()
+	cap.radius = maxf(length * float(cfg["girth"]) * 1.25, 0.16)
+	cap.height = length * 0.85
+	cs.shape = cap
+	cs.rotation.x = PI * 0.5
+	_hitbox.add_child(cs)
+	add_child(_hitbox)
 
 func is_dead() -> bool:
 	return state == State.DEAD
@@ -103,8 +124,36 @@ func _die(killer: Node) -> void:
 	state = State.DEAD
 	_dead_t = 0.0
 	target = null
+	if _hitbox:
+		_hitbox.collision_layer = 0
+	_drop_loot()
 	if sea and sea.has_method(&"on_shark_died"):
 		sea.on_shark_died(self, killer)
+
+## Туша: мясо и зубы мешком у поверхности (тонет к дну вместе с акулой).
+func _drop_loot() -> void:
+	var l: Array = LOOT.get(species, [3, 2])
+	var parent := get_parent()
+	if parent == null or not is_inside_tree():
+		return
+	var arr: Array[Dictionary] = [{"id": &"shark_meat", "n": int(l[0])}, {"id": &"shark_tooth", "n": int(l[1])}]
+	var p := global_position
+	if sea:
+		p.y = maxf(p.y, float(sea.water_y()) - 0.6)
+	ItemPickup.spawn(parent, p, arr)
+
+## Приманка: бросить текущую жертву (если та не истекает кровью) и плыть кормиться.
+func lure(pos: Vector3, seconds: float) -> bool:
+	if state == State.DEAD:
+		return false
+	if state == State.ATTACK and frenzy > 0.0 and _target_ok() and sea.call(&"is_bleeding", target):
+		return false
+	target = null
+	_leap = 0.0
+	investigate_at = pos
+	bait_t = seconds
+	_enter(State.INVESTIGATE, seconds)
+	return true
 
 func _enter(s: State, t: float) -> void:
 	state = s
@@ -136,6 +185,8 @@ func tick(delta: float, full: bool) -> void:
 	_state_t -= delta
 	_scan_t -= delta
 	frenzy = maxf(frenzy - delta, 0.0)
+	bait_t = maxf(bait_t - delta, 0.0)
+	_bump_cd = maxf(_bump_cd - delta, 0.0)
 	if _scan_t <= 0.0 and (state == State.PATROL or state == State.INVESTIGATE):
 		_scan_t = 0.45 + _rng.randf() * 0.25
 		var found: Dictionary = sea.find_prey(self)
@@ -167,7 +218,18 @@ func tick(delta: float, full: bool) -> void:
 			want = investigate_at - global_position
 			want.y = 0.0
 			want_speed *= 1.4
-			if want.length() < 4.0 or _state_t <= 0.0:
+			if bait_t > 0.0:
+				# кормится: кружит у приманки, рывками хватает куски
+				var d := want.length()
+				if d < 7.0:
+					var tang := Vector3(-want.z, 0.0, want.x).normalized() * orbit_dir
+					want = tang + want.normalized() * clampf((d - 3.0) * 0.4, -1.0, 1.0)
+					want_speed = float(cfg["speed"]) * 1.2
+					target_y = water - 0.5
+				if _state_t <= 0.0:
+					bait_t = 0.0
+					_enter(State.PATROL, 0.0)
+			elif want.length() < 4.0 or _state_t <= 0.0:
 				_enter(State.PATROL, 0.0)
 		State.STALK:
 			if not _target_ok():
@@ -199,7 +261,7 @@ func tick(delta: float, full: bool) -> void:
 				var dh := Vector2(tp.x - head.x, tp.z - head.z).length()
 				if dh < 0.7 + length * 0.18 and absf(tp.y - head.y) < 1.6 + _leap:
 					if sea.try_bite(self, target):
-						_enter(State.RETREAT, _fz(1.0, 1.8))
+						_enter(State.RETREAT, _fz(0.9, 1.5))
 					else:
 						_enter(State.STALK, _fz(0.5, 1.0))
 				elif _state_t <= 0.0:
@@ -218,6 +280,13 @@ func tick(delta: float, full: bool) -> void:
 	_steer(want, want_speed, delta, depth_here)
 	if full:
 		_animate(delta)
+
+func can_bump() -> bool:
+	return _bump_cd <= 0.0 and state != State.DEAD
+
+func did_bump() -> void:
+	_bump_cd = _rng.randf_range(8.0, 16.0)
+	orbit_dir = -orbit_dir
 
 func _target_ok() -> bool:
 	return target != null and is_instance_valid(target) and _is_valid_prey(target)

@@ -24,6 +24,9 @@ const SPLASH_SOUND := "res://assets/sounds/sfx-kit/props-splash.wav"
 @export var auto_populate: bool = true
 @export var fish_schools_per_island: int = 5
 @export var underwater_fx: bool = true
+@export var reefs_enabled: bool = true
+@export var life_enabled: bool = true
+var fx: SeaFX = null
 
 var sharks: Array[Shark] = []
 var schools: Array[FishSchool] = []
@@ -36,14 +39,23 @@ var _baits: Array[Dictionary] = []  # {pos, t}
 var _in_water: Dictionary = {}      # instance_id → bool (для всплесков)
 var _time: float = 0.0
 var _far_acc: float = 0.0
+var _sleep_acc: float = 0.0
 var _rng := RandomNumberGenerator.new()
 var _splash_players: Array[AudioStreamPlayer3D] = []
 var _splash_i: int = 0
 var _fallback_islands: Array[Dictionary] = []
+var _straits: Array[Dictionary] = []
+var _fish_stock: Dictionary = {}    # id острова (-1 — открытое море) → рыбы осталось
+var _fish_stock0: Dictionary = {}
+var _pickup_acc: float = 0.0
+var _bump_acc: float = 0.0
+var reefs: Node3D = null            # SeaReefs
+var life: Node3D = null             # SeaLife
 
 func _ready() -> void:
 	add_to_group(&"sea")
 	_rng.seed = 7331
+	SeaItems.register()
 	if Events.has_signal(&"character_damaged"):
 		Events.character_damaged.connect(_on_character_damaged)
 	for i in 4:
@@ -55,7 +67,10 @@ func _ready() -> void:
 		add_child(a)
 		_splash_players.append(a)
 	if underwater_fx:
-		var fx := UnderwaterFX.new()
+		var ufx := UnderwaterFX.new()
+		ufx.sea = self
+		add_child(ufx)
+		fx = SeaFX.new()
 		fx.sea = self
 		add_child(fx)
 	if auto_populate:
@@ -125,6 +140,9 @@ func _detect_islands() -> Array[Dictionary]:
 	return [{"id": 0, "kind": "home", "team": 0, "center": Vector2.ZERO, "radius": r}]
 
 # ---------------- заселение ----------------
+const MAX_SHARKS := 110
+const REEF_KINDS := [&"atoll", &"shared", &"spring", &"wreck"]
+
 func populate() -> void:
 	for s in sharks:
 		if is_instance_valid(s):
@@ -136,33 +154,112 @@ func populate() -> void:
 	schools.clear()
 	var isl := islands()
 	var seed_i := 100
+	_init_fish_stock(isl)
 	for d in isl:
 		var c: Vector2 = d["center"]
 		var r: float = d["radius"]
+		var kind: StringName = StringName(d.get("kind", &"home"))
+		var reefy := REEF_KINDS.has(kind)
 		var circ := TAU * (r + 30.0)
-		var n := maxi(2, int(round(circ / 70.0 * density)))
+		# над рифами и отмелями акул меньше и они мелкие; у больших островов — крупнее
+		var per := 120.0 if reefy else 85.0
+		var n := maxi(1 if reefy else 2, int(round(circ / per * density)))
 		for i in n:
+			if sharks.size() >= MAX_SHARKS:
+				break
 			var roll := _rng.randf()
-			var sp: StringName = &"reef" if roll < 0.62 else (&"tiger" if roll < 0.93 else &"white")
-			var ring := r + (_rng.randf_range(10.0, 30.0) if sp == &"reef" else _rng.randf_range(25.0, 60.0))
+			var sp: StringName = &"reef"
+			if not reefy:
+				sp = &"reef" if roll < 0.6 else (&"tiger" if roll < 0.92 else &"white")
+			var ring := r + (_rng.randf_range(10.0, 30.0) if sp == &"reef" else _rng.randf_range(28.0, 60.0))
 			seed_i += 1
 			spawn_shark(sp, c, ring, seed_i)
-		for k in fish_schools_per_island:
+		var ns := fish_schools_per_island + (3 if reefy else 0)
+		for k in ns:
 			var a := _rng.randf() * TAU
-			var rr := r + _rng.randf_range(6.0, 26.0)
+			var rr := r + _rng.randf_range(4.0, 26.0)
 			var pos := Vector3(c.x + cos(a) * rr, 0.0, c.y + sin(a) * rr)
-			_spawn_school(pos, k)
-	# проливы между близкими островами — ещё акулы (в т.ч. крупные)
-	for i in isl.size():
-		for j in range(i + 1, isl.size()):
-			var a: Vector2 = isl[i]["center"]
-			var b: Vector2 = isl[j]["center"]
-			var gap := a.distance_to(b) - float(isl[i]["radius"]) - float(isl[j]["radius"])
-			if gap < 180.0:
-				var mid := (a + b) * 0.5
-				for k in maxi(1, int(2 * density)):
-					seed_i += 1
-					spawn_shark(&"tiger" if _rng.randf() < 0.7 else &"white", mid, maxf(gap * 0.25, 12.0), seed_i)
+			if depth_at(pos.x, pos.z) < 1.2:
+				continue
+			_spawn_school(pos, k + (int(d.get("id", 0)) * 3))
+	_build_reefs_and_life()
+	# проливы: глубокая вода между островами — больше и крупнее акулы
+	for st in straits():
+		var mid: Vector2 = st["mid"]
+		var gap: float = st["gap"]
+		var cnt := maxi(1, int(round((1.6 + gap / 60.0) * density)))
+		for k in cnt:
+			if sharks.size() >= MAX_SHARKS:
+				break
+			seed_i += 1
+			spawn_shark(&"tiger" if _rng.randf() < 0.62 else &"white", mid, maxf(gap * 0.3, 14.0), seed_i)
+
+func _build_reefs_and_life() -> void:
+	if reefs_enabled:
+		if reefs == null:
+			reefs = SeaReefs.new()
+			reefs.name = "Reefs"
+			reefs.sea = self
+			add_child(reefs)
+		reefs.density = density
+		reefs.build()
+	if life_enabled:
+		if life == null:
+			life = SeaLife.new()
+			life.name = "Life"
+			life.sea = self
+			add_child(life)
+		life.density = density
+		life.populate()
+
+## Пятна кораллового рифа: [{center: Vector2, island, kind, radius, corals}].
+func reef_zones() -> Array[Dictionary]:
+	if reefs:
+		return (reefs as SeaReefs).zones()
+	return []
+
+func _exit_tree() -> void:
+	SeaMeshes.clear_cache()
+	SeaCreature.clear_cache()
+
+## Проливы между соседними островами: [{a, b, mid: Vector2, gap: float}].
+func straits() -> Array[Dictionary]:
+	if not _straits.is_empty():
+		return _straits
+	var isl := islands()
+	var by_id := {}
+	for d in isl:
+		by_id[int(d.get("id", 0))] = d
+	var routes: Variant = null
+	if world:
+		var arch: Variant = world.get(&"arch")
+		if arch is Object and "routes" in (arch as Object):
+			routes = (arch as Object).get(&"routes")
+	if routes is Array and not (routes as Array).is_empty():
+		for rt in routes:
+			var a: Dictionary = by_id.get(int(rt["a"]), {})
+			var b: Dictionary = by_id.get(int(rt["b"]), {})
+			if a.is_empty() or b.is_empty():
+				continue
+			_straits.append(_strait(a, b, float(rt.get("gap", 80.0))))
+	else:
+		for i in isl.size():
+			for j in range(i + 1, isl.size()):
+				var a: Vector2 = isl[i]["center"]
+				var b: Vector2 = isl[j]["center"]
+				var gap := a.distance_to(b) - float(isl[i]["radius"]) - float(isl[j]["radius"])
+				if gap < 140.0:
+					_straits.append(_strait(isl[i], isl[j], gap))
+	return _straits
+
+func _strait(a: Dictionary, b: Dictionary, gap: float) -> Dictionary:
+	var ca: Vector2 = a["center"]
+	var cb: Vector2 = b["center"]
+	var dir := (cb - ca).normalized()
+	var p0 := ca + dir * float(a["radius"])
+	var p1 := cb - dir * float(b["radius"])
+	return {"a": int(a.get("id", 0)), "b": int(b.get("id", 0)), "mid": (p0 + p1) * 0.5, "gap": maxf(gap, 10.0),
+		"p0": p0, "p1": p1}
 
 func spawn_shark(sp: StringName, center: Vector2, ring: float, seed_i: int) -> Shark:
 	var s := Shark.new()
@@ -224,6 +321,9 @@ func _on_low_deck(n: Node3D) -> bool:
 			return true
 	return false
 
+func is_bleeding(n: Node) -> bool:
+	return _bleeding(n)
+
 func _bleeding(n: Node) -> bool:
 	var id := n.get_instance_id()
 	if _hurt_t.has(id) and _time - float(_hurt_t[id]) < BLOOD_TIME:
@@ -239,6 +339,8 @@ func find_prey(s: Shark) -> Dictionary:
 	var kind := &"swim"
 	var blood := false
 	var sense: float = s.cfg["sense"]
+	if s.bait_t > 0.0:
+		sense *= 0.3   # кормится у приманки — люди интересны, только если совсем рядом
 	for n in get_tree().get_nodes_in_group(&"characters"):
 		var c := n as Node3D
 		if c == null or not is_prey(c):
@@ -309,8 +411,24 @@ func add_blood(pos: Vector3, strength: float, visible_cloud: bool = true) -> voi
 	if visible_cloud and pos.y < water_y() + 0.5:
 		_blood_cloud(pos, strength)
 
-func add_bait(pos: Vector3, seconds: float = 40.0) -> void:
+## Приманка в воде: акулы в радиусе бросают жертву (если та не в крови) и плывут
+## кормиться на `seconds` секунд. Возвращает, сколько акул отвлеклось.
+func add_bait(pos: Vector3, seconds: float = 40.0) -> int:
+	seconds = clampf(seconds, 5.0, 120.0)
 	_baits.append({"pos": pos, "t": _time + seconds})
+	add_blood(pos, 6.0, true)
+	var n := 0
+	var r := 75.0
+	for s in sharks:
+		if not is_instance_valid(s) or s.is_dead():
+			continue
+		var d := s.global_position.distance_to(pos)
+		if d > r:
+			continue
+		# ближние — почти всегда, дальние — с шансом
+		if _rng.randf() < 1.0 - d / r * 0.6 and s.lure(pos, seconds * _rng.randf_range(0.7, 1.0)):
+			n += 1
+	return n
 
 ## Ближайшая точка интереса (кровь/приманка) в радиусе r или null.
 func nearest_attractor(from: Vector3, r: float) -> Variant:
@@ -348,6 +466,171 @@ func threat_at(pos: Vector3) -> float:
 		if d < r * 1.5:
 			t += (1.0 - d / (r * 1.5)) * (0.5 + float(s.cfg["bite"]) / 30.0)
 	return clampf(t, 0.0, 1.0)
+
+
+## Плотность акул по месту обитания (не текущие позиции) 0..1 — для планирования.
+func shark_density_at(pos: Vector3) -> float:
+	var t := 0.0
+	var p2 := Vector2(pos.x, pos.z)
+	for s in sharks:
+		if not is_instance_valid(s) or s.is_dead():
+			continue
+		var dr := absf(p2.distance_to(s.home) - s.home_r)
+		if dr < 40.0:
+			t += (1.0 - dr / 40.0) * (0.25 + float(s.cfg["bite"]) / 60.0)
+	return clampf(t, 0.0, 1.0)
+
+## Насколько безопасно переплыть/пройти по воде из a в b: 1 — безопасно, 0 — верная смерть.
+## Учитывает текущих акул у линии, их места обитания и долю пути по глубокой воде.
+func safe_crossing_score(a: Vector3, b: Vector3) -> float:
+	var ln := Vector2(a.x - b.x, a.z - b.z).length()
+	var steps := maxi(2, int(ln / 8.0))
+	var worst := 0.0
+	var dens := 0.0
+	var wet := 0
+	for i in steps + 1:
+		var p := a.lerp(b, float(i) / steps)
+		if depth_at(p.x, p.z) < 0.8:
+			continue
+		wet += 1
+		worst = maxf(worst, threat_at(p))
+		dens += shark_density_at(p)
+	if wet == 0:
+		return 1.0
+	var wet_len := ln * float(wet) / float(steps + 1)
+	var exposure := clampf(wet_len / 120.0, 0.0, 1.0)
+	var danger := 0.55 * worst + 0.45 * clampf(dens / float(wet) * 1.5, 0.0, 1.0)
+	return clampf(1.0 - danger * (0.5 + 0.5 * exposure), 0.0, 1.0)
+
+# ---------------- рыба (конечный запас: мир не восстанавливается) ----------------
+func _init_fish_stock(isl: Array[Dictionary]) -> void:
+	_fish_stock.clear()
+	for d in isl:
+		var k: StringName = StringName(d.get("kind", &""))
+		var n := 24
+		match k:
+			&"atoll": n = 70
+			&"shared": n = 45
+			&"spring", &"wreck": n = 40
+			&"home": n = 30
+			&"center": n = 50
+		_fish_stock[int(d.get("id", 0))] = n
+	_fish_stock[-1] = 60
+	_fish_stock0 = _fish_stock.duplicate()
+
+func _stock_key(pos: Vector3) -> int:
+	var best := -1
+	var bd := 1.45
+	for d in islands():
+		var c: Vector2 = d["center"]
+		var k := Vector2(pos.x, pos.z).distance_to(c) / maxf(float(d["radius"]), 1.0)
+		if k < bd:
+			bd = k
+			best = int(d.get("id", 0))
+	return best
+
+## Сколько рыбы осталось в этих водах (у ближайшего острова) и доля от начального.
+func fish_stock_at(pos: Vector3) -> int:
+	return int(_fish_stock.get(_stock_key(pos), 0))
+
+func fish_stock_ratio(pos: Vector3) -> float:
+	var k := _stock_key(pos)
+	return float(_fish_stock.get(k, 0)) / maxf(float(_fish_stock0.get(k, 1)), 1.0)
+
+## Забрать до n рыб из запаса у pos. Возвращает, сколько удалось.
+func take_fish(pos: Vector3, n: int = 1) -> int:
+	var k := _stock_key(pos)
+	var have := int(_fish_stock.get(k, 0))
+	var got := mini(have, n)
+	_fish_stock[k] = have - got
+	if got > 0:
+		_update_school_density(k)
+	return got
+
+func _update_school_density(k: int) -> void:
+	var ratio := float(_fish_stock.get(k, 0)) / maxf(float(_fish_stock0.get(k, 1)), 1.0)
+	for f in schools:
+		if is_instance_valid(f) and _stock_key(f.center) == k:
+			f.set_density(ratio)
+
+## Поставить вершу в воде (для ботов/UI; игрок — бросает предмет в воду).
+func deploy_trap(pos: Vector3, owner: Node = null) -> Node3D:
+	var tr := SeaTrap.new()
+	tr.sea = self
+	tr.owner_node = owner
+	add_child(tr)
+	var fy := floor_at(pos.x, pos.z)
+	tr.global_position = Vector3(pos.x, fy, pos.z)
+	tr.rotation.y = _rng.randf() * TAU
+	traps.append(tr)
+	return tr
+
+var traps: Array[Node3D] = []
+
+## Предметы, упавшие в воду: еда → приманка, верша → ставится на дно.
+func _scan_pickups() -> void:
+	var wy := water_y()
+	for n in get_tree().get_nodes_in_group(&"pickups"):
+		var p := n as Node3D
+		if p == null or not ("stacks" in p) or p.is_queued_for_deletion():
+			continue
+		var pos := p.global_position
+		if pos.y > wy - 0.15 or depth_at(pos.x, pos.z) < 0.5:
+			continue
+		var stacks: Array = p.get(&"stacks")
+		var rest: Array[Dictionary] = []
+		var bait_sec := 0.0
+		var traps_n := 0
+		for st in stacks:
+			var id := StringName(st["id"])
+			var cnt := int(st["n"])
+			if SeaItems.BAIT.has(id):
+				bait_sec += float(SeaItems.BAIT[id]) * cnt
+			elif id == &"fish_trap":
+				traps_n += cnt
+			else:
+				rest.append(st)
+		if bait_sec <= 0.0 and traps_n == 0:
+			continue
+		if bait_sec > 0.0:
+			add_bait(Vector3(pos.x, minf(pos.y, wy - 0.4), pos.z), bait_sec)
+		var d := depth_at(pos.x, pos.z)
+		for i in traps_n:
+			if d >= 0.6 and d <= 5.0:
+				deploy_trap(pos + Vector3(i * 1.2, 0.0, 0.0), null)
+			else:
+				rest.append({"id": &"fish_trap", "n": 1})
+				Events.toast.emit("Верше нужна вода глубиной 0.6–5 м")
+		if rest.is_empty():
+			p.queue_free()
+		else:
+			p.set(&"stacks", rest)
+
+## Акулы толкают низкие плоты-мосты: брызги, качка. Мосты не ломают.
+signal raft_bumped(deck: Node, shark: Shark)
+
+func _bump_rafts() -> void:
+	var wy := water_y()
+	for deck in get_tree().get_nodes_in_group(&"raft_deck"):
+		var d3 := deck as Node3D
+		if d3 == null or not d3.is_inside_tree():
+			continue
+		var q := d3.global_position
+		if q.y - wy > DECK_LOW + 1.5:
+			continue
+		for s in sharks:
+			if not is_instance_valid(s) or not s.can_bump():
+				continue
+			if absf(s.global_position.x - q.x) > 4.0 or absf(s.global_position.z - q.z) > 4.0:
+				continue
+			if _rng.randf() > 0.35:
+				continue
+			s.did_bump()
+			splash(Vector3(s.global_position.x, wy, s.global_position.z), 0.8)
+			if deck.has_method(&"bump"):
+				deck.call(&"bump", (q - s.global_position).normalized(), 0.6)
+			raft_bumped.emit(deck, s)
+			break
 
 static var _soft_tex: GradientTexture2D = null
 
@@ -474,7 +757,15 @@ func _physics_process(delta: float) -> void:
 	var cam := get_viewport().get_camera_3d()
 	var cam_p := cam.global_position if cam else Vector3.ZERO
 	_far_acc += delta
+	_sleep_acc += delta
 	var far_tick := _far_acc >= 0.25
+	var sleep_tick := _sleep_acc >= 1.0
+	# персонажи в воде/у воды (боты далеко от камеры тоже должны встречать акул)
+	var wet: Array[Vector3] = []
+	if far_tick or sleep_tick:
+		for n in get_tree().get_nodes_in_group(&"characters"):
+			if n is Node3D and (n as Node3D).global_position.y < water_y() + 3.0:
+				wet.append((n as Node3D).global_position)
 	for s in sharks:
 		if not is_instance_valid(s):
 			continue
@@ -483,10 +774,33 @@ func _physics_process(delta: float) -> void:
 		s.visible = d < LOD_FAR
 		if near:
 			s.tick(delta, true)
-		elif far_tick:
-			s.tick(_far_acc, d < LOD_FAR)
+		elif d < LOD_FAR * 1.4 or s.state != Shark.State.PATROL:
+			if far_tick:
+				s.tick(_far_acc, d < LOD_FAR)
+		else:
+			# спящая дальняя акула: раз в секунду, но чаще, если рядом кто-то у воды
+			var awake := false
+			if far_tick:
+				for w in wet:
+					if w.distance_to(s.global_position) < 120.0:
+						awake = true
+						break
+			if awake and far_tick:
+				s.tick(_far_acc, false)
+			elif sleep_tick:
+				s.tick(_sleep_acc, false)
 	if far_tick:
 		_far_acc = 0.0
+	if sleep_tick:
+		_sleep_acc = 0.0
+	_pickup_acc += delta
+	if _pickup_acc >= 0.5:
+		_pickup_acc = 0.0
+		_scan_pickups()
+	_bump_acc += delta
+	if _bump_acc >= 1.0:
+		_bump_acc = 0.0
+		_bump_rafts()
 	# всплески при входе персонажей в воду
 	for n in get_tree().get_nodes_in_group(&"characters"):
 		if not (n is Node3D) or not n.has_method(&"is_in_water"):
