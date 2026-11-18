@@ -42,3 +42,14 @@ textures/vram_compression/import_etc2_astc=true
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/terrain_3d/plugin.cfg", "res://addons/sky_3d/plugin.cfg", "res://addons/multimesh_scatter/plugin.cfg")
+
+[shader_globals]
+
+sea_time={
+"type": "float",
+"value": 0.0
+}
+sea_level={
+"type": "float",
+"value": 0.0
+}

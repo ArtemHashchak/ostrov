@@ -26,6 +26,7 @@ const SPLASH_SOUND := "res://assets/sounds/sfx-kit/props-splash.wav"
 @export var underwater_fx: bool = true
 @export var reefs_enabled: bool = true
 @export var life_enabled: bool = true
+@export var reef_life_enabled: bool = true   # фон: тропические рыбы, растительность, сценки охоты
 var fx: SeaFX = null
 
 var sharks: Array[Shark] = []
@@ -51,6 +52,7 @@ var _pickup_acc: float = 0.0
 var _bump_acc: float = 0.0
 var reefs: Node3D = null            # SeaReefs
 var life: Node3D = null             # SeaLife
+var reef_life: Node3D = null        # ReefLife (фон)
 
 func _ready() -> void:
 	add_to_group(&"sea")
@@ -211,6 +213,14 @@ func _build_reefs_and_life() -> void:
 			add_child(life)
 		life.density = density
 		life.populate()
+	if reef_life_enabled:
+		if reef_life == null:
+			reef_life = ReefLife.new()
+			reef_life.name = "ReefLife"
+			reef_life.set(&"sea", self)
+			add_child(reef_life)
+		reef_life.set(&"density", density)
+		reef_life.call(&"build")
 
 ## Пятна кораллового рифа: [{center: Vector2, island, kind, radius, corals}].
 func reef_zones() -> Array[Dictionary]:
@@ -695,6 +705,8 @@ func splash(pos: Vector3, size: float = 1.0) -> void:
 	for f in schools:
 		if is_instance_valid(f) and f.center.distance_to(pos) < 18.0:
 			f.scare(pos, 1.0)
+	if reef_life:
+		reef_life.call(&"scare_at", pos, 14.0 * size)
 	get_tree().create_timer(2.0).timeout.connect(p.queue_free)
 
 func _foam_ring(pos: Vector3, size: float) -> void:
