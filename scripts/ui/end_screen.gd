@@ -21,7 +21,7 @@ func _init() -> void:
 func _ready() -> void:
 	theme = UITheme.get_theme()
 	var dim := ColorRect.new()
-	dim.color = Color(0.02, 0.03, 0.03, 0.72)
+	dim.color = Color(0.02, 0.03, 0.03, 0.84)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	var v := VBoxContainer.new()
@@ -105,6 +105,10 @@ func _player_team() -> int:
 
 func _set_player_ui(open: bool) -> void:
 	var p := get_tree().get_first_node_in_group(&"player")
+	# HUD игрока (экран гибели) не должен просвечивать под итогом.
+	var h: Variant = p.get(&"hud") if p else null
+	if h is CanvasLayer:
+		(h as CanvasLayer).visible = not open
 	if p and p.has_method(&"set_ui_open"):
 		p.call(&"set_ui_open", open)
 	elif DisplayServer.get_name() != "headless":
