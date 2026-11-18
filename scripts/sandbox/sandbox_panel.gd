@@ -186,6 +186,10 @@ func _tools_col() -> Control:
 	ba.text = "Создать бота на арене"
 	ba.pressed.connect(func() -> void: _spawn_bot(true))
 	col.add_child(ba)
+	var tm := Button.new()
+	tm.text = "Приручить животное у прицела"
+	tm.pressed.connect(_tame_aimed)
+	col.add_child(tm)
 	var sup := Button.new()
 	sup.text = "Посылка спонсора у прицела"
 	sup.pressed.connect(_drop_supply)
@@ -193,7 +197,7 @@ func _tools_col() -> Control:
 	col.add_child(_gap())
 	col.add_child(UITheme.label("Сбросить зону", 15, UITheme.ACCENT, true))
 	_reset_opt = OptionButton.new()
-	for id: StringName in [&"fauna", &"items", &"range", &"build", &"bridge", &"survival", &"beach"]:
+	for id: StringName in [&"flora", &"fauna", &"items", &"range", &"build", &"bridge", &"survival", &"beach"]:
 		_reset_opt.add_item(_zone_name(id))
 		_reset_opt.set_item_metadata(_reset_opt.item_count - 1, id)
 	col.add_child(_reset_opt)
@@ -418,4 +422,29 @@ func _drop_supply() -> void:
 	p.y = maxf(world.height_at(p.x, p.z), world.water_level())
 	sup.call(&"drop_now", p)
 	_toast("Самолёт со сбросом летит — смотрите в небо")
+	close_panel()
+
+## Приручить ближайшее к прицелу животное (в 6 м от точки прицела).
+func _tame_aimed() -> void:
+	var fa := Fauna.instance()
+	if fa == null:
+		return
+	var p := aim_point()
+	var best: Animal = null
+	var bd := 6.0
+	for a in fa.animals_near(p, 6.0):
+		if a.tamed:
+			continue
+		var d := a.global_position.distance_to(p)
+		if d < bd:
+			bd = d
+			best = a
+	if best == null:
+		_toast("Наведите прицел на животное")
+		return
+	if not bool(best.cfg.get("tame", false)):
+		_toast("%s не приручается" % String(best.cfg.get("name", best.species)))
+		return
+	fa.tame(best, player)
+	_toast("%s приручен(а) — идёт за вами" % String(best.cfg.get("name", best.species)))
 	close_panel()

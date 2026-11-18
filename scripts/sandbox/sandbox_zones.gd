@@ -38,6 +38,11 @@ var _roots: Dictionary = {}       # id → Node3D (статичные постр
 var _ext: Dictionary = {}         # id → Array[Node] (животные, чертежи, станции, предметы)
 var _dummies: Array = []          # [{dummy, label, n}]
 var _bridge_info: Dictionary = {}
+var _pens: Array = []             # [{a: Animal, c: Vector3, r: float}] — загоны держат животных
+const FLORA_AREA := Rect2(-100.0, -95.0, 75.0, 50.0)
+
+func _ready() -> void:
+	process_physics_priority = 50   # после Fauna: поправляем позицию за оградой
 
 # ------------------------------------------------------------ раскладка флоры (до populate)
 
@@ -112,11 +117,13 @@ func reset_zone(id: StringName) -> void:
 		if is_instance_valid(n):
 			(n as Node).queue_free()
 	_dummies = _dummies.filter(func(d: Dictionary) -> bool: return is_instance_valid(d.dummy) and not (d.dummy as Node).is_queued_for_deletion())
+	if id == &"flora":
+		var fl := Flora.instance()
+		if fl is SandboxFlora:
+			(fl as SandboxFlora).reset_showcase(FLORA_AREA)
 	await get_tree().process_frame
 	await get_tree().process_frame
 	build_zone(id)
-	if id == &"fauna" and player:
-		tame_demo()
 
 func _point(id: StringName, name_: String, pos: Vector3, look: Vector3) -> void:
 	if not points.has(id):
@@ -207,10 +214,9 @@ func _fauna(root: Node3D) -> void:
 		P.pen(root, s.x, s.y, r)
 		var nm := sp as String
 		if fa:
-			var a := fa.spawn(sp, Vector3(s.x, P.ground(s.x, s.y) + 0.3, s.y), r * 0.45)
+			var a := _penned(fa, sp, s, r)
 			if a:
 				nm = String(a.cfg.get("name", sp))
-				_own(&"fauna", a)
 		P.tag(root, s.x, s.y + r + 0.4, nm, 1.5, 30.0)
 	# птицы — стайками над зоной
 	if fa:
@@ -227,19 +233,39 @@ func _fauna(root: Node3D) -> void:
 			foods.append(id)
 	_lay(&"fauna", root, t, foods, 3)
 	P.tag(root, 71.0, -42.0, "Корм для приручения", 1.5, 30.0)
-	_stand(&"fauna", "Животные", 60.0, -39.0, 60.0, -62.0, 0.5)
+	# загон приручения: дикий кабан, корм на столе рядом
+	P.pen(root, 62.0, -43.0, 3.6)
+	if fa:
+		_penned(fa, &"boar", Vector2(62.0, -43.0), 3.6)
+	P.tag(root, 62.0, -39.0, "Приручение: дайте кабану корм с руки (E)\nили меню F1 → «Приручить у прицела»", 1.5, 30.0)
+	_stand(&"fauna", "Животные", 60.0, -36.0, 60.0, -62.0, 0.5)
 
-## Приручённый кабан у таблички (нужен игрок).
-func tame_demo() -> void:
-	var fa := Fauna.instance()
-	if fa == null or player == null:
-		return
-	var p := Vector3(50.0, P.ground(50.0, -42.0) + 0.3, -42.0)
-	var a := fa.spawn(&"boar", p, 4.0)
+## Животное в загоне: держится внутри ограды, пока не приручено.
+func _penned(fa: Fauna, sp: StringName, s: Vector2, r: float) -> Animal:
+	var a := fa.spawn(sp, Vector3(s.x, P.ground(s.x, s.y) + 0.3, s.y), r * 0.45)
 	if a:
-		fa.tame(a, player)
 		_own(&"fauna", a)
-		P.tag(_roots[&"fauna"], 50.0, -42.0, "Приручённый кабан — идёт за вами", 1.6, 30.0)
+		_pens.append({"a": a, "c": Vector3(s.x, 0.0, s.y), "r": maxf(0.6, r - 0.5)})
+	return a
+
+func _physics_process(_delta: float) -> void:
+	for e: Dictionary in _pens:
+		var a: Variant = e.a
+		if not is_instance_valid(a):
+			continue
+		var an := a as Animal
+		if an.tamed or an.is_queued_for_deletion():
+			continue
+		var c: Vector3 = e.c
+		var off := Vector2(an.global_position.x - c.x, an.global_position.z - c.z)
+		var lim: float = e.r
+		if off.length() > lim:
+			off = off.normalized() * lim
+			var p := an.global_position
+			p.x = c.x + off.x
+			p.z = c.z + off.y
+			an.global_position = p
+	_pens = _pens.filter(func(e: Dictionary) -> bool: return is_instance_valid(e.a))
 
 # ------------------------------------------------------------ предметы
 

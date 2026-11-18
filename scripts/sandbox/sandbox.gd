@@ -78,7 +78,6 @@ func _ready() -> void:
 	add_child(player)
 	zones.player = player
 	player.inventory.select(Inventory.HOTBAR - 1) # руки свободны — ничего не заслоняет вид
-	zones.tame_demo()
 	cheats = SandboxCheats.new()
 	cheats.name = "Cheats"
 	add_child(cheats)

@@ -136,6 +136,62 @@ func run() -> void:
 	p.apply_damage(60.0, null, &"melee")
 	await wait(0.3)
 	check(p.alive and p.health > 99.0, "бессмертие восстанавливает здоровье")
+	# загоны держат животных (не приручённых)
+	await wait(15.0)
+	var out := 0
+	var penned := 0
+	for e: Dictionary in z._pens:
+		var a := e.a as Animal
+		if not is_instance_valid(a) or a.tamed:
+			continue
+		penned += 1
+		var c: Vector3 = e.c
+		if Vector2(a.global_position.x - c.x, a.global_position.z - c.z).length() > float(e.r) + 0.05:
+			out += 1
+	check(penned >= 11 and out == 0, "животные в загонах: %d, за оградой: %d" % [penned, out])
+	var tamed := 0
+	for a in fa.animals:
+		if is_instance_valid(a) and a.tamed:
+			tamed += 1
+	check(tamed == 0, "по умолчанию никто не приручён (%d)" % tamed)
+	# приручение по запросу: кабан в загоне приручения
+	var boar: Animal = null
+	for e: Dictionary in z._pens:
+		if is_instance_valid(e.a) and (e.c as Vector3).distance_to(Vector3(62, 0, -43)) < 0.5:
+			boar = e.a
+	if boar:
+		fa.tame(boar, p)
+		await wait(0.3)
+		check(boar.tamed, "кабан приручается по запросу")
+	# сброс зоны растений: срубленное дерево снова стоит
+	var fl := Flora.instance() as SandboxFlora
+	var rec: Dictionary = {}
+	for r: Dictionary in fl.get(&"_show_recs"):
+		if r.t == Flora.T_TREE and r.kind == &"palm":
+			rec = r
+			break
+	var tree := fl.promote(rec)
+	check(tree != null, "дерево из ряда просыпается")
+	if tree:
+		var hp := tree.global_position + Vector3(0, 1.0, 0)
+		var guard := 0
+		while not tree.felled and guard < 200:
+			tree.on_hit(p, {"position": hp})
+			guard += 1
+		await wait(3.0)
+		check(int(rec.state) == 1, "дерево срублено (пень)")
+		await z.reset_zone(&"flora")
+		await wait(1.0)
+		check(int(rec.state) == 0 and (rec.node == null or not is_instance_valid(rec.node) or (rec.node as ChoppableTree).is_pristine()),
+				"сброс зоны вернул дерево")
+		var trunks := 0
+		for n in get_tree().get_nodes_in_group(&"fallen_trunks"):
+			if SandboxZones.FLORA_AREA.has_point(Vector2((n as Node3D).global_position.x, (n as Node3D).global_position.z)) and not n.is_queued_for_deletion():
+				trunks += 1
+		check(trunks == 0, "поваленные стволы убраны (%d)" % trunks)
+		sb.panel.go(&"flora")
+		await wait(1.5)
+		await shot("96_flora_reset")
 	# урон по чучелу показывает число
 	var dm := get_tree().get_nodes_in_group(&"dummies")[0] as TrainingDummy
 	dm.apply_damage(25.0, p, &"melee")
