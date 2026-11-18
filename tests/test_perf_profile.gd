@@ -65,6 +65,56 @@ func _geometry_census() -> void:
 	log_line("geometry (visible_in_tree): module:class  count  no_range  shadow  mm_instances")
 	for i in mini(40, rows.size()):
 		log_line("  %-48s %6d %6d %6d %8d" % rows[i])
+	_in_range_census()
+
+## Что реально попадает в отрисовку от камеры игрока: узлы в пределах своей
+## visibility_range и в пирамиде камеры, по имени узла без цифр.
+func _in_range_census() -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var cp := cam.global_position
+	var re := RegEx.new()
+	re.compile("[0-9_\\-|]+")
+	var by: Dictionary = {}
+	var stack: Array[Node] = [scene]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for ch in n.get_children():
+			stack.append(ch)
+		if not (n is GeometryInstance3D) or not (n as GeometryInstance3D).is_visible_in_tree():
+			continue
+		var gi := n as GeometryInstance3D
+		var ab := gi.get_aabb()
+		var center := gi.global_transform * ab.get_center()
+		var d := center.distance_to(cp)
+		if gi.visibility_range_end > 0.0 and d > gi.visibility_range_end + gi.visibility_range_end_margin:
+			continue
+		if d < gi.visibility_range_begin - gi.visibility_range_begin_margin:
+			continue
+		var rad := ab.size.length() * 0.5 * gi.global_transform.basis.get_scale().length() / 1.732
+		var fr := cam.get_frustum()
+		var inside := true
+		for pl: Plane in fr:
+			if pl.distance_to(center) > rad:
+				inside = false
+				break
+		var parts := String(scene.get_path_to(n)).split("/")
+		var key := parts[0] + "/" + re.sub(String(n.name), "", true).left(20) + ":" + n.get_class().left(14)
+		var c: Array = by.get(key, [0, 0, 0])
+		c[0] += 1
+		if inside:
+			c[1] += 1
+		if gi.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+			c[2] += 1
+		by[key] = c
+	var rows: Array = []
+	for k: String in by:
+		rows.append([k] + (by[k] as Array))
+	rows.sort_custom(func(a: Array, b: Array) -> bool: return a[1] > b[1])
+	log_line("in range of camera: name  in_range  in_frustum  shadow")
+	for i in mini(30, rows.size()):
+		log_line("  ~%-46s %6d %6d %6d" % rows[i])
 
 func run() -> void:
 	check(await _match_ready(), "матч загрузился")

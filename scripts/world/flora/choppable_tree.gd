@@ -48,6 +48,7 @@ func setup(v: Dictionary) -> void:
 func _ready() -> void:
 	add_to_group(&"choppable")
 	add_to_group(&"trees")
+	set_process(false) # _process нужен только во время тряски кроны (_shake включает)
 	_trunk = MeshInstance3D.new()
 	_trunk.name = "Trunk"
 	_trunk.mesh = _trunk_full_mesh()
