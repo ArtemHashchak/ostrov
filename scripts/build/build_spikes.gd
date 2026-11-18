@@ -26,24 +26,40 @@ func _physics_process(delta: float) -> void:
 	_scan_t = SCAN
 	var now := BuildEnv.now()
 	var inv := global_transform.affine_inverse()
+	for n in _victims(get_tree()):
+		if not is_instance_valid(n):
+			continue
+		if _friendly(n):
+			continue
+		var l: Vector3 = inv * (n as Node3D).global_position
+		if absf(l.x) > 1.55 or l.y < -0.6 or l.y > 1.4 or l.z < -0.3 or l.z > 1.45:
+			continue
+		var id := n.get_instance_id()
+		if now - float(_last_hit.get(id, -99.0)) < COOLDOWN:
+			continue
+		_last_hit[id] = now
+		_stab(n as Node3D)
+		if not is_armed():
+			return
+
+# Общий на все колья список целей, пересобирается раз в кадр (а не 3 запроса групп на каждый кол).
+static var _vic_frame := -1
+static var _vic: Array[Node3D] = []
+
+static func _victims(tree: SceneTree) -> Array[Node3D]:
+	var f := Engine.get_physics_frames()
+	if f == _vic_frame:
+		return _vic
+	_vic_frame = f
+	_vic.clear()
 	var seen := {}
 	for g: StringName in [&"characters", &"player", &"animals"]:
-		for n in get_tree().get_nodes_in_group(g):
+		for n in tree.get_nodes_in_group(g):
 			if seen.has(n) or not (n is Node3D) or not n.has_method(&"apply_damage"):
 				continue
 			seen[n] = true
-			if _friendly(n):
-				continue
-			var l: Vector3 = inv * (n as Node3D).global_position
-			if absf(l.x) > 1.55 or l.y < -0.6 or l.y > 1.4 or l.z < -0.3 or l.z > 1.45:
-				continue
-			var id := n.get_instance_id()
-			if now - float(_last_hit.get(id, -99.0)) < COOLDOWN:
-				continue
-			_last_hit[id] = now
-			_stab(n as Node3D)
-			if not is_armed():
-				return
+			_vic.append(n as Node3D)
+	return _vic
 
 func _friendly(n: Node) -> bool:
 	if n.has_method(&"is_dead") and bool(n.call(&"is_dead")):

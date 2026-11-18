@@ -226,6 +226,24 @@ func _perf_process(delta: float) -> void:
 	for t in Game.teams:
 		if minimap.is_discovered(t.id):
 			big_map.discover(t.id)
+	# строки флагов и таймер — 5 раз в секунду (смена текста Label каждый кадр дорого стоит из-за перекладки)
+	_rows_t -= delta
+	if _rows_t <= 0.0:
+		_rows_t = 0.2
+		_update_rows()
+	_compass.queue_redraw()
+	_banner_t = maxf(0.0, _banner_t - delta)
+	_banner.modulate.a = clampf(_banner_t, 0.0, 1.0)
+	for l in _feed.get_children():
+		var ttl := float(l.get_meta(&"ttl", FEED_TIME)) - delta
+		l.set_meta(&"ttl", ttl)
+		(l as Control).modulate.a = clampf(ttl, 0.0, 1.0)
+		if ttl <= 0.0:
+			l.queue_free()
+
+var _rows_t := 0.0
+
+func _update_rows() -> void:
 	for r in _flag_rows:
 		var t = Game.teams[int(r.team)] if int(r.team) < Game.teams.size() else null
 		if t == null:
@@ -249,15 +267,6 @@ func _perf_process(delta: float) -> void:
 		_timer.add_theme_color_override(&"font_color", UITheme.DANGER if Game.time_left() < 300.0 else UITheme.TEXT)
 	else:
 		_timer.text = fmt_time(Game.match_time) + " · до последнего флага"
-	_compass.queue_redraw()
-	_banner_t = maxf(0.0, _banner_t - delta)
-	_banner.modulate.a = clampf(_banner_t, 0.0, 1.0)
-	for l in _feed.get_children():
-		var ttl := float(l.get_meta(&"ttl", FEED_TIME)) - delta
-		l.set_meta(&"ttl", ttl)
-		(l as Control).modulate.a = clampf(ttl, 0.0, 1.0)
-		if ttl <= 0.0:
-			l.queue_free()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"map") and not get_tree().paused:

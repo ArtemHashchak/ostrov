@@ -101,8 +101,13 @@ func _perf_process(delta: float) -> void:
 	if _bridge_t <= 0.0:
 		_bridge_t = 1.0
 		_collect_bridges()
-	if is_visible_in_tree():
+	# перерисовка ~20 раз в секунду: стрелка игрока всё равно движется плавно
+	_redraw_t -= delta
+	if is_visible_in_tree() and _redraw_t <= 0.0:
+		_redraw_t = 0.05
 		queue_redraw()
+
+var _redraw_t := 0.0
 
 func _exit_tree() -> void:
 	if _task >= 0:
