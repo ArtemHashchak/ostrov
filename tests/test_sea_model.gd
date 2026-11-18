@@ -6,6 +6,8 @@ func _init() -> void:
 	timeout_sec = 120.0
 
 func run() -> void:
+	# тест процедурной модели (запасной вариант): модель пака проверяет test_sea_pack_shark
+	SharkModel.use_pack = false
 	var root := Node3D.new()
 	add_child(root)
 	var env := WorldEnvironment.new()
