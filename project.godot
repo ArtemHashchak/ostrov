@@ -7,7 +7,7 @@ config_version=5
 
 config/name="Острова"
 config/description="Выживание на архипелаге: защити флаг, строй мосты, переживи акул."
-run/main_scene="res://scenes/test/test_island.tscn"
+run/main_scene="res://scenes/ui/main_menu.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 
 [autoload]

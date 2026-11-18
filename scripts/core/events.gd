@@ -26,3 +26,8 @@ signal toast(text: String)
 # --- инвентарь / крафт ---
 signal inventory_changed(owner: Node)
 signal item_crafted(owner: Node, item_id: StringName, count: int)
+
+# --- стройка (добавил BUILD) ---
+signal structure_completed(node: Node, def_id: StringName)
+signal structure_destroyed(node: Node, def_id: StringName, by: Node)
+signal blueprint_placed(node: Node, def_id: StringName)

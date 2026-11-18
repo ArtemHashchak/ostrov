@@ -1,0 +1,503 @@
+class_name Sea
+extends Node3D
+## Модуль «Море»: заселяет воду акулами и стаями рыб, ищет им добычу, отвечает за
+## укусы (общий лимит на цель — стая убивает пловца ~за 10 с), кровь и приманку,
+## всплески. Узел в группе `sea`. Мир берётся из узла группы `world` (CONTRACT_G1),
+## запасной вариант — любой узел сцены с height_at().
+##
+## API: sharks_near(pos, r), threat_at(pos), add_blood(pos, strength), add_bait(pos, sec),
+## splash(pos, size), is_prey(node), water_y(), depth_at(x, z), floor_at(x, z).
+## Сигналы: shark_bite(shark, target, damage), shark_died(shark, killer).
+
+signal shark_bite(shark: Shark, target: Node, damage: float)
+signal shark_died(shark: Shark, killer: Node)
+
+const FRENZY_RADIUS := 110.0
+const BITE_COOLDOWN := 0.55        # не чаще одного укуса по цели (вся стая)
+const BLOOD_TIME := 9.0            # сколько живёт след крови
+const DECK_LOW := 1.0              # настил ниже — акулы достают людей на нём
+const LOD_NEAR := 140.0
+const LOD_FAR := 280.0
+const SPLASH_SOUND := "res://assets/sounds/sfx-kit/props-splash.wav"
+
+@export var density: float = 1.0
+@export var auto_populate: bool = true
+@export var fish_schools_per_island: int = 5
+@export var underwater_fx: bool = true
+
+var sharks: Array[Shark] = []
+var schools: Array[FishSchool] = []
+var world: Node = null
+
+var _bite_next: Dictionary = {}     # instance_id → время следующего укуса
+var _hurt_t: Dictionary = {}        # instance_id → время последнего ранения
+var _blood: Array[Dictionary] = []  # {pos, t, s}
+var _baits: Array[Dictionary] = []  # {pos, t}
+var _in_water: Dictionary = {}      # instance_id → bool (для всплесков)
+var _time: float = 0.0
+var _far_acc: float = 0.0
+var _rng := RandomNumberGenerator.new()
+var _splash_players: Array[AudioStreamPlayer3D] = []
+var _splash_i: int = 0
+var _fallback_islands: Array[Dictionary] = []
+
+func _ready() -> void:
+	add_to_group(&"sea")
+	_rng.seed = 7331
+	if Events.has_signal(&"character_damaged"):
+		Events.character_damaged.connect(_on_character_damaged)
+	for i in 4:
+		var a := AudioStreamPlayer3D.new()
+		if ResourceLoader.exists(SPLASH_SOUND):
+			a.stream = load(SPLASH_SOUND)
+		a.unit_size = 6.0
+		a.max_distance = 80.0
+		add_child(a)
+		_splash_players.append(a)
+	if underwater_fx:
+		var fx := UnderwaterFX.new()
+		fx.sea = self
+		add_child(fx)
+	if auto_populate:
+		call_deferred(&"_auto_start")
+
+func _auto_start() -> void:
+	_find_world()
+	if world and world.has_signal(&"world_ready") and world.has_method(&"islands") and (world.call(&"islands") as Array).is_empty():
+		world.connect(&"world_ready", populate, CONNECT_ONE_SHOT)
+	else:
+		populate()
+
+# ---------------- мир ----------------
+func _find_world() -> void:
+	world = get_tree().get_first_node_in_group(&"world")
+	if world == null:
+		world = _find_with_height(get_tree().current_scene)
+	if world == null:
+		world = _find_with_height(get_tree().root)
+
+func _find_with_height(n: Node) -> Node:
+	if n == null:
+		return null
+	if n.has_method(&"height_at") and n != self:
+		return n
+	for c in n.get_children():
+		var r := _find_with_height(c)
+		if r:
+			return r
+	return null
+
+func water_y() -> float:
+	if world and world.has_method(&"water_level"):
+		return float(world.call(&"water_level"))
+	return 0.0
+
+func floor_at(x: float, z: float) -> float:
+	if world and world.has_method(&"height_at"):
+		return float(world.call(&"height_at", x, z))
+	return -12.0
+
+func depth_at(x: float, z: float) -> float:
+	return water_y() - floor_at(x, z)
+
+func islands() -> Array[Dictionary]:
+	if world and world.has_method(&"islands"):
+		var arr: Array = world.call(&"islands")
+		if not arr.is_empty():
+			var out: Array[Dictionary] = []
+			for d in arr:
+				out.append(d)
+			return out
+	if _fallback_islands.is_empty():
+		_fallback_islands = _detect_islands()
+	return _fallback_islands
+
+## Запасной вариант: один остров в начале координат, радиус — где дно уходит ниже -1 м.
+func _detect_islands() -> Array[Dictionary]:
+	var r := 0.0
+	for k in 8:
+		var a := TAU * k / 8.0
+		var d := 5.0
+		while d < 400.0 and depth_at(cos(a) * d, sin(a) * d) < 1.0:
+			d += 2.0
+		r += d
+	r /= 8.0
+	return [{"id": 0, "kind": "home", "team": 0, "center": Vector2.ZERO, "radius": r}]
+
+# ---------------- заселение ----------------
+func populate() -> void:
+	for s in sharks:
+		if is_instance_valid(s):
+			s.queue_free()
+	sharks.clear()
+	for f in schools:
+		if is_instance_valid(f):
+			f.queue_free()
+	schools.clear()
+	var isl := islands()
+	var seed_i := 100
+	for d in isl:
+		var c: Vector2 = d["center"]
+		var r: float = d["radius"]
+		var circ := TAU * (r + 30.0)
+		var n := maxi(2, int(round(circ / 70.0 * density)))
+		for i in n:
+			var roll := _rng.randf()
+			var sp: StringName = &"reef" if roll < 0.62 else (&"tiger" if roll < 0.93 else &"white")
+			var ring := r + (_rng.randf_range(10.0, 30.0) if sp == &"reef" else _rng.randf_range(25.0, 60.0))
+			seed_i += 1
+			spawn_shark(sp, c, ring, seed_i)
+		for k in fish_schools_per_island:
+			var a := _rng.randf() * TAU
+			var rr := r + _rng.randf_range(6.0, 26.0)
+			var pos := Vector3(c.x + cos(a) * rr, 0.0, c.y + sin(a) * rr)
+			_spawn_school(pos, k)
+	# проливы между близкими островами — ещё акулы (в т.ч. крупные)
+	for i in isl.size():
+		for j in range(i + 1, isl.size()):
+			var a: Vector2 = isl[i]["center"]
+			var b: Vector2 = isl[j]["center"]
+			var gap := a.distance_to(b) - float(isl[i]["radius"]) - float(isl[j]["radius"])
+			if gap < 180.0:
+				var mid := (a + b) * 0.5
+				for k in maxi(1, int(2 * density)):
+					seed_i += 1
+					spawn_shark(&"tiger" if _rng.randf() < 0.7 else &"white", mid, maxf(gap * 0.25, 12.0), seed_i)
+
+func spawn_shark(sp: StringName, center: Vector2, ring: float, seed_i: int) -> Shark:
+	var s := Shark.new()
+	s.setup(sp, self, center, ring, seed_i)
+	add_child(s)
+	var a := _rng.randf() * TAU
+	var p := Vector3(center.x + cos(a) * ring, 0.0, center.y + sin(a) * ring)
+	var tries := 0
+	while depth_at(p.x, p.z) < 3.0 and tries < 12:
+		ring += 6.0
+		p = Vector3(center.x + cos(a) * ring, 0.0, center.y + sin(a) * ring)
+		tries += 1
+	s.home_r = ring
+	p.y = water_y() - clampf(depth_at(p.x, p.z) * 0.45, 1.3, 4.5)
+	s.global_position = p
+	s.yaw = a + PI * 0.5 * s.orbit_dir
+	sharks.append(s)
+	return s
+
+func _spawn_school(pos: Vector3, k: int) -> void:
+	var f := FishSchool.new()
+	f.count = 28 + (k * 7) % 24
+	f.palette = k % FishSchool.PALETTES.size()
+	f.radius = 1.6 + (k % 3) * 0.6
+	f.fish_length = 0.22 + (k % 3) * 0.06
+	f.water_level = water_y()
+	var d := depth_at(pos.x, pos.z)
+	pos.y = water_y() - clampf(d * 0.5, 1.0, 4.0)
+	f.center = pos
+	f.roam = 9.0
+	f.floor_func = floor_at
+	add_child(f)
+	schools.append(f)
+
+# ---------------- добыча ----------------
+func is_prey(n: Node3D) -> bool:
+	if not is_instance_valid(n) or not n.is_inside_tree():
+		return false
+	if n.has_method(&"is_dead") and n.call(&"is_dead"):
+		return false
+	if n is Shark:
+		return false
+	if n.has_method(&"is_in_water") and n.call(&"is_in_water"):
+		return true
+	return _on_low_deck(n)
+
+func _on_low_deck(n: Node3D) -> bool:
+	var p := n.global_position
+	if p.y - water_y() > DECK_LOW + 1.0:
+		return false
+	for deck in get_tree().get_nodes_in_group(&"raft_deck"):
+		var d3 := deck as Node3D
+		if d3 == null or not deck.has_method(&"deck_height"):
+			continue
+		if float(deck.call(&"deck_height")) >= DECK_LOW:
+			continue
+		var q := d3.global_position
+		if Vector2(p.x - q.x, p.z - q.z).length() < 2.6 and p.y - q.y < 2.2 and p.y - q.y > -0.6:
+			return true
+	return false
+
+func _bleeding(n: Node) -> bool:
+	var id := n.get_instance_id()
+	if _hurt_t.has(id) and _time - float(_hurt_t[id]) < BLOOD_TIME:
+		return true
+	if "health" in n and "max_health" in n:
+		return float(n.get("health")) < float(n.get("max_health")) * 0.6
+	return false
+
+## Лучшая цель для акулы: {node, kind, blood} или {}.
+func find_prey(s: Shark) -> Dictionary:
+	var best: Node3D = null
+	var best_score := 0.0
+	var kind := &"swim"
+	var blood := false
+	var sense: float = s.cfg["sense"]
+	for n in get_tree().get_nodes_in_group(&"characters"):
+		var c := n as Node3D
+		if c == null or not is_prey(c):
+			continue
+		var bl := _bleeding(c)
+		var r := sense * (2.3 if bl else 1.0)
+		var d := c.global_position.distance_to(s.global_position)
+		if d > r:
+			continue
+		var score := (r - d) / r + (0.5 if bl else 0.0)
+		var on_deck: bool = not (c.has_method(&"is_in_water") and bool(c.call(&"is_in_water")))
+		if on_deck:
+			score *= 0.7
+		if score > best_score:
+			best_score = score
+			best = c
+			kind = &"deck" if on_deck else &"swim"
+			blood = bl
+	if best == null:
+		return {}
+	return {"node": best, "kind": kind, "blood": blood}
+
+## Укус с общим ограничением частоты на цель. true — укус состоялся.
+func try_bite(s: Shark, target: Node3D) -> bool:
+	if not is_prey(target):
+		return false
+	var id := target.get_instance_id()
+	if _bite_next.has(id) and _time < float(_bite_next[id]):
+		return false
+	_bite_next[id] = _time + BITE_COOLDOWN
+	var dmg: float = s.cfg["bite"]
+	var on_deck: bool = not (target.has_method(&"is_in_water") and bool(target.call(&"is_in_water")))
+	if on_deck:
+		if _rng.randf() < 0.35:
+			return false   # промахнулась, прыгая на настил
+		dmg = maxf(dmg * 0.8, 12.0)
+	elif s.frenzy > 0.0:
+		dmg *= 1.25   # стая в бешенстве рвёт сильнее
+	if target.has_method(&"apply_damage"):
+		target.call(&"apply_damage", dmg, s, &"bite")
+	add_blood(target.global_position, dmg, true)
+	splash(Vector3(target.global_position.x, water_y(), target.global_position.z), 1.2 if on_deck else 0.9)
+	# стащить с настила в воду (если персонаж умеет)
+	if on_deck and _rng.randf() < 0.25 and target.has_method(&"knock_into_water"):
+		target.call(&"knock_into_water", s.global_position)
+	# бешенство стаи: соседи бросаются на ту же жертву
+	for o in sharks:
+		if o != s and is_instance_valid(o) and o.global_position.distance_to(target.global_position) < FRENZY_RADIUS:
+			o.alert(target, &"deck" if on_deck else &"swim")
+	s.frenzy = 12.0
+	shark_bite.emit(s, target, dmg)
+	return true
+
+func on_shark_died(s: Shark, killer: Node) -> void:
+	sharks.erase(s)
+	shark_died.emit(s, killer)
+
+# ---------------- кровь, приманка, всплески ----------------
+func _on_character_damaged(ch: Node, amount: float, _source: Node) -> void:
+	if ch is Node3D and ch.has_method(&"is_in_water") and ch.call(&"is_in_water"):
+		_hurt_t[ch.get_instance_id()] = _time
+		add_blood((ch as Node3D).global_position, amount, true)
+
+func add_blood(pos: Vector3, strength: float, visible_cloud: bool = true) -> void:
+	_blood.append({"pos": pos, "t": _time, "s": strength})
+	if _blood.size() > 40:
+		_blood.pop_front()
+	if visible_cloud and pos.y < water_y() + 0.5:
+		_blood_cloud(pos, strength)
+
+func add_bait(pos: Vector3, seconds: float = 40.0) -> void:
+	_baits.append({"pos": pos, "t": _time + seconds})
+
+## Ближайшая точка интереса (кровь/приманка) в радиусе r или null.
+func nearest_attractor(from: Vector3, r: float) -> Variant:
+	var best: Variant = null
+	var bd := r
+	for b in _blood:
+		if _time - float(b["t"]) > BLOOD_TIME:
+			continue
+		var d := from.distance_to(b["pos"])
+		if d < bd:
+			bd = d
+			best = b["pos"]
+	for b in _baits:
+		var d := from.distance_to(b["pos"])
+		if d < bd * 1.3:
+			bd = d
+			best = b["pos"]
+	return best
+
+func sharks_near(pos: Vector3, r: float) -> Array[Shark]:
+	var out: Array[Shark] = []
+	for s in sharks:
+		if is_instance_valid(s) and not s.is_dead() and s.global_position.distance_to(pos) <= r:
+			out.append(s)
+	return out
+
+## Опасность воды в точке 0..1 (для ботов и подсказок).
+func threat_at(pos: Vector3) -> float:
+	var t := 0.0
+	for s in sharks:
+		if not is_instance_valid(s) or s.is_dead():
+			continue
+		var d := Vector2(s.global_position.x - pos.x, s.global_position.z - pos.z).length()
+		var r: float = s.cfg["sense"]
+		if d < r * 1.5:
+			t += (1.0 - d / (r * 1.5)) * (0.5 + float(s.cfg["bite"]) / 30.0)
+	return clampf(t, 0.0, 1.0)
+
+static var _soft_tex: GradientTexture2D = null
+
+## Мягкий круглый «клуб» для частиц (billboard).
+static func soft_material(col: Color, unshaded: bool = true) -> StandardMaterial3D:
+	if _soft_tex == null:
+		var g := Gradient.new()
+		g.set_color(0, Color(1, 1, 1, 1))
+		g.set_color(1, Color(1, 1, 1, 0))
+		g.add_point(0.45, Color(1, 1, 1, 0.55))
+		_soft_tex = GradientTexture2D.new()
+		_soft_tex.gradient = g
+		_soft_tex.fill = GradientTexture2D.FILL_RADIAL
+		_soft_tex.fill_from = Vector2(0.5, 0.5)
+		_soft_tex.fill_to = Vector2(1.0, 0.5)
+		_soft_tex.width = 64
+		_soft_tex.height = 64
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = _soft_tex
+	m.albedo_color = col
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	m.vertex_color_use_as_albedo = true
+	if unshaded:
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return m
+
+func splash(pos: Vector3, size: float = 1.0) -> void:
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.emitting = false
+	p.amount = int(24 * size) + 8
+	p.lifetime = 0.9
+	p.explosiveness = 0.95
+	p.direction = Vector3.UP
+	p.spread = 35.0
+	p.initial_velocity_min = 2.5 * size
+	p.initial_velocity_max = 5.0 * size
+	p.gravity = Vector3(0, -12.0, 0)
+	p.scale_amount_min = 0.06 * size
+	p.scale_amount_max = 0.16 * size
+	var mesh := QuadMesh.new()
+	mesh.size = Vector2(1, 1)
+	mesh.material = soft_material(Color(0.95, 0.98, 1.0, 0.9))
+	p.mesh = mesh
+	p.scale_amount_min = 0.12 * size
+	p.scale_amount_max = 0.35 * size
+	add_child(p)
+	p.global_position = pos
+	p.emitting = true
+	_foam_ring(pos, size)
+	var a := _splash_players[_splash_i % _splash_players.size()]
+	_splash_i += 1
+	if a.stream:
+		a.global_position = pos
+		a.pitch_scale = _rng.randf_range(0.85, 1.15) / maxf(size, 0.5)
+		a.play()
+	for f in schools:
+		if is_instance_valid(f) and f.center.distance_to(pos) < 18.0:
+			f.scare(pos, 1.0)
+	get_tree().create_timer(2.0).timeout.connect(p.queue_free)
+
+func _foam_ring(pos: Vector3, size: float) -> void:
+	var mi := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.35 * size
+	tm.outer_radius = 0.6 * size
+	tm.rings = 16
+	tm.ring_segments = 6
+	mi.mesh = tm
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.95, 0.97, 1.0, 0.75)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
+	mi.global_position = Vector3(pos.x, water_y() + 0.03, pos.z)
+	mi.scale = Vector3(1.0, 0.08, 1.0)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(mi, "scale", Vector3(3.2, 0.05, 3.2), 1.6)
+	tw.tween_property(m, "albedo_color:a", 0.0, 1.6)
+	tw.chain().tween_callback(mi.queue_free)
+
+func _blood_cloud(pos: Vector3, strength: float) -> void:
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.amount = 14 + int(strength * 0.6)
+	p.lifetime = 3.5
+	p.explosiveness = 0.8
+	p.direction = Vector3.UP
+	p.spread = 180.0
+	p.initial_velocity_min = 0.2
+	p.initial_velocity_max = 0.9
+	p.gravity = Vector3(0, 0.05, 0)
+	p.damping_min = 0.5
+	p.damping_max = 1.0
+	var curve := Curve.new()
+	curve.add_point(Vector2(0, 0.4))
+	curve.add_point(Vector2(1, 1.6))
+	p.scale_amount_curve = curve
+	var mesh := QuadMesh.new()
+	mesh.size = Vector2(1, 1)
+	mesh.material = soft_material(Color(0.45, 0.02, 0.03, 0.42))
+	p.mesh = mesh
+	p.scale_amount_min = 0.6
+	p.scale_amount_max = 1.3
+	var grad := Gradient.new()
+	grad.set_color(0, Color(1, 1, 1, 0.0))
+	grad.set_color(1, Color(1, 1, 1, 0.0))
+	grad.add_point(0.15, Color(1, 1, 1, 1.0))
+	grad.add_point(0.6, Color(1, 1, 1, 0.6))
+	p.color_ramp = grad
+	add_child(p)
+	p.global_position = Vector3(pos.x, minf(pos.y, water_y() - 0.15), pos.z)
+	p.emitting = true
+	get_tree().create_timer(4.5).timeout.connect(p.queue_free)
+
+# ---------------- цикл ----------------
+func _physics_process(delta: float) -> void:
+	_time += delta
+	var cam := get_viewport().get_camera_3d()
+	var cam_p := cam.global_position if cam else Vector3.ZERO
+	_far_acc += delta
+	var far_tick := _far_acc >= 0.25
+	for s in sharks:
+		if not is_instance_valid(s):
+			continue
+		var d := s.global_position.distance_to(cam_p)
+		var near := d < LOD_NEAR or s.state == Shark.State.ATTACK or s.state == Shark.State.STALK
+		s.visible = d < LOD_FAR
+		if near:
+			s.tick(delta, true)
+		elif far_tick:
+			s.tick(_far_acc, d < LOD_FAR)
+	if far_tick:
+		_far_acc = 0.0
+	# всплески при входе персонажей в воду
+	for n in get_tree().get_nodes_in_group(&"characters"):
+		if not (n is Node3D) or not n.has_method(&"is_in_water"):
+			continue
+		var id := n.get_instance_id()
+		var w: bool = n.call(&"is_in_water")
+		if w and not _in_water.get(id, false):
+			var p := (n as Node3D).global_position
+			splash(Vector3(p.x, water_y(), p.z), 1.0)
+		_in_water[id] = w
+	# протухание приманок
+	for i in range(_baits.size() - 1, -1, -1):
+		if _time > float(_baits[i]["t"]):
+			_baits.remove_at(i)

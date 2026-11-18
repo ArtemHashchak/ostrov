@@ -1,0 +1,20 @@
+# Контракт этапа G1 — первая играбельная версия на Godot
+
+Читать вместе с ARCH.md. Цель G1: реалистичный тропический архипелаг-фрагмент (свой домашний остров + общий соседний + остров соперника, море между ними), рубка с падением деревьев и пнями, переноска брёвен, стройка из брёвен в духе The Forest, мосты — плавучие связки брёвен, флаг и возрождение, акулы, инвентарь/крафт/HUD. Ощущение и графика — как в The Forest (реализм). Мир не восстанавливается. Всё по-русски.
+
+## Межмодульные API (строго эти имена; обращаться через группы/автозагрузки)
+- **Мир** — узел в группе `world` (скрипт WORLD): `height_at(x: float, z: float) -> float`, `normal_at(x, z) -> Vector3`, `biome_at(x, z) -> StringName` ('beach','jungle','meadow','rocky','swamp','water'), `is_land(x, z) -> bool`, `water_level() -> float` (0 + прилив), `wave_height(x, z) -> float`, `islands() -> Array[Dictionary]` ({id, kind:'home'|'shared'|'center', team, center:Vector2, radius}), `spawn_point(team) -> Vector3`, сигнал `world_ready`. Время суток/погода: `time_of_day() -> float` (0..24), `is_night() -> bool`, `weather() -> StringName`.
+- **Урон** — у любого персонажа/животного/постройки метод `apply_damage(amount: float, source: Node, kind: StringName) -> void` (kind: 'melee','axe','bullet','fire','bite','fall','drown','explosion'); у персонажей ещё `health: float`, `max_health: float`, `is_dead() -> bool`, `team: int`. Смерть персонажа → `Events.character_died`.
+- **Удар игрока** — как в ARCH.md: `on_hit(by: Node, hit: Dictionary)`; в hit: `position`, `normal`, `tool: StringName` ('axe','rock','hand','spear'...), `damage: float`.
+- **Инвентарь** — у персонажа узел-ребёнок `Inventory` (скрипт UI/PLAYER-агента, класс `Inventory`): `add(id: StringName, n: int) -> int` (остаток), `remove(id, n) -> bool`, `count(id) -> int`, `has(needs: Dictionary) -> bool`, сигнал `changed`. Получить: `character.get_node("Inventory")`. Выдача ресурса: `Items.give(character, id, n)` — если такой функции нет в Items, используй инвентарь напрямую.
+- **Переноска** — брёвна (группа `log`, RigidBody3D) несёт игрок: `player.set_carrying_log(on, obj)`; несёт до 2 брёвен (стопкой), положить — E в никуда/Q. Чертёж стройки принимает бревно: метод `accept_log(player) -> bool`.
+- **Вода/плавание** — игрок и персонажи: `is_in_water() -> bool`, `is_underwater() -> bool`, `breath: float`. Акулы ищут цели в группе `characters` с `is_in_water()`, а также стоящих на низких плотах (группа `raft_deck`, у узла `deck_height() -> float` над водой).
+- **Флаг** — узел группы `flag` (BUILD): `team: int`, `health`, `apply_damage(...)`; ставит `Game.set_flag_placed(team, node)`; разрушение → `Game`/`Events.flag_destroyed`.
+- **Предметы** (регистрируют модули в Items): `log` (бревно — физический объект, в инвентарь не кладётся), `stick`, `rock`, `leaf`, `rope`, `fiber`, `coconut`, `axe_crude` (самодельный топор), `axe_modern`, `spear`, `flag`, `cloth`, `meat_raw`, `meat_cooked`, `fish_raw`, `water_bottle`.
+
+## Владельцы G1
+- WORLD — scripts/world, scenes/world: архипелаг-фрагмент, рельеф (Terrain3D в Forward+ / запасной меш в compat), пляжи, океан, небо и день/ночь (Sky3D), погода/туман, главная сцена `scenes/world/match.tscn` (заменит test_island как main_scene — попроси координатора).
+- FLORA — scripts/world/flora (подпапка): реалистичные пальмы/тропические деревья/кусты/трава/папоротники, рассадка (MultiMesh), рубка с падением ствола и пнём, распил на брёвна, камни-ресурсы, палки/листья с земли.
+- BUILD — scripts/build: чертежи в духе The Forest (стена из брёвен, платформа/пол, крыша, лестница, дверь, хижина), заполнение брёвнами/палками/камнями, флаг, мост-плот из связанных брёвен на воде (секции, качаются на волнах, ходить можно, горят, ломаются).
+- SEA — scripts/sea: акулы (реалистичная процедурная модель, плавание, атаки), рыбы, всплеск/пена.
+- PLAYER/UI — scripts/player + scripts/ui: инвентарь (класс Inventory), хотбар, крафт, HUD (здоровье/голод/жажда/выносливость), плавание и ныряние у игрока, модели инструментов (топор, копьё), улучшенные руки, меню паузы.

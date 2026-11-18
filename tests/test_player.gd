@@ -57,7 +57,9 @@ func run() -> void:
 	await wait(3.5)
 	check(p.stamina > 30.0, "выносливость восстанавливается: %.0f" % p.stamina)
 
-	# Прыжок.
+	# Прыжок (после бега игрок мог заплыть в море — возвращаем на сушу).
+	p.global_position = Vector3(0.0, float(scene.call(&"height_at", 0.0, 0.0)) + 0.2, 0.0)
+	await wait(0.5)
 	var y0 := p.global_position.y
 	var top := y0
 	await tap(&"jump")

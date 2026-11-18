@@ -17,6 +17,26 @@ static func make(water_level: float = 0.0) -> ShaderMaterial:
 	m.set_shader_parameter(&"water_level", water_level)
 	return m
 
+## Тропический рельеф архипелага (веса биомов — в цвете вершин).
+static func make_tropic(water_level: float = 0.0) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = load("res://scripts/world/shaders/terrain_tropic.gdshader") as Shader
+	m.set_shader_parameter(&"sand_albedo", _t("coast_sand_01", "albedo"))
+	m.set_shader_parameter(&"sand_normal", _t("coast_sand_01", "normal"))
+	m.set_shader_parameter(&"wet_albedo", _t("damp_sand", "albedo"))
+	m.set_shader_parameter(&"grass_albedo", _t("leafy_grass", "albedo"))
+	m.set_shader_parameter(&"grass_normal", _t("leafy_grass", "normal"))
+	m.set_shader_parameter(&"jungle_albedo", _t("forest_leaves_02", "albedo"))
+	m.set_shader_parameter(&"jungle_normal", _t("forest_leaves_02", "normal"))
+	m.set_shader_parameter(&"mud_albedo", _t("brown_mud_leaves_01", "albedo"))
+	m.set_shader_parameter(&"rock_albedo", _t("cliff_side", "albedo"))
+	m.set_shader_parameter(&"rock_normal", _t("cliff_side", "normal"))
+	m.set_shader_parameter(&"seabed_albedo", _t("coral_gravel", "albedo"))
+	m.set_shader_parameter(&"volc_albedo", _t("dark_rock", "albedo"))
+	m.set_shader_parameter(&"volc_normal", _t("dark_rock", "normal"))
+	m.set_shader_parameter(&"water_level", water_level)
+	return m
+
 ## PBR-материал из набора (albedo/normal/roughness/ao).
 static func pbr(set_name: String, uv_scale: float = 1.0) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
