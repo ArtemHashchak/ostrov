@@ -121,7 +121,7 @@ func run() -> void:
 	var bestd := 99.0
 	for i in 60:
 		var a := TAU * i / 60.0
-		for r in [0.0, 4.0, 8.0, 12.0, 16.0]:
+		for r: float in [0.0, 4.0, 8.0, 12.0, 16.0]:
 			var x := c.x + cos(a) * r
 			var z := c.y + sin(a) * r
 			var d := sea.depth_at(x, z)
