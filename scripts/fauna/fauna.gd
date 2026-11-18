@@ -514,10 +514,10 @@ func _tick_breeding(dt: float) -> void:
 			baby.follow = a.follow
 			Events.toast.emit("Родился детёныш: %s" % a.display_name().to_lower())
 	for a in animals:
-		if not _can_breed(a):
+		if not is_instance_valid(a) or not _can_breed(a):
 			continue
 		for b in animals:
-			if b == a or not _can_breed(b) or b.species != a.species or b.team != a.team:
+			if b == a or not is_instance_valid(b) or not _can_breed(b) or b.species != a.species or b.team != a.team:
 				continue
 			if a.global_position.distance_to(b.global_position) > 7.0:
 				continue
