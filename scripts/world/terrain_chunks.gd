@@ -4,7 +4,7 @@ extends Node3D
 ## • Выборка высот и весов биомов идёт параллельно (WorkerThreadPool), меши
 ##   собираются в главном потоке.
 ## • Чанки у суши (что-то выше −9 м): отсчёты 1 м и три LOD по дальности
-##   (1 м до LOD1, 2 м до LOD2, 4 м дальше) — все из одной выборки; у LOD
+##   (1 м до LOD1, 2 м до LOD2, 4 м до LOD3, 8 м дальше) — все из одной выборки; у LOD
 ##   «юбки» по краям, чтобы не было щелей между уровнями.
 ## • Открытое море: один меш 4 м, без теней.
 ## • Коллизия — HeightMapShape3D на отсчёты того же чанка (1 м у суши, 4 м в
@@ -16,10 +16,15 @@ const CHUNK := 64.0
 const FINE := 1.0
 const MID := 2.0
 const COARSE := 4.0
-const LOD1 := 150.0      # дальше — меш 2 м
-const LOD2 := 360.0      # дальше — меш 4 м
+const LOD1 := 90.0       # дальше — меш 2 м
+const LOD2 := 210.0      # дальше — меш 4 м
+const LOD3 := 520.0      # дальше — меш 8 м
 const FAR := 1500.0      # дальше чанк не рисуется
-const MARGIN := 12.0
+## Без гистерезиса: с запасом (margin) и без плавного перехода LOD сохраняет
+## прежнее состояние в полосе ±margin. После телепорта (возрождение, смена
+## камеры) соседние уровни оба оставались скрытыми — «дыры» в рельефе, сквозь
+## которые видна серая плоскость океана.
+const MARGIN := 0.0
 ## Диагональ квадрата: true — (0,0)-(1,1), false — как у HeightMapShape3D в Godot.
 const DIAG_MAIN := false
 
@@ -50,7 +55,7 @@ func build(a: Archipelago, mat: Material) -> void:
 	var gid := WorkerThreadPool.add_group_task(_job, _keys.size(), -1, true, "terrain sample")
 	WorkerThreadPool.wait_for_group_task_completion(gid)
 	var t1 := Time.get_ticks_usec()
-	var tris := {"lod0": 0, "lod1": 0, "lod2": 0, "sea": 0}
+	var tris := {"lod0": 0, "lod1": 0, "lod2": 0, "lod3": 0, "sea": 0}
 	for i in _keys.size():
 		_build_chunk(_keys[i], _jobs[i], tris)
 	_jobs.clear()
@@ -126,10 +131,10 @@ func _build_chunk(key: Vector2i, data: Dictionary, tris: Dictionary) -> void:
 	_chunks[key] = {"step": data.step, "n": data.n, "origin": data.origin, "h": data.h}
 	var base := "T_%d_%d" % [key.x, key.y]
 	if data.shallow:
-		var levels := [[1, 0.0, LOD1, "lod0"], [2, LOD1, LOD2, "lod1"], [4, LOD2, FAR, "lod2"]]
+		var levels := [[1, 0.0, LOD1, "lod0"], [2, LOD1, LOD2, "lod1"], [4, LOD2, LOD3, "lod2"], [8, LOD3, FAR, "lod3"]]
 		var under := float(data.step) > FINE + 0.1   # подводный шельф (шаг 2 м)
 		if under:
-			levels = [[1, 0.0, LOD2, "lod1"], [2, LOD2, FAR, "lod2"]]
+			levels = [[1, 0.0, LOD2, "lod1"], [2, LOD2, LOD3, "lod2"], [4, LOD3, FAR, "lod3"]]
 		for L in levels:
 			var mi := MeshInstance3D.new()
 			mi.name = base + "_" + String(L[3])
@@ -140,10 +145,20 @@ func _build_chunk(key: Vector2i, data: Dictionary, tris: Dictionary) -> void:
 			mi.visibility_range_begin_margin = MARGIN if float(L[1]) > 0.0 else 0.0
 			mi.visibility_range_end_margin = MARGIN
 			mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
-			if int(L[0]) >= 2 or under:
-				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			# тени рельефа — от прокси 2 м (ниже), сам LOD0 их не отбрасывает:
+			# тень рисуется в 4 каскадах, полная детализация там в 4 раза дороже
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			add_child(mi)
 			tris[L[3]] += _tri_count(int(data.n), int(L[0]))
+			if not under and int(L[0]) == 2:
+				var sh := MeshInstance3D.new()
+				sh.name = base + "_shadow"
+				sh.mesh = mi.mesh
+				sh.material_override = material
+				sh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+				sh.visibility_range_end = LOD1
+				sh.visibility_range_end_margin = MARGIN
+				add_child(sh)
 	else:
 		var mi := MeshInstance3D.new()
 		mi.name = base + "_sea"
@@ -159,7 +174,7 @@ static func _tri_count(n: int, sub: int) -> int:
 	var q := (n - 1) / sub
 	return q * q * 2 + q * 4 * 4
 
-## Меш из отсчётов чанка с прореживанием sub (1, 2, 4) + юбки по краям.
+## Меш из отсчётов чанка с прореживанием sub (1, 2, 4, 8) + юбки по краям.
 func _make_mesh(data: Dictionary, sub: int) -> ArrayMesh:
 	var n: int = data.n
 	var step: float = data.step
@@ -303,7 +318,7 @@ func tris_in_range(cam: Vector3) -> int:
 			continue
 		if float(data.step) < COARSE - 0.1:
 			var n := int(data.n)
-			var sub := 1 if d < LOD1 else (2 if d < LOD2 else 4)
+			var sub := 1 if d < LOD1 else (2 if d < LOD2 else (4 if d < LOD3 else 8))
 			if n < 65:
 				sub = maxi(1, sub / 2)
 			total += _tri_count(n, sub)

@@ -4,7 +4,7 @@ extends MeshInstance3D
 ## следует за камерой с привязкой к шагу сетки. Волны — та же формула, что в
 ## шейдере ocean.gdshader (wave_height совпадает в радиусе ~250 м от камеры).
 
-const GRID := 220
+const GRID := 180
 const INNER := 330.0        # ширина плотной части, м
 const REACH := 6000.0
 const SNAP := 1.5

@@ -63,7 +63,10 @@ void fragment() {
 	float macro = vnoise(wpos.xz * 0.025) * 0.6 + vnoise(wpos.xz * 0.11) * 0.4;
 
 	vec3 sand = tex2(sand_albedo, uv) * sand_tint;
-	vec3 wet = texture(wet_albedo, uv).rgb;
+	// мокрый песок: тот же тёплый песок, темнее (текстура damp_sand без тинта давала
+	// серые «лужи» на широких отмелях выше уровня моря)
+	vec3 wet = mix(sand * 0.62, texture(wet_albedo, uv).rgb * sand_tint * 0.85, 0.45);
+	wet *= mix(0.92, 1.06, macro);
 	vec3 grass = tex2(grass_albedo, uv * 0.8);
 	grass *= mix(vec3(0.70, 0.95, 0.55), vec3(0.88, 1.02, 0.70), macro);
 	vec3 jungle = tex2(jungle_albedo, uv * 0.9);
