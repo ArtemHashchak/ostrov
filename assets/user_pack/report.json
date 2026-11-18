@@ -206,7 +206,7 @@
    0.9
   ],
   "after_surfaces": 1,
-  "after_tris": 2800,
+  "after_tris": 2900,
   "animations": [],
   "before_size": [
    0.543228149414062,
@@ -226,10 +226,10 @@
   "name": "squid_biolum",
   "parts": [
    {
-    "after": 2800,
-    "before": 2800,
+    "after": 2900,
+    "before": 49826,
     "mesh": "obj1",
-    "target": 2800
+    "target": 2900
    }
   ],
   "scale": 1.53901841991536,
@@ -237,7 +237,7 @@
   "tex_mb_uncompressed": 0.0,
   "tex_mb_vram_est": 0.0,
   "ok": true,
-  "note": "сначала упрощено в Blender (decimate), затем нормализатор"
+  "note": "пересобрано из исходного OBJ: сварка вершин, упрощение (collapse) до 2900, гладкие нормали — без дыр (tools/folder_anim)"
  },
  {
   "after_size": [

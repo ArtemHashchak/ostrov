@@ -45,25 +45,25 @@ func run() -> void:
 	cam.look_at(sh.global_position)
 	await wait(0.2)
 	var ap: AnimationPlayer = sh._ap
-	check(ap != null and String(ap.current_animation).ends_with("swim"), "плывёт: %s" % (ap.current_animation if ap else "—"))
+	check(ap != null and sh.current_clip().begins_with("swim") or sh.current_clip().begins_with("turn"), "плывёт: %s" % sh.current_clip())
 	check(not sh._far and (sh._model.get_node(^"Skel") as Node3D).visible, "вблизи — скелет")
 	await shot("near")
 	# боль
 	sh.apply_damage(5.0, null, &"melee")
 	await get_tree().process_frame
-	print("[test] после удара: %s" % ap.current_animation)
+	print("[test] после удара: %s" % sh.current_clip())
 	# вдали — VAT
 	cam.global_position = sh.global_position + Vector3(-60, 2.0, 10)
 	cam.look_at(sh.global_position)
 	await wait(0.6)
-	check(sh._far and (sh._model.get_node(^"Far") as Node3D).visible and not ap.active, "вдали — VAT без скелета")
+	check(sh._far and (sh._model.get_node(^"Far") as Node3D).visible and not sh.anim_active(), "вдали — VAT без скелета")
 	await shot("far")
 	# смерть
 	cam.global_position = sh.global_position + Vector3(-7, 0.5, 2)
 	await wait(0.3)
 	sh.apply_damage(5000.0, null, &"explosion")
 	await wait(0.2)
-	check(sh.is_dead() and String(ap.current_animation).ends_with("die"), "гибель: %s" % ap.current_animation)
+	check(sh.is_dead() and sh.current_clip().ends_with("die"), "гибель: %s" % sh.current_clip())
 	await wait(1.5)
 	cam.look_at(sh.global_position)
 	await shot("dead")

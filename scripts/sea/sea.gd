@@ -231,6 +231,11 @@ func _build_reefs_and_life() -> void:
 		life_cells = SeaLifeCells.new()
 		life_cells.sea = self
 		add_child(life_cells)
+	if life_cells_enabled and get_node_or_null(^"UserSeaActors") == null:
+		# особи из пака пользователя вблизи камеры: поведение и анимация (UserSeaActor)
+		var ua := UserSeaActors.new()
+		ua.sea = self
+		add_child(ua)
 
 ## Пятна кораллового рифа: [{center: Vector2, island, kind, radius, corals}].
 func reef_zones() -> Array[Dictionary]:
@@ -252,6 +257,9 @@ static func perf_line() -> String:
 	var cells := tree.get_first_node_in_group(&"sea_life_cells") as SeaLifeCells
 	if cells:
 		parts.append("живность %d гр./%d особ." % [cells.groups_active, cells.instances_active])
+	var ua := tree.get_first_node_in_group(&"user_sea_actors") as UserSeaActors
+	if ua:
+		parts.append(ua.perf_text())
 	var near := 0
 	var far := 0
 	for n in tree.get_nodes_in_group(&"sharks"):

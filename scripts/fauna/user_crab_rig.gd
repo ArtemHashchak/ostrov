@@ -26,6 +26,9 @@ var _skel_xf := Transform3D.IDENTITY     # пространство скелет
 var _skel_inv := Transform3D.IDENTITY
 var _claw_walk: float = 0.0
 
+## Знак/сила наклона стебелька при «прятании» (кость: ось X — поперёк, Y — вдоль стебелька).
+const EYE_TILT := 1.15
+
 static func available() -> bool:
 	return use_pack and ResourceLoader.exists(SCENE)
 
@@ -120,6 +123,13 @@ static func make_model(root: Node3D) -> UserCrabRig:
 			"bones": bones, "pts": pts, "lens": lens, "finger": r.skel.find_bone(pre + "Finger"),
 			"f_axis": axis, "wrist": pts[2], "palm": (pts[4] - pts[2]).normalized(),
 			"w": pts[2], "d": (pts[4] - pts[2]).normalized(), "open": 0.0})
+	# глаза на стебельках (кости R.Eye / L.Eye из stageD_eyes.py): подёргиваются, прячутся
+	for sx: float in [-1.0, 1.0]:
+		var eb := r.skel.find_bone(("L." if sx > 0.0 else "R.") + "Eye")
+		if eb >= 0:
+			var piv := _node(r.rig, "EyeStalk", Vector3.ZERO)
+			r.eyes.append({"piv": piv, "side": sx, "cur": Vector2(1.15, 0.0), "tgt": Vector2(1.15, 0.0),
+				"bone": eb, "rest": r.skel.get_bone_rest(eb).basis.get_rotation_quaternion()})
 	r._finish(root)
 	return r
 
@@ -213,6 +223,19 @@ func _solve_leg(l: Dictionary, foot: Vector3, simple: bool) -> void:
 func _pose(speed: float, dt: float, simple: bool) -> void:
 	_claw_walk = clampf(speed / 0.12, 0.0, 1.0)
 	super._pose(speed, dt, simple)
+	_pose_eyes()
+
+## Кости глаз по состоянию стебельков из ArthropodRig (cur.x ≈ 1.15 — торчат, 0.12 — спрятаны):
+## наклон вперёд-вниз в гнездо и поворот вбок.
+func _pose_eyes() -> void:
+	for e: Dictionary in eyes:
+		if not e.has("bone"):
+			continue
+		var cur: Vector2 = e["cur"]
+		var tilt := (cur.x - 1.15) * EYE_TILT
+		var turn := cur.y * float(e["side"]) * 0.8
+		var q: Quaternion = e["rest"]
+		skel.set_bone_pose_rotation(int(e["bone"]), q * Quaternion(Vector3.RIGHT, tilt) * Quaternion(Vector3.UP, turn))
 
 ## Клешня: цель запястья (w), направление кисти (d), раскрытие пальца — по состоянию; сглаживание.
 func _pose_claw(c: Dictionary, dt: float) -> void:

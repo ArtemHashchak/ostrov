@@ -125,9 +125,46 @@ static func build_sea(zones: SandboxZones, root: Node3D) -> void:
 		if String(d.get("anim")) == "octopus" and not String(d.id).begins_with("squid"):
 			y = gy + 0.9   # осьминог у дна
 		mi.global_position = Vector3(spot.x + cos(a) * 4.0, y, spot.y + sin(a) * 4.0)
+	_build_live(root, w, spot, gy, list)
 	zones._point(&"pack_sea", "Пак: морская живность (под водой)",
 		Vector3(spot.x - dir.x * 9.0, clampf(gy + 2.2, gy + 1.0, -1.5), spot.y - dir.y * 9.0), Vector3(spot.x, gy + 1.8, spot.y))
 	P.label(root, Vector3(spot.x - dir.x * 8.0, 2.4, spot.y - dir.y * 8.0), "Морская живность из пака · нырните", 34, P.SIGN_COLOR, 60.0)
+
+
+## Вода и дно полигона для особей вблизи (как у моря: water_y / floor_at / depth_at).
+class Stage extends RefCounted:
+	var w: Node
+	func water_y() -> float:
+		return float(w.call(&"water_level"))
+	func floor_at(x: float, z: float) -> float:
+		return float(w.call(&"height_at", x, z))
+	func depth_at(x: float, z: float) -> float:
+		return water_y() - floor_at(x, z)
+
+
+## Живые особи вблизи (UserSeaActor): осьминог на дне, кальмары, по паре рыб каждого вида —
+## со своим поведением: ползёт/прячется/пугается пловца, рывки, чернила.
+static func _build_live(root: Node3D, w: Node, spot: Vector2, gy: float, list: Array) -> void:
+	var live := UserSeaActors.new()
+	live.auto_spawn = false
+	var st := Stage.new()
+	st.w = w
+	live.sea = st
+	root.add_child(live)
+	live.name = "PackSeaLive"
+	var wy := st.water_y()
+	for i in list.size():
+		var d: Dictionary = list[i]
+		if UserSeaPack.species_mesh(d) == null:
+			continue
+		var kind := UserSeaActor._kind_of(d)
+		var a := float(i) / float(maxi(list.size(), 1)) * TAU + 0.4
+		var n := 1 if kind == "octopus" else (3 if kind == "squid" else 2)
+		for k in n:
+			var q := spot + Vector2.from_angle(a + k * 0.35) * (6.0 + k * 0.8)
+			var fl := st.floor_at(q.x, q.y)
+			var y := fl + 0.02 if kind == "octopus" else clampf(fl + 1.4 + k * 0.4, fl + 0.6, wy - 0.8)
+			live.spawn_at(d, Vector3(q.x, y, q.y), a)
 
 
 static func _anim_text(a: String) -> String:

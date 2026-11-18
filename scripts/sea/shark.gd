@@ -28,6 +28,8 @@ var length: float = 2.0
 var _model: Node3D
 var _mat: ShaderMaterial          # процедурная модель (шейдер плавания)
 var _ap: AnimationPlayer = null   # модель из пака (скелет)
+var _pa: PackSharkAnim = null     # смешивание клипов пака (AnimationTree), если собралось
+var _eat_t := 0.0
 var _anims: Dictionary = {}       # "swim" -> полное имя анимации
 var _oneshot_t := 0.0             # идёт разовая анимация (укус/боль)
 var _far := false                 # вдали — VAT-меш без скелета
@@ -79,7 +81,10 @@ func _ready() -> void:
 			for an in _ap.get_animation_list():
 				var short := String(an).get_slice("/", String(an).get_slice_count("/") - 1)
 				_anims[short] = an
-			_play(&"swim")
+			_pa = PackSharkAnim.new()
+			if not _pa.setup(_model):
+				_pa = null
+				_play(&"swim")
 	else:
 		_mat = (_model.get_node(^"Body") as MeshInstance3D).material_override as ShaderMaterial
 	yaw = rotation.y
@@ -112,12 +117,31 @@ func set_far(far: bool) -> void:
 	if sk:
 		sk.visible = not far
 	fm.visible = far
-	_ap.active = not far
+	if _pa:
+		_pa.set_active(not far)
+	else:
+		_ap.active = not far
 
 func uses_pack_model() -> bool:
 	return _ap != null
 
+## Текущий клип модели пака (смешивание — PackSharkAnim; без него — AnimationPlayer).
+func current_clip() -> String:
+	if _pa:
+		return _pa.current()
+	return String(_ap.current_animation) if _ap else ""
+
+## Скелетная анимация сейчас считается (вблизи).
+func anim_active() -> bool:
+	if _pa:
+		return _pa.is_active()
+	return _ap != null and _ap.active
+
 func _play(short: StringName, once: bool = false, blend: float = 0.25) -> void:
+	if _pa:
+		if once:
+			_pa.fire(short)
+		return
 	if _ap == null or not _anims.has(String(short)):
 		return
 	_ap.play(_anims[String(short)], blend)
@@ -403,6 +427,24 @@ func _steer(want: Vector3, want_speed: float, delta: float, depth_here: float) -
 func _animate(delta: float) -> void:
 	var freq := 1.6 + speed * 0.55
 	_phase += delta * freq * TAU * 0.5
+	if _pa:
+		var rel_p := speed / maxf(float(cfg["speed"]), 0.1)
+		# пасть: в атаке у самой жертвы приоткрывается заранее
+		var gape := 0.0
+		if state == State.ATTACK and _target_ok():
+			var dh := head_position().distance_to(_attack_point())
+			gape = clampf(1.0 - (dh - 0.8) / 3.5, 0.0, 1.0)
+		_pa.update(delta, rel_p, _turn_rate, gape)
+		# у приманки — хватает куски (клип eat)
+		_eat_t -= delta
+		if bait_t > 0.0 and _eat_t <= 0.0 and state == State.INVESTIGATE \
+				and Vector2(investigate_at.x - global_position.x, investigate_at.z - global_position.z).length() < 6.0:
+			_pa.fire(&"eat")
+			_eat_t = _rng.randf_range(1.6, 3.2)
+		var fm_p := _model.get_node_or_null(^"Far") as GeometryInstance3D
+		if _far and fm_p:
+			(fm_p.material_override as ShaderMaterial).set_shader_parameter(&"speed", clampf(0.55 + rel_p * 0.45, 0.5, 2.0))
+		return
 	if _ap:
 		_oneshot_t -= delta
 		var rel := speed / maxf(float(cfg["speed"]), 0.1)
