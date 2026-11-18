@@ -4,7 +4,7 @@ extends MeshInstance3D
 ## идёт по рельефу (над водой — по воде). Показывается в режиме стройки.
 
 const SEGMENTS := 160
-const HEIGHT := 1.1
+const HEIGHT := 1.6
 
 static func make(team: int, center: Vector3, radius: float) -> TerritoryRing:
 	var r := TerritoryRing.new()
@@ -18,7 +18,7 @@ static func _ribbon(c: Vector3, radius: float, col: Color) -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var wl := BuildEnv.water_level()
-	var bottom := Color(col.r, col.g, col.b, 0.55)
+	var bottom := Color(col.r, col.g, col.b, 0.7)
 	var top := Color(col.r, col.g, col.b, 0.0)
 	var prev_b := Vector3.ZERO
 	var prev_t := Vector3.ZERO

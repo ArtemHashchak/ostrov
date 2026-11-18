@@ -135,7 +135,7 @@ func run() -> void:
 	Engine.time_scale = 4.0
 	await wait(8.0)
 	check(sec[0].burning or sec[2].burning or not is_instance_valid(sec[2]), "через ~14 с огонь пополз по мосту")
-	var gref := weakref(gate)
+	var gref: WeakRef = weakref(gate)
 	t = 0.0
 	while gref.get_ref() != null and not (gref.get_ref() as Node).is_queued_for_deletion() and t < 70.0:
 		await wait(0.5)
