@@ -10,6 +10,8 @@ var invert_y: bool = false
 var fov: float = 75.0
 var master_volume: float = 1.0
 var shadows_quality: int = 2 # 0 выкл, 1 низко, 2 высоко
+## Качество графики: 0 низкое, 1 среднее, 2 высокое, 3 ультра (apply_graphics).
+var graphics_quality: int = 2
 
 ## Действия → события по умолчанию. Клавиши — physical keycode.
 const DEFAULT_KEYS: Dictionary = {
@@ -19,10 +21,11 @@ const DEFAULT_KEYS: Dictionary = {
 	&"move_right": [KEY_D],
 	&"jump": [KEY_SPACE],
 	&"sprint": [KEY_SHIFT],
-	&"crouch": [KEY_CTRL, KEY_C],
+	&"crouch": [KEY_CTRL],
 	&"interact": [KEY_E],
 	&"inventory": [KEY_I, KEY_TAB],
-	&"craft": [KEY_B],
+	&"craft": [KEY_C], # B — меню стройки (build), см. GAME/UI
+	&"map": [KEY_M],
 	&"pause": [KEY_ESCAPE],
 	&"drop": [KEY_G],
 	&"hotbar_1": [KEY_1], &"hotbar_2": [KEY_2], &"hotbar_3": [KEY_3],
@@ -59,6 +62,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_input_map()
 	load_settings()
+	apply_graphics.call_deferred()
 
 func _build_input_map() -> void:
 	var all_actions: Array = []
@@ -104,6 +108,8 @@ func save_settings() -> void:
 	cfg.set_value("input", "invert_y", invert_y)
 	cfg.set_value("video", "fov", fov)
 	cfg.set_value("video", "shadows_quality", shadows_quality)
+	cfg.set_value("video", "graphics_quality", graphics_quality)
+	cfg.set_value("meta", "keys_version", KEYS_VERSION)
 	cfg.set_value("audio", "master_volume", master_volume)
 	for action: StringName in DEFAULT_KEYS.keys():
 		var keys: Array = []
@@ -121,9 +127,14 @@ func load_settings() -> void:
 	invert_y = cfg.get_value("input", "invert_y", invert_y)
 	fov = cfg.get_value("video", "fov", fov)
 	shadows_quality = cfg.get_value("video", "shadows_quality", shadows_quality)
+	graphics_quality = cfg.get_value("video", "graphics_quality", graphics_quality)
+	var old_keys := int(cfg.get_value("meta", "keys_version", 1)) < KEYS_VERSION
 	master_volume = cfg.get_value("audio", "master_volume", master_volume)
 	for action: StringName in DEFAULT_KEYS.keys():
 		var saved: Variant = cfg.get_value("keys", String(action), null)
+		# v2: крафт B→C, C больше не приседание (B занят стройкой).
+		if old_keys and action in [&"craft", &"crouch"]:
+			continue
 		if saved is Array and not (saved as Array).is_empty():
 			for ev in InputMap.action_get_events(action):
 				if ev is InputEventKey:
@@ -132,6 +143,20 @@ func load_settings() -> void:
 				var nk := InputEventKey.new()
 				nk.physical_keycode = int(key) as Key
 				InputMap.action_add_event(action, nk)
+
+const KEYS_VERSION := 2
+
+## Применить качество графики к корневому окну (масштаб 3D, сглаживание, тени).
+func apply_graphics() -> void:
+	var vp := get_tree().root if get_tree() else null
+	if vp == null:
+		return
+	var q := clampi(graphics_quality, 0, 3)
+	vp.scaling_3d_scale = [0.67, 0.8, 1.0, 1.0][q]
+	vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X][q]
+	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if q >= 1 else Viewport.SCREEN_SPACE_AA_DISABLED
+	vp.positional_shadow_atlas_size = [1024, 2048, 4096, 8192][q]
+	RenderingServer.directional_shadow_atlas_set_size([1024, 2048, 4096, 8192][q], true)
 
 ## true, если работаем в упрощённом рендере (наши тесты под xvfb, слабые ПК).
 func is_compatibility_renderer() -> bool:
