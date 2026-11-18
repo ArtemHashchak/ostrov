@@ -414,6 +414,7 @@ static func _snake() -> Node3D:
 	_eyes(root, [Vector3(-0.022, 0.035, -L * 0.5 + 0.045), Vector3(0.022, 0.035, -L * 0.5 + 0.045)], 0.006)
 	root.set_meta(&"length", L)
 	root.set_meta(&"anim", ReptileAnim.new())
+	root.set_meta(&"anim", ReptileAnim.new())
 	return root
 
 # ---------------------------- крокодил ----------------------------
@@ -472,6 +473,7 @@ static func _croc() -> Node3D:
 		_add_leg(root, mat, leg, Vector3(p[0], p[1], p[2]), signf(p[0]))
 	_eyes(root, [Vector3(-0.085, 0.35, -1.0), Vector3(0.085, 0.35, -1.0)], 0.017)
 	root.set_meta(&"length", L)
+	root.set_meta(&"anim", ReptileAnim.new())
 	root.set_meta(&"anim", ReptileAnim.new())
 	return root
 
@@ -564,6 +566,7 @@ static func _lizard(species: StringName, L: float) -> Node3D:
 		_add_leg(root, mat, leg, Vector3(p[0] * sc, 0.075 * sc, p[1] * L), signf(p[0]))
 	_eyes(root, [Vector3(-0.026 * sc, 0.095 * sc, -0.4 * L), Vector3(0.026 * sc, 0.095 * sc, -0.4 * L)], 0.007 * sc)
 	root.set_meta(&"length", L)
+	root.set_meta(&"anim", ReptileAnim.new())
 	root.set_meta(&"anim", ReptileAnim.new())
 	return root
 
@@ -771,5 +774,6 @@ static func _turtle() -> Node3D:
 		(root.get_meta(&"legs") as Array).append(piv)
 	_eyes(root, [Vector3(-0.05, 0.2, -0.67), Vector3(0.05, 0.2, -0.67)], 0.012)
 	root.set_meta(&"length", 1.0)
+	root.set_meta(&"anim", ReptileAnim.new())
 	root.set_meta(&"anim", ReptileAnim.new())
 	return root
