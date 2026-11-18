@@ -9,6 +9,7 @@ const CAUSTICS_SHADER := preload("res://scripts/sea/shaders/caustics.gdshader")
 const GRID_HALF := 28.0
 const GRID_STEP := 2.0
 const RESAMPLE := 8.0
+const RAYS_BY_Q: Array[int] = [3, 5, 7, 7]   # лучей света под водой по пресету
 
 var sea: Node = null
 var _caus: MeshInstance3D
@@ -91,8 +92,9 @@ func _perf_process(delta: float) -> void:
 	if w and w.has_method(&"is_night") and bool(w.call(&"is_night")):
 		sun = 0.15
 	_caus_mat.set_shader_parameter(&"sun", sun)
-	# каустика — только если камера не слишком высоко над водой
-	var show := cp.y - wy < 35.0
+	# каустика — только если камера не слишком высоко над водой и не «низкое»
+	var q := clampi(Settings.graphics_quality, 0, 3)
+	var show := cp.y - wy < 35.0 and q >= 1
 	_caus.visible = show
 	if show and Vector2(cp.x - _grid_c.x, cp.z - _grid_c.z).length() > RESAMPLE:
 		_rebuild_grid(cp)
@@ -100,7 +102,7 @@ func _perf_process(delta: float) -> void:
 	var under := cp.y < wy - 0.05
 	for i in _rays.size():
 		var r := _rays[i]
-		r.visible = under and sun > 0.5
+		r.visible = under and sun > 0.5 and i < RAYS_BY_Q[q]
 		if r.visible:
 			var a := TAU * i / _rays.size() + _t * 0.03 + i * 0.7
 			var d := 4.0 + float(i % 3) * 3.5

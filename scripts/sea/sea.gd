@@ -24,6 +24,8 @@ const SPLASH_SOUND := "res://assets/sounds/sfx-kit/props-splash.wav"
 @export var auto_populate: bool = true
 @export var fish_schools_per_island: int = 5
 @export var underwater_fx: bool = true
+@export var life_cells_enabled: bool = true
+var life_cells: SeaLifeCells = null
 @export var reefs_enabled: bool = true
 @export var life_enabled: bool = true
 @export var reef_life_enabled: bool = true   # фон: тропические рыбы, растительность, сценки охоты
@@ -221,6 +223,11 @@ func _build_reefs_and_life() -> void:
 			add_child(reef_life)
 		reef_life.set(&"density", density)
 		reef_life.call(&"build")
+	if life_cells_enabled and life_cells == null:
+		# живность по реестру SeaSpecies — только в ячейках вокруг игрока, всё в шейдере
+		life_cells = SeaLifeCells.new()
+		life_cells.sea = self
+		add_child(life_cells)
 
 ## Пятна кораллового рифа: [{center: Vector2, island, kind, radius, corals}].
 func reef_zones() -> Array[Dictionary]:
@@ -790,6 +797,8 @@ func _perf_physics(delta: float) -> void:
 		for n in get_tree().get_nodes_in_group(&"characters"):
 			if n is Node3D and (n as Node3D).global_position.y < water_y() + 3.0:
 				_wet.append((n as Node3D).global_position)
+	var wy_now := water_y()
+	var cam_above := cam_p.y > wy_now + 0.3
 	# Дальние акулы тикают реже, у каждой свой накопитель со случайной фазой —
 	# иначе все 100+ дальних акул считались в одном кадре (всплеск).
 	for s in sharks:
@@ -797,7 +806,8 @@ func _perf_physics(delta: float) -> void:
 			continue
 		var d := s.global_position.distance_to(cam_p)
 		var near := d < LOD_NEAR or s.state == Shark.State.ATTACK or s.state == Shark.State.STALK
-		s.visible = d < LOD_FAR
+		# над водой глубокая акула не видна сквозь толщу — не рисуем (плавник у поверхности виден)
+		s.visible = d < LOD_FAR and not (cam_above and d > 22.0 and s.global_position.y < wy_now - 1.6)
 		var id := s.get_instance_id()
 		if near:
 			_lod_acc[id] = 0.0
