@@ -65,7 +65,7 @@ func run() -> void:
 	check(models.size() == 13, "13 видов построены")
 	for sp in models.keys():
 		var m: Node3D = models[sp]
-		check(m.get_node_or_null(^"Body") != null, "%s: есть тело" % sp)
+		check(m.get_node_or_null(^"Body") != null or m.get_node_or_null(^"Rig/Body") != null, "%s: есть тело" % sp)
 	check((models[&"boar"].get_meta(&"legs") as Array).size() == 4, "у кабана 4 ноги")
 	check((models[&"spider"].get_meta(&"legs") as Array).size() == 8, "у паука 8 ног")
 	check((models[&"crab"].get_meta(&"legs") as Array).size() == 10, "у краба 8 ног + 2 клешни")

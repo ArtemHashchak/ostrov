@@ -449,7 +449,8 @@ func _pose(speed: float, dt: float, simple: bool) -> void:
 			foot.z += sin(_t * 26.0 + li * 1.7) * 0.025 * scale_k
 			foot.x += float(l["side"]) * absf(sin(_t * 26.0 + li)) * 0.015 * scale_k
 		if _burrow > 0.0:
-			foot = foot.lerp(Vector3(float(l["hip"].x) * 1.3, -0.05 * scale_k, float(l["hip"].z)), _burrow * 0.6)
+			# ноги распластываются и уходят в песок вместе с телом (а не торчат вверх)
+			foot = foot.lerp(Vector3(rest.x * 1.12, -0.06 * scale_k, rest.z), _burrow * 0.8)
 		# паук на дыбах: передние две пары поднимаются вверх-вперёд
 		if kind == &"spider" and li < 4 and _threat > 0.01:
 			var raised := (l["hip"] as Vector3) + Vector3(float(l["side"]) * 0.03, 0.09, -0.07)
