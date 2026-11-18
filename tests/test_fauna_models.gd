@@ -68,7 +68,8 @@ func run() -> void:
 		check(m.get_node_or_null(^"Body") != null or m.get_node_or_null(^"Rig/Body") != null, "%s: есть тело" % sp)
 	check((models[&"boar"].get_meta(&"legs") as Array).size() == 4, "у кабана 4 ноги")
 	check((models[&"spider"].get_meta(&"legs") as Array).size() == 8, "у паука 8 ног")
-	check((models[&"crab"].get_meta(&"legs") as Array).size() == 10, "у краба 8 ног + 2 клешни")
+	var crab_legs := 8 if not UserCrabRig.available() else 6   # краб из пака: 3 пары ходильных ног
+	check((models[&"crab"].get_meta(&"legs") as Array).size() == crab_legs + 2, "у краба %d ног + 2 клешни" % crab_legs)
 	_look(Vector3(1.2, 5.5, 10.0), Vector3(1.2, 0.2, -0.5))
 	await wait(0.3)
 	await shot("overview")
