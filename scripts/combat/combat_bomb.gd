@@ -6,6 +6,7 @@ var thrower: Node
 var fuse := 3.2
 var radius := 6.5
 var damage := 140.0
+var model_id: StringName = &"dynamite" # SUPPLY: граната — своя модель
 var _t := 0.0
 var _sparks: CPUParticles3D
 var _done := false
@@ -20,7 +21,7 @@ func _ready() -> void:
 	bs.size = Vector3(0.12, 0.22, 0.08)
 	cs.shape = bs
 	add_child(cs)
-	var m := CombatModels.projectile(&"dynamite")
+	var m := CombatModels.projectile(model_id)
 	add_child(m)
 	if thrower is CollisionObject3D:
 		add_collision_exception_with(thrower as CollisionObject3D)
@@ -28,7 +29,8 @@ func _ready() -> void:
 	_sparks = CombatFx.particles(fl if fl else self, (fl if fl else self).global_position if is_inside_tree() else Vector3.ZERO, 16, 0.35, "flame", true,
 		CombatFx._ramp([Color(1, 0.9, 0.6, 1), Color(1, 0.5, 0.1, 0.6), Color(1, 0.3, 0.0, 0)]), 0.04, 1.5, 70.0, Vector3.UP, Vector3(0, -3, 0), false)
 	_sparks.local_coords = false
-	CombatFx.loop_on(self, "fuse_loop", -4.0)
+	if model_id == &"dynamite":
+		CombatFx.loop_on(self, "fuse_loop", -4.0)
 
 func _physics_process(delta: float) -> void:
 	_t += delta

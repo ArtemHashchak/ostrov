@@ -188,6 +188,15 @@ static func muzzle(ctx: Node, pos: Vector3, dir: Vector3, size: float = 1.0) -> 
 		_ramp([Color(0.8, 0.8, 0.78, 0.7), Color(0.75, 0.75, 0.75, 0.0)]), 0.18, 0.6, 60.0, Vector3.UP, Vector3(0.0, 0.3, 0.0))
 	flash_light(root, pos, Color(1.0, 0.7, 0.35), 6.0 * size, 7.0, 0.09)
 
+## SUPPLY: современный (бездымный) выстрел — короткая вспышка, лёгкий сизый дымок.
+static func muzzle_modern(ctx: Node, pos: Vector3, dir: Vector3, size: float = 0.5) -> void:
+	var root := _scene(ctx)
+	particles(root, pos, 8, 0.05, "flame", true, _ramp([Color(1, 0.95, 0.75, 1), Color(1, 0.6, 0.2, 0.7), Color(0.6, 0.25, 0.05, 0)]),
+		0.12 * size + 0.06, 6.0 * size, 14.0, dir, Vector3.ZERO)
+	particles(root, pos + dir * 0.05, 4, 0.9, "smoke", false, _ramp([Color(0.8, 0.8, 0.82, 0.35), Color(0.8, 0.8, 0.8, 0.0)]),
+		0.12 + 0.1 * size, 1.2, 25.0, dir, Vector3(0.0, 0.3, 0.0))
+	flash_light(root, pos, Color(1.0, 0.75, 0.4), 4.0 * size + 1.0, 5.0, 0.05)
+
 # ---------- попадания ----------
 
 static func impact(ctx: Node, pos: Vector3, normal: Vector3, surface: StringName) -> void:

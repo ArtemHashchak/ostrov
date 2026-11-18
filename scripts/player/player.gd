@@ -67,6 +67,7 @@ var alive: bool = true
 var input_enabled: bool = true
 var ui_open: bool = false        # открыта панель интерфейса (инвентарь/крафт) — UI ставит
 var fov_zoom: float = 0.0        # COMBAT: прицеливание ПКМ сужает FOV (ставит CombatController)
+var swim_mul: float = 1.0        # SUPPLY: ласты в инвентаре ускоряют плавание (ставит SupplyController)
 
 var health: float = MAX_HEALTH
 var max_health: float = MAX_HEALTH
@@ -496,7 +497,7 @@ func _swim_process(delta: float, wl: float) -> void:
 	var speed := SWIM_FAST if fast and wish.length() > 0.1 else SWIM_SPEED
 	if fast and wish.length() > 0.1:
 		_use_stamina(STAMINA_RUN_COST * 0.8 * delta)
-	speed *= lerpf(1.0, 0.75, tired_amount)
+	speed *= lerpf(1.0, 0.75, tired_amount) * swim_mul
 	# Под водой плывём туда, куда смотрим (с наклоном), на поверхности — горизонтально.
 	var look_basis := Basis(Vector3.UP, _yaw)
 	if is_underwater():
@@ -546,6 +547,10 @@ func _update_vitals(delta: float) -> void:
 func apply_damage(amount: float, source: Node = null, kind: StringName = &"melee") -> void:
 	if not alive or amount <= 0.0:
 		return
+	# SUPPLY: бронежилет гасит часть урона пуль/осколков
+	var sup := get_tree().get_first_node_in_group(&"supply") if is_inside_tree() else null
+	if sup and sup.has_method(&"filter_damage"):
+		amount = float(sup.call(&"filter_damage", self, amount, kind))
 	health = maxf(0.0, health - amount)
 	last_damage_kind = kind
 	Events.character_damaged.emit(self, amount, source)

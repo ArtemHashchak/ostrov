@@ -24,6 +24,9 @@ const ZONE_MULT := {&"head": 2.0, &"body": 1.0, &"legs": 0.75}
 
 ## type: melee | throw | bow | crossbow | gun
 ## ammo: [{id, n}] — расход на 1 выстрел (лук — стрела выбирается opts.ammo).
+## SUPPLY: mag — магазин (патронов на перезарядку), auto — очередь (держать ЛКМ), pellets — дробь,
+## proj — снаряд (по умолчанию musket_ball), bomb — бросок с фитилём (как динамит), modern — бездымный порох,
+## pistol — поза пистолета.
 const WEAPONS := {
 	&"spear": {"name": "Копьё", "type": &"throw", "melee": true, "damage": 20.0, "reach": 2.8, "kind": &"melee",
 		"throw_damage": 38.0, "speed": 24.0, "gravity": 1.0, "spread": 1.2, "cooldown": 0.9, "range": 30.0},
@@ -45,6 +48,19 @@ const WEAPONS := {
 		"cooldown": 1.0, "kind": &"fire", "radius": 3.4, "burn_sec": 10.0, "range": 25.0},
 	&"dynamite": {"name": "Динамит", "type": &"throw", "damage": 140.0, "speed": 15.0, "gravity": 1.0, "spread": 1.5,
 		"cooldown": 1.0, "kind": &"explosion", "radius": 6.5, "fuse": 3.2, "range": 22.0},
+	# --- SUPPLY: «посылки из внешнего мира» (только из ящиков спонсоров; модели — SupplyModels) ---
+	&"rifle": {"name": "Автомат", "type": &"gun", "damage": 24.0, "speed": 420.0, "gravity": 1.0, "spread_hip": 2.6, "spread_ads": 0.7,
+		"reload": 3.0, "cooldown": 0.11, "mag": 20, "auto": true, "ammo": [{"id": &"rifle_ammo", "n": 1}],
+		"kind": &"bullet", "range": 160.0, "zoom": 20.0, "recoil": 1.3, "sound": "pistol_shot", "flash": 0.45, "modern": true},
+	&"shotgun": {"name": "Дробовик", "type": &"gun", "damage": 11.0, "pellets": 8, "speed": 260.0, "gravity": 1.0, "spread_hip": 6.0,
+		"spread_ads": 4.2, "reload": 4.2, "cooldown": 0.9, "mag": 4, "ammo": [{"id": &"shotgun_shell", "n": 1}],
+		"kind": &"bullet", "range": 28.0, "zoom": 10.0, "recoil": 6.0, "sound": "musket_shot", "flash": 0.6, "modern": true},
+	&"flare_gun": {"name": "Ракетница", "type": &"gun", "damage": 14.0, "speed": 62.0, "gravity": 0.55, "spread_hip": 2.0, "spread_ads": 1.0,
+		"reload": 2.4, "cooldown": 0.5, "mag": 1, "ammo": [{"id": &"flare", "n": 1}], "proj": &"flare", "kind": &"fire",
+		"range": 60.0, "zoom": 8.0, "recoil": 3.0, "sound": "pistol_shot", "flash": 0.4, "modern": true, "pistol": true},
+	&"grenade": {"name": "Граната", "type": &"throw", "damage": 120.0, "speed": 16.0, "gravity": 1.0, "spread": 1.2,
+		"cooldown": 1.0, "kind": &"explosion", "radius": 6.0, "fuse": 3.5, "range": 25.0, "bomb": true},
+	&"machete": {"name": "Мачете", "type": &"melee", "damage": 26.0, "reach": 2.3, "kind": &"melee", "cooldown": 0.5, "range": 2.3},
 }
 
 const AMMO := {
@@ -52,6 +68,7 @@ const AMMO := {
 	&"arrow_fire": {"damage": 0.85, "fire": true},
 	&"bolt": {"damage": 1.0, "fire": false},
 	&"musket_ball": {"damage": 1.0, "fire": false},
+	&"flare": {"damage": 1.0, "fire": true},
 }
 
 ## Последние попадания (для тестов/отладки/HUD), не больше 32.
@@ -143,7 +160,22 @@ static func is_loaded(ch: Object, id: StringName) -> bool:
 	if not w.type in [&"gun", &"crossbow"]:
 		return true
 	var st := state(ch)
-	return bool(st.loaded.get(id, false)) and not (st.reloading == id and _now() < float(st.reload_end))
+	return rounds(ch, id) > 0 and not (st.reloading == id and _now() < float(st.reload_end))
+
+## Патронов в оружии (магазин; у однозарядных — 0/1).
+static func rounds(ch: Object, id: StringName) -> int:
+	var v: Variant = state(ch).loaded.get(id, false)
+	if v is bool:
+		return 1 if v else 0
+	return int(v)
+
+## Можно ли сейчас перезарядиться (магазин не полон, есть патроны, не заняты).
+static func can_reload(ch: Object, id: StringName) -> bool:
+	var w := weapon(id)
+	if w.is_empty() or not w.type in [&"gun", &"crossbow"]:
+		return false
+	var st := state(ch)
+	return rounds(ch, id) < int(w.get("mag", 1)) and not is_reloading(ch) and _now() >= float(st.busy_until) and has_ammo(ch, id)
 
 static func is_ready(ch: Object, id: StringName) -> bool:
 	return _now() >= float(state(ch).busy_until)
@@ -203,14 +235,20 @@ static func start_reload(ch: Object, id: StringName) -> float:
 	if w.is_empty() or not w.type in [&"gun", &"crossbow"]:
 		return 0.0
 	var st := state(ch)
-	if bool(st.loaded.get(id, false)) or is_reloading(ch) or _now() < float(st.busy_until):
+	var have := rounds(ch, id)
+	if have >= int(w.get("mag", 1)) or is_reloading(ch) or _now() < float(st.busy_until):
 		return 0.0
 	if not has_ammo(ch, id):
 		return 0.0
+	var n := 1
+	if w.has("mag"):
+		var avail := ammo_count(ch, id)
+		n = int(w.mag) - have if avail < 0 else mini(int(w.mag) - have, avail)
 	for a: Dictionary in w.ammo:
-		_take(ch, a.id, int(a.n))
+		_take(ch, a.id, int(a.n) * n)
 	var t := float(w.reload)
-	st.loaded[id] = true
+	st.loaded[id] = (have + n) if w.has("mag") else true
+	st.reload_n = n
 	st.reloading = id
 	st.reload_end = _now() + t
 	st.busy_until = _now() + t
@@ -221,12 +259,16 @@ static func cancel_reload(ch: Object) -> void:
 	var st := state(ch)
 	if st.reloading != &"" and _now() < float(st.reload_end):
 		var id: StringName = st.reloading
-		st.loaded[id] = false
-		# порох и пуля возвращаются
+		var n := int(st.get("reload_n", 1))
+		if weapon(id).has("mag"):
+			st.loaded[id] = maxi(0, rounds(ch, id) - n)
+		else:
+			st.loaded[id] = false
+		# порох и пуля (патроны) возвращаются
 		var inv := _inv(ch)
 		if inv:
 			for a: Dictionary in weapon(id).ammo:
-				inv.call(&"add", a.id, int(a.n))
+				inv.call(&"add", a.id, int(a.n) * n)
 		st.busy_until = _now()
 	st.reloading = &""
 
@@ -268,34 +310,42 @@ static func fire(shooter: Node, weapon_id: StringName, origin: Vector3, dir: Vec
 			_take(shooter, ammo_id, 1)
 		&"gun", &"crossbow":
 			if not is_loaded(shooter, weapon_id):
-				if not bool(st.loaded.get(weapon_id, false)):
+				if rounds(shooter, weapon_id) <= 0:
 					if start_reload(shooter, weapon_id) <= 0.0:
 						CombatFx.sound_at(shooter, "dry_click", origin, -6.0)
 				return false
-			st.loaded[weapon_id] = false
-			ammo_id = &"bolt" if w.type == &"crossbow" else &"musket_ball"
+			if w.has("mag"):
+				st.loaded[weapon_id] = rounds(shooter, weapon_id) - 1
+			else:
+				st.loaded[weapon_id] = false
+			ammo_id = &"bolt" if w.type == &"crossbow" else StringName(w.get("proj", &"musket_ball"))
 	st.busy_until = _now() + float(w.cooldown)
 	var spread := float(w.get("spread_ads" if bool(opts.get("ads", false)) else "spread_hip", 1.0))
 	if w.type == &"bow":
 		spread *= lerpf(2.2, 1.0, power)
 	var d := _spread_dir(dir, spread)
 	var ad: Dictionary = AMMO.get(ammo_id, {})
-	var pr := CombatProjectile.new()
-	pr.shooter = shooter
-	pr.weapon_id = weapon_id
-	pr.ammo_id = ammo_id
-	pr.damage = float(w.damage) * float(ad.get("damage", 1.0)) * (lerpf(0.35, 1.0, power) if w.type == &"bow" else 1.0)
-	pr.kind = w.kind
-	pr.on_fire = bool(ad.get("fire", false))
-	pr.velocity = d * float(w.speed) * (lerpf(0.45, 1.0, power) if w.type == &"bow" else 1.0)
-	pr.gravity_scale = float(w.gravity)
-	pr.max_range = float(w.range) * 3.0
-	_root(shooter).add_child(pr)
-	pr.global_position = origin
+	for k in int(w.get("pellets", 1)):
+		var pd := d if k == 0 else _spread_dir(dir, spread)
+		var pr := CombatProjectile.new()
+		pr.shooter = shooter
+		pr.weapon_id = weapon_id
+		pr.ammo_id = ammo_id
+		pr.damage = float(w.damage) * float(ad.get("damage", 1.0)) * (lerpf(0.35, 1.0, power) if w.type == &"bow" else 1.0)
+		pr.kind = w.kind
+		pr.on_fire = bool(ad.get("fire", false))
+		pr.velocity = pd * float(w.speed) * (lerpf(0.45, 1.0, power) if w.type == &"bow" else 1.0)
+		pr.gravity_scale = float(w.gravity)
+		pr.max_range = float(w.range) * 3.0
+		_root(shooter).add_child(pr)
+		pr.global_position = origin
 	var mpos: Vector3 = opts.get("muzzle", origin + d * 0.9)
 	match w.type:
 		&"gun":
-			CombatFx.muzzle(shooter, mpos, d, float(w.flash))
+			if w.get("modern", false):
+				CombatFx.muzzle_modern(shooter, mpos, d, float(w.flash))
+			else:
+				CombatFx.muzzle(shooter, mpos, d, float(w.flash))
 			CombatFx.sound_at(shooter, String(w.sound), origin, 4.0, 220.0)
 			CombatFx.sound_at(shooter, "flint_click", origin, -8.0)
 		&"crossbow":
@@ -387,8 +437,9 @@ static func throw_item(thrower: Node, id: StringName, origin: Vector3, dir: Vect
 		v += (thrower as CharacterBody3D).velocity * 0.6
 	var root := _root(thrower)
 	CombatFx.sound_at(thrower, "swoosh", origin, -4.0)
-	if id == &"dynamite":
+	if id == &"dynamite" or w.get("bomb", false):
 		var b := CombatBomb.new()
+		b.model_id = id
 		b.thrower = thrower
 		b.fuse = float(w.fuse)
 		b.radius = float(w.radius)
@@ -440,13 +491,13 @@ static func best_weapon(ch: Object, prefer_ranged: bool = true) -> StringName:
 	var inv := _inv(ch)
 	if inv == null:
 		return &""
-	var order: Array[StringName] = [&"musket", &"crossbow", &"bow", &"pistol", &"spear", &"axe_modern", &"club", &"axe_crude"] if prefer_ranged \
-		else [&"axe_modern", &"spear", &"club", &"axe_crude", &"musket", &"crossbow", &"pistol", &"bow"]
+	var order: Array[StringName] = [&"rifle", &"shotgun", &"musket", &"crossbow", &"bow", &"pistol", &"spear", &"machete", &"axe_modern", &"club", &"axe_crude"] if prefer_ranged \
+		else [&"machete", &"axe_modern", &"spear", &"club", &"axe_crude", &"shotgun", &"rifle", &"musket", &"crossbow", &"pistol", &"bow"]
 	for id in order:
 		if int(inv.call(&"count", id)) <= 0:
 			continue
 		var w := weapon(id)
-		if w.type in [&"gun", &"crossbow", &"bow"] and not (is_loaded(ch, id) and bool(state(ch).loaded.get(id, false))) and not has_ammo(ch, id):
+		if w.type in [&"gun", &"crossbow", &"bow"] and not (is_loaded(ch, id) and rounds(ch, id) > 0) and not has_ammo(ch, id):
 			continue
 		return id
 	return &""

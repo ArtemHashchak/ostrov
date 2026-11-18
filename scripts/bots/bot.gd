@@ -212,6 +212,10 @@ func apply_damage(amount: float, source: Node = null, kind: StringName = &"melee
 		if st == null or int(st) != team:
 			last_attacker = src_ch if src_ch else source
 			last_attacked_t = Game.match_time
+	# SUPPLY: бронежилет гасит часть урона пуль/осколков
+	var sup := get_tree().get_first_node_in_group(&"supply") if is_inside_tree() else null
+	if sup and sup.has_method(&"filter_damage"):
+		amount = float(sup.call(&"filter_damage", self, amount, kind))
 	health = maxf(0.0, health - amount)
 	last_damage_kind = kind
 	Events.character_damaged.emit(self, amount, source)

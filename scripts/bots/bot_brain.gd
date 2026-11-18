@@ -9,7 +9,7 @@ const SWING_CD := 0.8
 const PICK_R := 2.0
 const TASK_TIMEOUT := {"logs": 150.0, "deliver": 90.0, "collect": 80.0, "fill": 60.0, "fight": 40.0,
 	"flee": 25.0, "drink": 80.0, "eat": 80.0, "herb": 60.0, "raid": 420.0, "defend": 30.0,
-	"cut_bridge": 90.0, "goto": 240.0, "wander": 20.0, "retreat": 40.0, "prep": 120.0}
+	"cut_bridge": 90.0, "goto": 240.0, "wander": 20.0, "retreat": 40.0, "prep": 120.0, "supply": 150.0}
 ## Упрощённые рецепты ботов (боты не ходят по верстакам): то же оружие из базовых ресурсов.
 const BOT_RECIPES := {
 	&"spear": {&"stick": 2, &"rock": 1},
@@ -93,6 +93,7 @@ func think(_dt: float) -> void:
 		"wander": _do_wander()
 		"retreat": _do_retreat()
 		"prep": _do_prep()
+		"supply": _do_supply()
 
 func _set_task(t: Dictionary) -> void:
 	_end_task()
@@ -234,6 +235,11 @@ func _urgent() -> Dictionary:
 		if bot.health < 25.0 and _enemy_hp(enemy) > bot.health * 1.5:
 			return {"type": "retreat"}
 		return {"type": "fight", "target": enemy}
+	# SUPPLY: аптечка из посылки — сразу, если плохо или отравлен
+	if bot.inv_count(&"medkit") > 0 and (bot.health < 45.0 or (bot.poison > 0.0 and bot.poison_time > 4.0)):
+		var svm := Survival.instance()
+		if svm:
+			svm.consume_item(bot, &"medkit")
 	if tt in ["fight", "flee", "retreat"]:
 		return {}
 	if bot.poison > 0.0 and bot.poison_time > 2.0 and tt != "herb":
@@ -270,6 +276,9 @@ func _job() -> Dictionary:
 		if bpl:
 			return {"type": "deliver", "bp": bpl}
 		bot.take_logs(bot.logs_carried)
+	var sup := _supply_job()
+	if not sup.is_empty():
+		return sup
 	var raid := _raid_job()
 	if not raid.is_empty():
 		return raid
@@ -291,6 +300,43 @@ func _job() -> Dictionary:
 	if bot.difficulty != &"easy" and bot.inv_count(&"molotov") == 0 and Game.match_time > 300.0:
 		return {"type": "prep"}
 	return {}
+
+# ============================================================ посылки спонсоров (SUPPLY)
+
+## Ящик спонсоров рядом (≤150 м, достижим): не каждый бот бежит — примерно половина,
+## ближние (≤60 м) — всегда.
+func _supply_job() -> Dictionary:
+	if _recent_fail("supply"):
+		return {}
+	for n in bot.get_tree().get_nodes_in_group(&"supply_crates"):
+		var c := n as SupplyCrate
+		if c == null or not c.is_available() or _banned(c):
+			continue
+		var d := c.global_position.distance_to(bot.global_position)
+		if d > 150.0:
+			continue
+		if d > 60.0 and (c.number + bot.index + bot.team) % 2 == 1:
+			continue
+		if not _same_side(c.global_position):
+			continue
+		return {"type": "supply", "node": c}
+	return {}
+
+func _do_supply() -> void:
+	var c := _tn("node") as SupplyCrate
+	if c == null or not c.is_available():
+		_grab_pickups(bot.global_position, 4.0)
+		_done()
+		return
+	if c.opener != null and is_instance_valid(c.opener) and c.opener != bot:
+		_fail("ящик уже открывают")
+		return
+	if _go(c.global_position, 1.5):
+		bot.face_to(c.global_position)
+		bot.hold(&"")
+		c.bot_open(bot)
+	elif task.get("unreachable", false):
+		_fail("не дойти до ящика")
 
 func _site_needing(t: StringName) -> Blueprint:
 	var bp := team.current_build()
@@ -850,8 +896,8 @@ func _do_herb() -> void:
 
 # ============================================================ бой
 
-const RANGED_ORDER: Array[StringName] = [&"musket", &"crossbow", &"bow", &"pistol", &"spear", &"axe_modern", &"club", &"axe_crude"]
-const MELEE_ORDER: Array[StringName] = [&"axe_modern", &"spear", &"club", &"axe_crude", &"musket", &"crossbow", &"pistol", &"bow"]
+const RANGED_ORDER: Array[StringName] = [&"rifle", &"shotgun", &"musket", &"crossbow", &"bow", &"pistol", &"spear", &"machete", &"axe_modern", &"club", &"axe_crude"]
+const MELEE_ORDER: Array[StringName] = [&"machete", &"axe_modern", &"spear", &"club", &"axe_crude", &"shotgun", &"rifle", &"musket", &"crossbow", &"pistol", &"bow"]
 
 ## Лучшее оружие из инвентаря (как Combat.best_weapon).
 func _best_weapon(prefer_ranged: bool) -> StringName:

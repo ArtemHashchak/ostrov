@@ -96,7 +96,8 @@ func _process(delta: float) -> void:
 		match w.type:
 			&"gun", &"crossbow":
 				want_ads = aim and not Combat.is_reloading(p) and not p.sprinting
-				if atk_down:
+				# SUPPLY: автомат — очередь, пока зажата ЛКМ
+				if atk_down or (atk and w.get("auto", false) and Combat.is_loaded(p, wid)):
 					_trigger()
 				if rel_down:
 					_start_reload()
@@ -217,7 +218,12 @@ func _trigger() -> void:
 		_start_reload()
 
 func _start_reload() -> void:
-	if Combat.is_loaded(p, wid) or Combat.is_reloading(p):
+	if Combat.is_reloading(p):
+		return
+	if w.has("mag"):
+		if Combat.rounds(p, wid) >= int(w.mag):
+			return
+	elif Combat.is_loaded(p, wid):
 		return
 	var t := Combat.start_reload(p, wid)
 	if t <= 0.0:
@@ -229,6 +235,9 @@ func _start_reload() -> void:
 		return
 	_reload_len = t
 	_reload_snd = false
+	if w.has("mag"):
+		CombatFx.sound_at(p, "hit_metal", _eye() + Vector3.DOWN * 0.4, -14.0)
+		return
 	CombatFx.sound_at(p, "crossbow_crank" if w.type == &"crossbow" else "ramrod", _eye() + Vector3.DOWN * 0.4, -6.0)
 
 func _reload_progress() -> float:
@@ -360,7 +369,8 @@ func _update_pose(delta: float) -> void:
 
 func _pose_gun() -> void:
 	var roll := deg_to_rad(-80.0)
-	var pistol := wid == &"pistol"
+	var pistol := wid == &"pistol" or bool(w.get("pistol", false))
+	var mag: bool = w.has("mag") # SUPPLY: магазинное оружие
 	# В прицеле предплечье уходит вниз-вправо (а не в камеру); модель повёрнута обратно,
 	# чтобы ствол смотрел ровно вперёд.
 	var ads_rr := Vector3(deg_to_rad(14.0), deg_to_rad(22.0), roll) if pistol else Vector3(deg_to_rad(10.0), deg_to_rad(24.0), roll)
@@ -378,7 +388,14 @@ func _pose_gun() -> void:
 	var rp := _reload_progress()
 	if rp < 1.0:
 		var lift := smoothstep(0.0, 0.12, rp) * (1.0 - smoothstep(0.88, 1.0, rp))
-		if w.type == &"gun":
+		if mag:
+			# магазин: оружие наклонено к себе боком, левая рука меняет магазин
+			r = r.lerp(Vector3(0.08, -0.3, -0.36) if not pistol else Vector3(0.06, -0.26, -0.36), lift)
+			rr = rr.lerp(Vector3(deg_to_rad(18.0), deg_to_rad(-25.0), roll + deg_to_rad(35.0)), lift)
+			if not _reload_snd and rp > 0.7:
+				_reload_snd = true
+				CombatFx.sound_at(p, "dry_click", _eye() + Vector3.DOWN * 0.3, -4.0)
+		elif w.type == &"gun":
 			# ствол вертикально, дулом вверх — порох, пуля, шомпол
 			r = r.lerp(Vector3(0.1, -0.5, -0.38) if not pistol else Vector3(0.08, -0.32, -0.36), lift)
 			rr = rr.lerp(Vector3(deg_to_rad(75.0), deg_to_rad(-10.0), roll), lift)
@@ -398,7 +415,7 @@ func _pose_gun() -> void:
 	if pistol:
 		hands.pose_l = Vector3(-0.3, -0.5, -0.35)
 		hands.pose_lr = Vector3.ZERO
-		if rp < 1.0:
+		if rp < 1.0 and not mag:
 			var mz := _rel_to_arm(hands.right_arm, "Muzzle")
 			var mh := r + Basis.from_euler(rr) * mz
 			var stroke := absf(sin(rp * TAU * 3.0)) * smoothstep(0.3, 0.4, rp) * (1.0 - smoothstep(0.75, 0.85, rp))
@@ -412,7 +429,15 @@ func _pose_gun() -> void:
 	var l := fh - hand_off + Vector3(0.0, -0.035, 0.0)
 	if rp < 1.0:
 		var lift2 := smoothstep(0.0, 0.12, rp) * (1.0 - smoothstep(0.88, 1.0, rp))
-		if w.type == &"gun":
+		if mag:
+			# рука к магазину → вниз (новый из подсумка) → обратно
+			var mg := _rel_to_arm(hands.right_arm, "Mag")
+			var mgh := r + Basis.from_euler(rr) * mg
+			var away := smoothstep(0.25, 0.4, rp) * (1.0 - smoothstep(0.55, 0.7, rp))
+			var at_mag := mgh + Vector3(-0.02, -0.03, 0.02) + Vector3(-0.08, -0.22, 0.08) * away
+			l = l.lerp(at_mag, lift2)
+			lr = lr.lerp(Vector3(deg_to_rad(10.0), 0.0, deg_to_rad(60.0)), lift2)
+		elif w.type == &"gun":
 			var mz2 := _rel_to_arm(hands.right_arm, "Muzzle")
 			var mh2 := r + Basis.from_euler(rr) * mz2
 			var stroke2 := absf(sin(rp * TAU * 3.0)) * smoothstep(0.3, 0.4, rp) * (1.0 - smoothstep(0.78, 0.86, rp))
@@ -583,6 +608,8 @@ func _update_ui(_delta: float) -> void:
 	match w.type:
 		&"gun", &"crossbow":
 			var st := "перезарядка…" if Combat.is_reloading(p) else ("заряжен" if Combat.is_loaded(p, wid) else "не заряжен (R)")
+			if w.has("mag") and not Combat.is_reloading(p):
+				st = "%d / %d%s" % [Combat.rounds(p, wid), int(w.mag), "  (R — перезарядить)" if Combat.rounds(p, wid) == 0 else ""]
 			var parts := []
 			for a: Dictionary in w.ammo:
 				parts.append("%s: %d" % [Items.item_name(a.id), BuildEnv.inv_count(p, a.id)])

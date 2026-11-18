@@ -158,6 +158,11 @@ func _draw() -> void:
 	# Мосты.
 	for b in _bridges:
 		draw_rect(Rect2(world_to_map(b.x, b.z, vr) - Vector2(2, 2), Vector2(4, 4)), Color(0.55, 0.38, 0.2))
+	# Метки модулей (SUPPLY: ящики спонсоров, ожидаемый сброс) — узлы группы map_markers.
+	for mn in get_tree().get_nodes_in_group(&"map_markers"):
+		if mn.has_method(&"map_markers"):
+			for mk: Dictionary in mn.call(&"map_markers", player):
+				_draw_marker(mk, vr, f)
 	# Союзники.
 	var pteam := int(player.get(&"team")) if player and is_instance_valid(player) and player.get(&"team") != null else 0
 	if pteam >= 0 and pteam < Game.teams.size():
@@ -197,3 +202,28 @@ func _draw() -> void:
 	# Север.
 	draw_string_outline(f, Vector2(size.x * 0.5 - 6, 14), "С", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 3, Color(0, 0, 0, 0.7))
 	draw_string(f, Vector2(size.x * 0.5 - 6, 14), "С", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UITheme.ACCENT)
+
+## Метка {pos, color, kind: crate|falling|predicted, label}: ящик — квадрат с крестом
+## строп, ожидаемый сброс — пульсирующее пунктирное кольцо.
+func _draw_marker(mk: Dictionary, vr: Rect2, f: Font) -> void:
+	var pos: Vector3 = mk.get("pos", Vector3.ZERO)
+	var mp := world_to_map(pos.x, pos.z, vr)
+	var col: Color = mk.get("color", Color.WHITE)
+	var edge := not Rect2(Vector2(6, 6), size - Vector2(12, 12)).has_point(mp)
+	mp = mp.clamp(Vector2(6, 6), size - Vector2(6, 6))
+	match StringName(mk.get("kind", &"crate")):
+		&"predicted":
+			var r := 9.0 + 2.0 * sin(Time.get_ticks_msec() * 0.006)
+			for k in 12:
+				var a0 := TAU * k / 12.0
+				draw_arc(mp, r, a0, a0 + TAU / 24.0, 4, col, 2.0, true)
+		_:
+			var s := 5.0 if not edge else 4.0
+			draw_rect(Rect2(mp - Vector2(s, s), Vector2(s, s) * 2.0), Color(0, 0, 0, 0.75))
+			draw_rect(Rect2(mp - Vector2(s, s) + Vector2(1, 1), Vector2(s, s) * 2.0 - Vector2(2, 2)), col)
+			if StringName(mk.get("kind", &"")) == &"falling" and int(Time.get_ticks_msec() / 300) % 2 == 0:
+				draw_arc(mp, s + 4.0, 0.0, TAU, 16, col, 1.5, true)
+	var lb := String(mk.get("label", ""))
+	if full and lb != "":
+		draw_string_outline(f, mp + Vector2(-60, -10), lb, HORIZONTAL_ALIGNMENT_CENTER, 120, 10, 3, Color(0, 0, 0, 0.7))
+		draw_string(f, mp + Vector2(-60, -10), lb, HORIZONTAL_ALIGNMENT_CENTER, 120, 10, col.lightened(0.3))
