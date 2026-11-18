@@ -77,6 +77,7 @@ func _init(seed_value: int = 2026) -> void:
 	_layout(seed_value)
 	_build_grid()
 	finalize_ponds()
+	build_lake_masks()
 
 # ---------------------------------------------------------------- раскладка
 
@@ -517,6 +518,75 @@ func finalize_ponds() -> void:
 			L._lv = _pond_level(L)
 			L.level = L._lv
 
+## Маска воды каждого озера/пруда: заливка от центра по отсчётам 1 м, где
+## рельеф ниже уровня воды. Вода не «перетекает» через гребень на низкий
+## берег снаружи котловины (меш озера и fresh_water_at — только по маске).
+const LAKE_STEP := 1.0
+
+func build_lake_masks() -> void:
+	for L in lakes:
+		var c: Vector2 = L.center
+		var level: float = L.level
+		var R := float(L.radius) * 1.5
+		var n := int(ceil(2.0 * R / LAKE_STEP)) + 1
+		var org := c - Vector2(R, R)
+		var wet := PackedByteArray()
+		wet.resize(n * n)
+		var hs := PackedFloat32Array()
+		hs.resize(n * n)
+		for j in n:
+			for i in n:
+				hs[j * n + i] = height(org.x + i * LAKE_STEP, org.y + j * LAKE_STEP)
+		var ci := clampi(int(round(R / LAKE_STEP)), 0, n - 1)
+		var stack: Array[int] = []
+		# старт — самый низкий отсчёт в радиусе 3 м от центра
+		var best := ci * n + ci
+		for dj in range(-3, 4):
+			for di in range(-3, 4):
+				var k := (ci + dj) * n + (ci + di)
+				if hs[k] < hs[best]:
+					best = k
+		if hs[best] < level:
+			wet[best] = 1
+			stack.append(best)
+		while not stack.is_empty():
+			var k: int = stack.pop_back()
+			var i := k % n
+			var j := k / n
+			for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var ii: int = i + d.x
+				var jj: int = j + d.y
+				if ii < 0 or jj < 0 or ii >= n or jj >= n:
+					continue
+				var kk := jj * n + ii
+				if wet[kk] == 0 and hs[kk] < level:
+					wet[kk] = 1
+					stack.append(kk)
+		L.mask = wet
+		L.mask_n = n
+		L.mask_origin = org
+
+## Уровень пресной воды над точкой (озеро/пруд по маске) или −INF, если точка
+## не под водой озера. h — высота рельефа в точке.
+func lake_level_at(x: float, z: float, h: float) -> float:
+	for idx in _cell(x, z).get("k", PackedInt32Array()):
+		var L: Dictionary = lakes[idx]
+		if h >= float(L.level):
+			continue
+		var org: Vector2 = L.get("mask_origin", L.center)
+		var fi := int(floor((x - org.x) / LAKE_STEP))
+		var fj := int(floor((z - org.y) / LAKE_STEP))
+		if lake_wet(L, fi, fj) or lake_wet(L, fi + 1, fj) or lake_wet(L, fi, fj + 1) or lake_wet(L, fi + 1, fj + 1):
+			return float(L.level)
+	return -INF
+
+## Отсчёт маски озера (i, j) мокрый?
+static func lake_wet(L: Dictionary, i: int, j: int) -> bool:
+	var n: int = L.get("mask_n", 0)
+	if i < 0 or j < 0 or i >= n or j >= n:
+		return false
+	return (L.mask as PackedByteArray)[j * n + i] != 0
+
 static func _seg_dist(p: Vector2, a: Vector2, b: Vector2) -> float:
 	var ab := b - a
 	var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 1e-6), 0.0, 1.0)
@@ -599,7 +669,12 @@ func fresh_water_at(pos: Vector3) -> bool:
 	for idx in cell.get("k", PackedInt32Array()):
 		var L: Dictionary = lakes[idx]
 		var c: Vector2 = L.center
-		if p.distance_to(c) < float(L.radius) * 1.3 and pos.y < float(L.level) + 0.6 and pos.y > float(L.level) - 3.5 \
+		if p.distance_to(c) > float(L.radius) * 1.5 or pos.y > float(L.level) + 0.6 or pos.y < float(L.level) - 3.5:
+			continue
+		var org: Vector2 = L.get("mask_origin", c)
+		var fi := int(floor((p.x - org.x) / LAKE_STEP))
+		var fj := int(floor((p.y - org.y) / LAKE_STEP))
+		if (lake_wet(L, fi, fj) or lake_wet(L, fi + 1, fj) or lake_wet(L, fi, fj + 1) or lake_wet(L, fi + 1, fj + 1)) \
 				and height(p.x, p.y) < float(L.level) - 0.05:
 			return true
 	return false

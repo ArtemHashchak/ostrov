@@ -118,6 +118,6 @@ void fragment() {
 	nm = mix(nm, tri(volc_normal, wpos, wnrm, rock_tile * 1.6), k_volc);
 	NORMAL_MAP = nm;
 	NORMAL_MAP_DEPTH = mix(1.0, 1.6, k_rock);
-	ROUGHNESS = mix(mix(0.93, 0.35, k_wet * (1.0 - k_grass)), 0.95, max(max(k_grass, k_rock), k_volc));
-	SPECULAR = mix(0.3, 0.65, k_wet * (1.0 - k_grass));
+	ROUGHNESS = mix(mix(0.93, 0.6, k_wet * (1.0 - k_grass)), 0.95, max(max(k_grass, k_rock), k_volc));
+	SPECULAR = mix(0.3, 0.45, k_wet * (1.0 - k_grass));
 }

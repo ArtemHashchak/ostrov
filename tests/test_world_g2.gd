@@ -75,6 +75,21 @@ func run() -> void:
 				and w.height_at(s.x, s.z) < s.y - 0.5:
 			fw_ok += 1
 	check(fw_ok == sp.size(), "озёра: вода над дном, fresh_water_at верно (%d/%d)" % [fw_ok, sp.size()])
+	var lk_ok := 0
+	for s in sp:
+		if w.biome_at(s.x, s.z) == &"water" and not w.is_land(s.x, s.z) and w.lake_level_at(s.x, s.z) > -1.0:
+			lk_ok += 1
+	check(lk_ok == sp.size(), "дно озера — не суша: biome water, is_land false (%d/%d)" % [lk_ok, sp.size()])
+	# вода озера не висит над низким берегом снаружи котловины (маска)
+	var leak := 0
+	for L in w.arch.lakes:
+		var c: Vector2 = L.center
+		for k in 64:
+			var q := c + Vector2.from_angle(k * TAU / 64.0) * float(L.radius) * 1.45
+			var hq := w.height_at(q.x, q.y)
+			if hq < float(L.level) and w.lake_level_at(q.x, q.y) > -1.0 and hq < float(L.level) - 1.5:
+				leak += 1
+	check(leak == 0, "вода озёр только в котловине (утечек %d)" % leak)
 	var sea_fresh := 0
 	for k in 300:
 		var p := Vector3(rng.randf_range(-700, 700), -0.3, rng.randf_range(-700, 700))

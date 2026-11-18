@@ -89,19 +89,45 @@ func _make_lakes() -> void:
 		var c: Vector2 = L.center
 		var mi := MeshInstance3D.new()
 		mi.name = "Lake_%d" % int(L.island)
-		var cm := CylinderMesh.new()
-		cm.top_radius = float(L.radius) * 1.36
-		cm.bottom_radius = cm.top_radius
-		cm.height = 0.02
-		cm.radial_segments = 48
-		cm.rings = 1
-		mi.mesh = cm
+		mi.mesh = _lake_mesh(L)
 		mi.material_override = _lake_mat
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mi.position = Vector3(c.x, float(L.level), c.y)
 		mi.visibility_range_end = 900.0
 		mi.add_to_group(&"fresh_water")
 		root.add_child(mi)
+
+## Плоскость воды озера только над его маской (+1 отсчёт каймы, которую
+## прячет рельеф выше уровня) — без «висящей» воды над низким берегом.
+func _lake_mesh(L: Dictionary) -> ArrayMesh:
+	var n: int = L.get("mask_n", 0)
+	var st := Archipelago.LAKE_STEP
+	var org: Vector2 = L.get("mask_origin", L.center)
+	var c: Vector2 = L.center
+	var verts := PackedVector3Array()
+	for j in n - 1:
+		for i in n - 1:
+			if not (Archipelago.lake_wet(L, i, j) or Archipelago.lake_wet(L, i + 1, j) \
+					or Archipelago.lake_wet(L, i, j + 1) or Archipelago.lake_wet(L, i + 1, j + 1)):
+				continue
+			var x0 := org.x + i * st - c.x
+			var z0 := org.y + j * st - c.y
+			var a := Vector3(x0, 0, z0)
+			var b := Vector3(x0 + st, 0, z0)
+			var d := Vector3(x0, 0, z0 + st)
+			var e := Vector3(x0 + st, 0, z0 + st)
+			verts.append_array([a, b, e, a, e, d])
+	var arr := []
+	arr.resize(Mesh.ARRAY_MAX)
+	var nrm := PackedVector3Array()
+	nrm.resize(verts.size())
+	nrm.fill(Vector3.UP)
+	arr[Mesh.ARRAY_VERTEX] = verts
+	arr[Mesh.ARRAY_NORMAL] = nrm
+	var m := ArrayMesh.new()
+	if verts.size() > 0:
+		m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	return m
 
 ## Кладбища кораблей: корпуса парусников (без парусов), накренённые и
 ## наполовину затопленные, плюс обломки на берегу. Коллизия — упрощённая.
@@ -199,12 +225,17 @@ func normal_at(x: float, z: float) -> Vector3:
 	return terrain.normal_at(x, z)
 
 func is_land(x: float, z: float) -> bool:
-	return height_at(x, z) > water_level()
+	var h := height_at(x, z)
+	return h > water_level() and h >= arch.lake_level_at(x, z, h)
+
+## Уровень воды озера/пруда над точкой или −INF (не под пресной водой).
+func lake_level_at(x: float, z: float) -> float:
+	return arch.lake_level_at(x, z, height_at(x, z))
 
 ## 'beach' | 'jungle' | 'meadow' | 'rocky' | 'swamp' | 'water'
 func biome_at(x: float, z: float) -> StringName:
 	var h := height_at(x, z)
-	if h < water_level():
+	if h < water_level() or h < arch.lake_level_at(x, z, h):
 		return &"water"
 	var w := arch.biome_weights(x, z, h)
 	var n := normal_at(x, z)
