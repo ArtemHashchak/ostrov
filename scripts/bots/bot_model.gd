@@ -1,0 +1,207 @@
+class_name BotModel
+extends Node3D
+## Внешний вид бота: скелетная модель «Mannequiny» (GDQuest, CC-BY 4.0) в одежде
+## цвета команды, предмет в правой руке, брёвна на плече, анимации
+## (стоит / идёт / бежит / плывёт / удар / смерть). Далеко от камеры анимация
+## замирает, ещё дальше модель скрывается — бот почти ничего не стоит.
+
+const MODEL_PATH := "res://scenes/bots/model/mannequiny.glb"
+const ANIM_FAR := 70.0      # дальше — анимация не обновляется
+const HIDE_FAR := 420.0     # дальше — модель не рисуется
+const SKIN_TONES: Array[Color] = [Color(0.55, 0.38, 0.27), Color(0.71, 0.52, 0.39), Color(0.42, 0.29, 0.2), Color(0.8, 0.62, 0.48)]
+
+static var _scene: PackedScene = null
+static var _loops_set := false
+static var _mat_cache: Dictionary = {}
+
+var team: int = 0
+var skin: Color = SKIN_TONES[0]
+var anim: AnimationPlayer = null
+var skeleton: Skeleton3D = null
+var body_root: Node3D = null       # поворачивается при плавании/смерти
+var hand_r: BoneAttachment3D = null
+var _held_node: Node3D = null
+var _held_id: StringName = &"-"
+var _logs_node: Node3D = null
+var _cur: StringName = &""
+var _action_t: float = 0.0
+var _dead: bool = false
+var _swim: bool = false
+var _swim_k: float = 0.0
+var _anim_on: bool = true
+var _anim_check_t: float = 0.0
+
+func setup(team_id: int, seed_v: int) -> BotModel:
+	team = team_id
+	skin = SKIN_TONES[posmod(seed_v, SKIN_TONES.size())]
+	return self
+
+static func clear_cache() -> void:
+	_mat_cache.clear()
+	_scene = null
+
+func _ready() -> void:
+	if _scene == null:
+		_scene = load(MODEL_PATH) as PackedScene
+	body_root = Node3D.new()
+	body_root.name = "Body"
+	add_child(body_root)
+	var inst := _scene.instantiate() as Node3D
+	# glTF смотрит в +Z, бот — в −Z
+	inst.rotation.y = PI
+	body_root.add_child(inst)
+	anim = inst.find_child("AnimationPlayer", true, false) as AnimationPlayer
+	skeleton = inst.find_child("Skeleton3D", true, false) as Skeleton3D
+	_set_loops()
+	_apply_materials(inst)
+	if skeleton:
+		hand_r = BoneAttachment3D.new()
+		hand_r.bone_name = "hand.r"
+		skeleton.add_child(hand_r)
+	play(&"idle")
+
+func _set_loops() -> void:
+	if anim == null or _loops_set:
+		return
+	_loops_set = true
+	for a: StringName in [&"idle", &"run", &"fight_idle"]:
+		if anim.has_animation(a):
+			anim.get_animation(a).loop_mode = Animation.LOOP_LINEAR
+
+func _mat(key: String, c: Color, rough: float) -> StandardMaterial3D:
+	if _mat_cache.has(key):
+		return _mat_cache[key]
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c
+	m.roughness = rough
+	if key.begins_with("skin"):
+		m.rim_enabled = true
+		m.rim = 0.25
+		m.rim_tint = 0.6
+	_mat_cache[key] = m
+	return m
+
+## Поверхности модели: 0 — тело (кожа), 1 — «одежда» (цвет команды), 2 — суставы/обувь.
+func _apply_materials(inst: Node) -> void:
+	var cloth := Game.team_color(team).darkened(0.25)
+	for mi in inst.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		m.visibility_range_end = HIDE_FAR
+		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		for s in m.mesh.get_surface_count():
+			var nm := ""
+			var sm := m.mesh.surface_get_material(s)
+			if sm:
+				nm = String(sm.resource_name).to_lower()
+			var mat: Material
+			if nm.contains("azul"):
+				mat = _mat("cloth%d" % team, cloth, 0.92)
+			elif nm.contains("negro"):
+				mat = _mat("dark", Color(0.16, 0.13, 0.1), 0.95)
+			else:
+				mat = _mat("skin%s" % skin.to_html(false), skin, 0.62)
+			m.set_surface_override_material(s, mat)
+
+func play(a: StringName, speed: float = 1.0, blend: float = 0.18) -> void:
+	if anim == null or not anim.has_animation(a):
+		return
+	if _cur != a:
+		_cur = a
+		anim.play(a, blend, speed)
+	else:
+		anim.speed_scale = speed
+
+## Удар/рубка/бросок — короткая анимация поверх движения.
+func action(kind: StringName = &"swing") -> void:
+	if _dead or anim == null:
+		return
+	_action_t = 0.45
+	_cur = &""
+	var a := &"fight_punch" if kind != &"kick" else &"fight_kick"
+	if anim.has_animation(a):
+		anim.play(a, 0.06, 1.5)
+
+func set_held(id: StringName) -> void:
+	if id == _held_id or hand_r == null:
+		return
+	_held_id = id
+	if _held_node:
+		_held_node.queue_free()
+		_held_node = null
+	if id == &"" or id == &"hand":
+		return
+	var n := HeldModels.build(id)
+	if n == null:
+		return
+	_held_node = n
+	# ручка в кулаке, лезвие вверх-вперёд
+	n.rotation = Vector3(deg_to_rad(-90.0), 0.0, deg_to_rad(90.0))
+	n.position = Vector3(0.0, 0.08, 0.02)
+	hand_r.add_child(n)
+
+func set_logs(n: int) -> void:
+	if n <= 0:
+		if _logs_node:
+			_logs_node.queue_free()
+			_logs_node = null
+		return
+	if _logs_node and _logs_node.get_child_count() == n:
+		return
+	if _logs_node:
+		_logs_node.queue_free()
+	_logs_node = Node3D.new()
+	_logs_node.position = Vector3(0.22, 1.56, 0.0)
+	body_root.add_child(_logs_node)
+	var mat := BuildMats.mat(&"log")
+	for i in n:
+		var mi := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.16
+		cm.bottom_radius = 0.17
+		cm.height = 2.0
+		cm.radial_segments = 10
+		mi.mesh = cm
+		mi.material_override = mat
+		mi.rotation = Vector3(PI * 0.5, 0.0, 0.0)
+		mi.position = Vector3(0.0, i * 0.3, 0.1)
+		_logs_node.add_child(mi)
+
+func set_dead(on: bool) -> void:
+	_dead = on
+	var tw := create_tween()
+	if on:
+		_cur = &""
+		if anim:
+			anim.pause()
+		tw.tween_property(body_root, ^"rotation:x", -PI * 0.5, 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.parallel().tween_property(body_root, ^"position:y", 0.25, 0.55)
+	else:
+		body_root.rotation = Vector3.ZERO
+		body_root.position = Vector3.ZERO
+		play(&"idle")
+
+## Обновление позы: hspeed — горизонтальная скорость, swim — плывёт.
+func update_pose(delta: float, hspeed: float, swim: bool, run: bool) -> void:
+	if _dead:
+		return
+	_anim_check_t -= delta
+	if _anim_check_t <= 0.0:
+		_anim_check_t = 0.5
+		var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+		var on := cam == null or cam.global_position.distance_to(global_position) < ANIM_FAR
+		if on != _anim_on and anim:
+			_anim_on = on
+			anim.active = on
+	_swim = swim
+	_swim_k = move_toward(_swim_k, 1.0 if swim else 0.0, delta * 2.5)
+	body_root.rotation.x = -_swim_k * 1.25
+	body_root.position.y = -_swim_k * 0.15
+	if _action_t > 0.0:
+		_action_t -= delta
+		return
+	if swim:
+		play(&"run", 0.45 + hspeed * 0.12)
+	elif hspeed > 0.35:
+		play(&"run", clampf(hspeed / (5.2 if run else 4.4), 0.45, 1.25))
+	else:
+		play(&"idle")
