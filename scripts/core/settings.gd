@@ -12,6 +12,8 @@ var master_volume: float = 1.0
 var shadows_quality: int = 2 # 0 выкл, 1 низко, 2 высоко
 ## Качество графики: 0 низкое, 1 среднее, 2 высокое, 3 ультра (apply_graphics).
 var graphics_quality: int = 2
+## Обучение пройдено (TUTORIAL).
+var tutorial_done: bool = false
 
 ## Действия → события по умолчанию. Клавиши — physical keycode.
 const DEFAULT_KEYS: Dictionary = {
@@ -111,6 +113,7 @@ func save_settings() -> void:
 	cfg.set_value("video", "graphics_quality", graphics_quality)
 	cfg.set_value("meta", "keys_version", KEYS_VERSION)
 	cfg.set_value("audio", "master_volume", master_volume)
+	cfg.set_value("progress", "tutorial_done", tutorial_done)
 	for action: StringName in DEFAULT_KEYS.keys():
 		var keys: Array = []
 		for ev in InputMap.action_get_events(action):
@@ -130,6 +133,7 @@ func load_settings() -> void:
 	graphics_quality = cfg.get_value("video", "graphics_quality", graphics_quality)
 	var old_keys := int(cfg.get_value("meta", "keys_version", 1)) < KEYS_VERSION
 	master_volume = cfg.get_value("audio", "master_volume", master_volume)
+	tutorial_done = bool(cfg.get_value("progress", "tutorial_done", tutorial_done))
 	for action: StringName in DEFAULT_KEYS.keys():
 		if not cfg.has_section_key("keys", String(action)):
 			continue

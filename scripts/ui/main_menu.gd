@@ -49,6 +49,8 @@ func _ready() -> void:
 	_menu.add_child(sp)
 	var play := PauseMenu.menu_button("Играть", open_lobby)
 	_menu.add_child(play)
+	_menu.add_child(PauseMenu.menu_button("Обучение" if not TutorialLauncher.is_done() else "Обучение  ✓", func() -> void: TutorialLauncher.start(get_tree())))
+	_menu.add_child(PauseMenu.menu_button("Полигон", func() -> void: Sandbox.start(get_tree())))
 	_menu.add_child(PauseMenu.menu_button("Настройки", func() -> void:
 		_menu.visible = false
 		settings.visible = true))
