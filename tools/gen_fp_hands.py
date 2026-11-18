@@ -554,7 +554,7 @@ def build_sleeve():
     NA = 40
     ang = np.linspace(0, 2 * np.pi, NA, endpoint=False)
     S0 = 0.105    # передний край закатанного рукава
-    S_END = 0.42
+    S_END = 0.52
     # профиль: (s, добавка к радиусу)
     prof = [(S0 + 0.006, 0.0006), (S0 + 0.001, 0.0035), (S0, 0.007), (S0 + 0.002, 0.011), (S0 + 0.008, 0.0135),
             (S0 + 0.015, 0.0125), (S0 + 0.02, 0.0108), (S0 + 0.025, 0.0128), (S0 + 0.032, 0.0138),
@@ -605,6 +605,13 @@ def build_sleeve():
             c = a + W
             d = c + 1
             F += [(a, c, b), (b, c, d)]
+    # заглушка на дальнем конце рукава (на случай, если конец попадёт в кадр)
+    last = len(rows) - 1
+    cidx = len(V)
+    V = np.concatenate([V, (FORE_DIR * prof[-1][0])[None, :].astype(f32)], 0)
+    UV = np.concatenate([UV, np.array([[0.5, uvs[-1] * 9.0]], f32)], 0)
+    for j in range(NA):
+        F.append((last * W + j, last * W + j + 1, cidx))
     F = np.asarray(F, np.int32)
     # нормали по граням
     N = np.zeros_like(V)

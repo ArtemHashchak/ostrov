@@ -417,9 +417,9 @@ func _place_item(m: Node3D, id: StringName) -> void:
 		m.basis = _grip_basis(Vector3(-0.94, 0.0, -0.34), Vector3(-0.34, 0.0, 0.94))
 		m.position = Vector3(0.0, 0.0, 0.0)
 	elif id == &"spear":
-		# копьё лежит в кулаке, древко вперёд к цели, держим ближе к середине
-		m.basis = _grip_basis(Vector3(-0.5, 0.05, -0.86), Vector3(0.0, 1.0, 0.0))
-		m.position = Vector3(0.38, -0.02, 0.62) * 0.55
+		# древко вдоль пальцев вперёд (кулак сверху), остриё к цели
+		m.basis = _grip_basis(Vector3(-0.12, 0.04, -0.99), Vector3(0.0, 1.0, 0.0))
+		m.position = Vector3(0.0, -0.004, 0.0)
 	elif id == &"water_bottle":
 		# бутылка стоймя в кулаке (кулак ребром — горлышко вверх)
 		m.basis = _grip_basis(Vector3(-1.0, 0.0, -0.12), Vector3(0.0, 1.0, 0.0))
@@ -564,7 +564,7 @@ func animate(delta: float, speed01: float, sprinting: bool, tired: float, on_flo
 		&"spear":
 			base_r = Vector3(0.19, -0.27, -0.36)
 			base_l = Vector3(-0.26, -0.36, -0.40)
-			rr = Vector3(deg_to_rad(10.0), deg_to_rad(18.0), deg_to_rad(-80.0))
+			rr = Vector3(deg_to_rad(8.0), deg_to_rad(10.0), deg_to_rad(-30.0))
 			lr = Vector3(deg_to_rad(4.0), deg_to_rad(-10.0), deg_to_rad(30.0))
 		&"weapon":
 			base_r = Vector3(0.19, -0.27, -0.38)
@@ -659,9 +659,9 @@ func animate(delta: float, speed01: float, sprinting: bool, tired: float, on_flo
 	if _carry > 0.0:
 		var c := _ease(_carry)
 		# ладонь лежит на бревне сверху, пальцы обхватывают его
-		base_r = base_r.lerp(Vector3(0.39, -0.115 + bob.y * 1.2, -0.42), c)
+		base_r = base_r.lerp(Vector3(0.36, -0.11 + bob.y * 1.2, -0.52), c)
 		base_l = base_l.lerp(Vector3(-0.26, -0.38, -0.42), c)
-		rr = rr.lerp(Vector3(deg_to_rad(4.0), deg_to_rad(-30.0), deg_to_rad(-14.0)), c)
+		rr = rr.lerp(Vector3(deg_to_rad(22.0), deg_to_rad(24.0), deg_to_rad(-12.0)), c)
 		lr = lr.lerp(Vector3(deg_to_rad(4.0), deg_to_rad(-10.0), deg_to_rad(30.0)), c)
 		g_r = &"round"
 		log_mesh.position = Vector3(0.46, -0.2 + bob.y * 1.2 - 0.03 * tired, -0.22)
