@@ -1,0 +1,7 @@
+[
+ {"id": "great_white_user", "name": "Большая белая акула (пак)", "category": "large", "biome": ["deep"],
+  "depth": [10.0, 60.0], "school": [1, 1], "groups": 0.1, "anim": "vat",
+  "mesh": "res://assets/user_pack/animals/animal_shark_great_white.glb",
+  "vat": "res://assets/user_pack/animals/shark_vat.res",
+  "length": 4.5, "speed": 1.2, "roam": 22.0, "min_quality": 2, "forward": "-z"}
+]
