@@ -128,6 +128,8 @@ func run() -> void:
 	await wait(0.5)
 	await shot("03_smoker")
 	await until(func() -> bool: return sm.ready_count() == 4, 20.0)
+	await wait(0.3)
+	await shot("03b_smoker_ready")   # готовая рыба — модель из пака (если есть)
 	Survival.speed = 1.0
 	sm.interact(p)
 	check(p.inventory.count(&"smoked_fish") == 2 and p.inventory.count(&"smoked_meat") == 2, "копчёное готово")

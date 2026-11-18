@@ -101,30 +101,49 @@ static func coral_branch(lod: int = 0) -> ArrayMesh:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 11
 	var seg := 5 if lod == 0 else 3
-	var base := Color(0.62, 0.6, 0.55)
-	var tip := Color(1.0, 0.98, 0.95)
-	var mains := 6 if lod == 0 else 4
+	var mains := 4 if lod == 0 else 3
+	var depth := 2 if lod == 0 else 1
 	for i in mains:
-		var a := TAU * i / mains + rng.randf_range(-0.3, 0.3)
-		var lean := rng.randf_range(0.35, 0.8)
-		var p0 := Vector3(cos(a) * 0.05, 0.0, sin(a) * 0.05)
+		var a := TAU * i / mains + rng.randf_range(-0.35, 0.35)
+		var lean := rng.randf_range(0.3, 0.75)
+		var p0 := Vector3(cos(a) * 0.05, -0.02, sin(a) * 0.05)
 		var dir := Vector3(cos(a) * lean, 1.0, sin(a) * lean).normalized()
-		var l := rng.randf_range(0.45, 0.7)
-		var p1 := p0 + dir * l
-		_tube(st, p0, p1, 0.07, 0.045, seg, base, base.lerp(tip, 0.5), 0.0, p1.y, false)
-		var subs := 3 if lod == 0 else 1
-		for k in subs:
-			var t := rng.randf_range(0.45, 1.0)
-			var q0 := p0.lerp(p1, t)
-			var b := a + rng.randf_range(-1.1, 1.1)
-			var d2 := Vector3(cos(b) * 0.6, 1.0, sin(b) * 0.6).normalized()
-			var q1 := q0 + d2 * rng.randf_range(0.2, 0.4)
-			_tube(st, q0, q1, 0.04, 0.016, seg, base.lerp(tip, 0.5), tip, q0.y, q1.y)
-		var p2 := p1 + (dir + Vector3(0, 0.6, 0)).normalized() * rng.randf_range(0.15, 0.3)
-		_tube(st, p1, p2, 0.045, 0.018, seg, base.lerp(tip, 0.5), tip, p1.y, p2.y)
+		_branch(st, rng, p0, dir, 0.065, rng.randf_range(0.32, 0.42), 0, depth, seg)
 	var m := _end(st, true)
 	_cache[key] = m
 	return m
+
+## Ветвь «оленьего рога»: изогнутый отрезок (2 звена у толстых), на конце вилка из 2–3
+## тоньше и короче, кончики светлые и округлые (растущая зона коралла).
+static func _branch(st: SurfaceTool, rng: RandomNumberGenerator, p: Vector3, d: Vector3, r: float,
+		l: float, lvl: int, depth: int, seg: int) -> void:
+	var base := Color(0.6, 0.58, 0.54)
+	var tip := Color(1.0, 0.98, 0.95)
+	var t0 := float(lvl) / float(depth + 1)
+	var t1 := float(lvl + 1) / float(depth + 1)
+	var bend := Vector3(rng.randf_range(-0.25, 0.25), 0.18, rng.randf_range(-0.25, 0.25))
+	var r1 := r * 0.72
+	var q := p
+	var links := 2 if lvl == 0 else 1
+	var dd := d
+	for k in links:
+		dd = (dd + bend * (0.5 if k == 0 else 0.8)).normalized()
+		var nq := q + dd * (l / links)
+		var ra := lerpf(r, r1, float(k) / links)
+		var rb := lerpf(r, r1, float(k + 1) / links)
+		var leaf := lvl == depth and k == links - 1
+		_tube(st, q, nq, ra, rb, seg, base.lerp(tip, lerpf(t0, t1, float(k) / links)),
+			base.lerp(tip, lerpf(t0, t1, float(k + 1) / links)), q.y, nq.y, leaf)
+		q = nq
+	if lvl >= depth:
+		return
+	var kids := 2 if rng.randf() < 0.7 or lvl == 0 else 3
+	for c in kids:
+		var ang := TAU * c / kids + rng.randf_range(-0.6, 0.6)
+		var spread := rng.randf_range(0.35, 0.7)
+		var side := Vector3(cos(ang), 0.0, sin(ang))
+		var nd := (dd + side * spread + Vector3(0, 0.25, 0)).normalized()
+		_branch(st, rng, q, nd, r1, l * rng.randf_range(0.62, 0.8), lvl + 1, depth, seg)
 
 ## Коралл-мозговик: приплюснутый купол с извилинами.
 static func coral_brain(lod: int = 0) -> ArrayMesh:
@@ -175,25 +194,45 @@ static func coral_table(lod: int = 0) -> ArrayMesh:
 	rng.seed = 23
 	var c0 := Color(0.6, 0.58, 0.52)
 	var c1 := Color(0.95, 0.93, 0.88)
-	_tube(st, Vector3.ZERO, Vector3(0.0, 0.32, 0.0), 0.09, 0.06, 6 if lod == 0 else 4, c0, c0, 0.0, 0.3, false)
-	var n := 14 if lod == 0 else 8
-	var rim: Array[Vector3] = []
+	_tube(st, Vector3.ZERO, Vector3(0.02, 0.32, -0.01), 0.1, 0.06, 6 if lod == 0 else 4, c0, c0, 0.0, 0.3, false)
+	# столешница: кольца с волнистым приподнятым краем и радиальными рёбрами
+	var n := 18 if lod == 0 else 10
+	var rings := [0.0, 0.3, 0.56] if lod == 0 else [0.0, 0.55]
+	var rad: Array[float] = []
 	for i in n:
-		var a := TAU * i / n
-		var r := rng.randf_range(0.42, 0.58)
-		rim.append(Vector3(cos(a) * r, 0.36 + rng.randf_range(-0.03, 0.04), sin(a) * r))
-	var top := Vector3(0.0, 0.38, 0.0)
-	var under := Vector3(0.0, 0.32, 0.0)
+		rad.append(rng.randf_range(0.85, 1.15))
+	var pts: Array = []
+	for k in rings.size():
+		var row: Array[Vector3] = []
+		var rr: float = rings[k]
+		for i in n:
+			var a := TAU * i / n
+			var wob := rad[i] if k > 0 else 1.0
+			var ridge := 0.012 * sin(a * 9.0 + rr * 20.0) * (1.0 if k > 0 else 0.0)
+			var lip := 0.06 * pow(rr / 0.56, 3.0)   # край чуть загнут вверх
+			row.append(Vector3(cos(a) * rr * wob, 0.36 + lip + ridge, sin(a) * rr * wob))
+		pts.append(row)
+	for k in rings.size() - 1:
+		var A: Array[Vector3] = pts[k]
+		var B: Array[Vector3] = pts[k + 1]
+		var ca := c0.lerp(c1, 0.6 + 0.4 * float(k) / rings.size())
+		var cb := c0.lerp(c1, 0.6 + 0.4 * float(k + 1) / rings.size())
+		for i in n:
+			var j := (i + 1) % n
+			_tri(st, A[i], B[j], B[i], ca, cb, cb, A[i].y, B[j].y, B[i].y)
+			_tri(st, A[i], A[j], B[j], ca, ca, cb, A[i].y, A[j].y, B[j].y)
+			# низ
+			var dn := Vector3(0, 0.035, 0)
+			_tri(st, A[i] - dn, B[i] - dn, B[j] - dn, c0, c0, c0, 0.3, 0.3, 0.3)
+			_tri(st, A[i] - dn, B[j] - dn, A[j] - dn, c0, c0, c0, 0.3, 0.3, 0.3)
+	# торец
+	var E: Array[Vector3] = pts[rings.size() - 1]
 	for i in n:
-		var a := rim[i]
-		var b := rim[(i + 1) % n]
-		_tri(st, top, b, a, c1, c1, c1, 0.4, 0.4, 0.4)
-		var a2 := a - Vector3(0, 0.04, 0)
-		var b2 := b - Vector3(0, 0.04, 0)
-		_tri(st, under, a2, b2, c0, c0, c0, 0.35, 0.35, 0.35)
-		_tri(st, a, b, b2, c1, c1, c0, 0.4, 0.4, 0.35)
-		_tri(st, a, b2, a2, c1, c0, c0, 0.4, 0.35, 0.35)
-	var m := _end(st, false)
+		var j := (i + 1) % n
+		var dn := Vector3(0, 0.035, 0)
+		_tri(st, E[i], E[j], E[j] - dn, c1, c1, c0, 0.4, 0.4, 0.35)
+		_tri(st, E[i], E[j] - dn, E[i] - dn, c1, c0, c0, 0.4, 0.35, 0.35)
+	var m := _end(st, true)
 	_cache[key] = m
 	return m
 

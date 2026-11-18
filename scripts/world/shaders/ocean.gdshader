@@ -116,6 +116,42 @@ void vertex() {
 	NORMAL = normalize(vec3(-grad.x, 1.0, -grad.y));
 }
 
+// Прибой: тонкие кружевные линии пены идут к берегу с фазой набегающей волны,
+// рвутся шумом вдоль берега, за линией — редкое «кружево», у самой кромки — заплеск.
+// Направление к берегу — градиент запечённой карты глубин (только у берега, d < 2.8 м).
+float shore_foam(vec2 p, float d) {
+	float e = 2.0;
+	vec2 g = vec2(sample_depth(p + vec2(e, 0.0)) - sample_depth(p - vec2(e, 0.0)),
+			sample_depth(p + vec2(0.0, e)) - sample_depth(p - vec2(0.0, e)));
+	vec2 off = normalize(g + vec2(0.0001, 0.0));     // от берега в море
+	vec2 tng = vec2(-off.y, off.x);
+	float along = dot(p, tng);
+	float across = dot(p, off);
+	// шум вдоль берега: растянутые полосы (разрывы линии)
+	float n1 = texture(foam_tex, vec2(along * 0.045, across * 0.35) + vec2(u_time * 0.004, 0.0)).r;
+	float n2 = texture(foam_tex, vec2(along * 0.11 + 3.7, across * 0.9) - vec2(0.0, u_time * 0.02)).r;
+	float lace_tex = n1 * 0.55 + n2 * 0.6;
+	float slow = sin(along * 0.035 + u_time * 0.05) * 0.12;   // разная фаза по берегу
+	float f = 0.0;
+	for (int k = 0; k < 3; k++) {
+		float s = fract(u_time / 7.5 + float(k) / 3.0 + slow);
+		float front = mix(1.25, -0.05, s * s * (3.0 - 2.0 * s));   // набег с замедлением у берега
+		float w = 0.025 + 0.035 * clamp(front, 0.0, 1.2);
+		float line = exp(-pow((d - front) / w, 2.0));
+		// линия рождается у отмели, ярче всего у самого берега, гаснет в конце набега
+		float amp = smoothstep(1.3, 0.55, front) * (1.0 - smoothstep(0.8, 1.0, s)) * 0.85;
+		float broken = smoothstep(0.5, 0.85, lace_tex + line * 0.2);
+		f += line * amp * broken;
+		// след за линией: редкое кружево, тает
+		float behind = smoothstep(front + 0.05, front + 0.6, d) * (1.0 - smoothstep(front + 0.6, front + 1.4, d));
+		f += behind * smoothstep(0.78, 0.95, lace_tex) * amp * (1.0 - s) * 0.5;
+	}
+	// заплеск у кромки
+	float swash = 0.06 + 0.1 * (0.5 + 0.5 * sin(u_time * 0.84 + along * 0.06));
+	f += exp(-pow((d - swash) / 0.045, 2.0)) * smoothstep(0.3, 0.7, n2 + 0.25) * 0.8;
+	return clamp(f, 0.0, 1.0) * (1.0 - smoothstep(0.9, 1.5, d));
+}
+
 void fragment() {
 	vec2 p = wpos.xz;
 	float d = sample_depth(p);
@@ -154,8 +190,7 @@ void fragment() {
 	// пена у берега и над отмелями
 	float f1 = texture(foam_tex, p * 0.22 + vec2(u_time * 0.03, 0.0)).r;
 	float f2 = texture(foam_tex, p * 0.13 - vec2(0.0, u_time * 0.025)).r;
-	float shore = 1.0 - smoothstep(0.0, 0.55 + 0.25 * sin(u_time * 0.9 + p.x * 0.3 + p.y * 0.2), d);
-	float foam = clamp(shore * (f1 * 0.7 + f2 * 0.6) * 1.6, 0.0, 1.0);
+	float foam = (d < 1.5 && d > -0.4) ? shore_foam(p, d) : 0.0;
 	// барашки в шторм
 	float storm = clamp((wave_scale - 1.3) / 1.5, 0.0, 1.0);
 	float cap = smoothstep(0.35, 0.8, crest) * smoothstep(0.25, 0.75, f1 * 0.6 + f2 * 0.6);

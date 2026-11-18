@@ -66,6 +66,9 @@ func _process(delta: float) -> void:
 	lines.append("звери %d  акулы %d  боты %d  косяки %d  тела %d" % [s.animals, s.sharks, s.bots, s.fish, s.bodies])
 	lines.append("ОЗУ %.0f МБ  видео %.0f МБ   3D ×%.2f  %s  %s" % [s.mem_mb, s.vram_mb, vp.scaling_3d_scale,
 		GraphicsQuality.NAMES[clampi(Settings.graphics_quality, 0, 3)], RenderingServer.get_video_adapter_name()])
+	var sea_line := Sea.perf_line()
+	if sea_line != "":
+		lines.append(sea_line)
 	var sys := PerfStats.systems_ms()
 	for i in mini(8, sys.size()):
 		lines.append("  %-12s %.2f мс" % sys[i])

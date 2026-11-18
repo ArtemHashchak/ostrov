@@ -238,6 +238,33 @@ func reef_zones() -> Array[Dictionary]:
 		return (reefs as SeaReefs).zones()
 	return []
 
+## Строка для оверлея F3: океан и живность (счётчики; время — в PerfStats:
+## ocean, ocean_wave_h, sea, sea_fx, sea_cells).
+static func perf_line() -> String:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null:
+		return ""
+	var parts: PackedStringArray = []
+	var w := tree.get_first_node_in_group(&"world")
+	var oc: Ocean = w.get(&"ocean") if w else null
+	if oc:
+		parts.append("океан %d² %s, wave_h %d/кадр" % [oc.GRID, "FFT" if oc.use_fft else "Герстнер", oc.wave_calls_last])
+	var cells := tree.get_first_node_in_group(&"sea_life_cells") as SeaLifeCells
+	if cells:
+		parts.append("живность %d гр./%d особ." % [cells.groups_active, cells.instances_active])
+	var near := 0
+	var far := 0
+	for n in tree.get_nodes_in_group(&"sharks"):
+		var sh := n as Shark
+		if sh and sh.visible and sh.uses_pack_model():
+			if sh._far:
+				far += 1
+			else:
+				near += 1
+	if near + far > 0:
+		parts.append("акулы скелет %d / VAT %d" % [near, far])
+	return "море: " + "  ".join(parts) if not parts.is_empty() else ""
+
 func _exit_tree() -> void:
 	SeaMeshes.clear_cache()
 	SharkModel.clear_cache()

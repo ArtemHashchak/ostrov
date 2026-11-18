@@ -61,10 +61,51 @@ func _rebuild() -> void:
 	for i in racks.size():
 		var r := racks[i]
 		var k := &"meat" if String(r.id).begins_with("meat") else &"fish"
+		var hook := Vector3(-0.42 + float(i % 3) * 0.42, 1.12, -0.2 + float(i / 3) * 0.4)
+		if k == &"fish" and float(r.t) >= SMOKE_TIME:
+			# готовая копчёная рыба — модель из пака пользователя (вяленая рыба на верёвке)
+			var df := _dried_fish()
+			if df:
+				df.position = hook
+				df.rotation.y = 0.3 * float(i % 2)
+				_strips.add_child(df)
+				continue
 		var mi := SurvivalModels.strip(k, float(r.t) / SMOKE_TIME)
-		mi.position = Vector3(-0.42 + float(i % 3) * 0.42, 1.12, -0.2 + float(i / 3) * 0.4)
+		mi.position = hook
 		mi.rotation.y = 0.3 * float(i % 2)
 		_strips.add_child(mi)
+
+const DRIED_FISH := "res://assets/user_pack/items/item_dried_fish.glb"
+static var _df_scene: PackedScene = null
+static var _df_scale := 1.0
+static var _df_top := 0.0
+
+## Вяленая рыба из пака, подвешенная верхом к крючку, длина ~0.4 м (null — нет пака).
+static func _dried_fish() -> Node3D:
+	if _df_scene == null:
+		if not ResourceLoader.exists(DRIED_FISH):
+			return null
+		_df_scene = load(DRIED_FISH) as PackedScene
+		if _df_scene == null:
+			return null
+		var probe := _df_scene.instantiate() as Node3D
+		var box := AABB()
+		var first := true
+		for n in probe.find_children("*", "MeshInstance3D", true, false):
+			var mi := n as MeshInstance3D
+			var a := mi.transform * mi.get_aabb()
+			box = a if first else box.merge(a)
+			first = false
+		probe.free()
+		var long := maxf(box.size.x, maxf(box.size.y, box.size.z))
+		_df_scale = 0.4 / long if long > 0.0001 else 1.0
+		_df_top = (box.position.y + box.size.y) * _df_scale
+	var root := Node3D.new()
+	var m := _df_scene.instantiate() as Node3D
+	m.scale = Vector3.ONE * _df_scale
+	m.position.y = -_df_top
+	root.add_child(m)
+	return root
 
 func ready_count() -> int:
 	var n := 0

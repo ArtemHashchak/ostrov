@@ -15,6 +15,8 @@ uniform float wet_spec = 0.35;
 
 varying vec3 wpos;
 varying vec3 tint;
+varying vec3 lpos;      // точка в координатах модели (узор полипов не «плывёт»)
+varying float hue_k;
 
 float caus(vec2 p, float t) {
 	vec2 q = p + vec2(sin(p.y * 1.7 + t * 0.9), cos(p.x * 1.3 - t * 0.7)) * 0.6;
@@ -27,6 +29,8 @@ float caus(vec2 p, float t) {
 
 void vertex() {
 	tint = INSTANCE_CUSTOM.rgb;
+	lpos = VERTEX;
+	hue_k = fract(INSTANCE_CUSTOM.a * 7.13) - 0.5;
 	if (dot(tint, tint) < 0.0001) {
 		tint = vec3(1.0);
 	}
@@ -51,6 +55,14 @@ void fragment() {
 		NORMAL = -NORMAL;
 	}
 	vec3 col = COLOR.rgb * tint * 1.2;
+	// разброс оттенка экземпляра (лёгкий сдвиг к соседнему цвету)
+	col = mix(col, col.gbr, hue_k * 0.16);
+	// узор полипов/пор: дешёвая «текстура» из синусов в координатах модели
+	vec3 q = lpos * 120.0;
+	float pp = sin(q.x + sin(q.y * 0.7)) * sin(q.y * 1.13 + q.z * 0.37) * sin(q.z * 0.91 - q.x * 0.29 + sin(q.x * 0.5));
+	float pores = smoothstep(0.45, 0.9, abs(pp));
+	float fine = sin(lpos.x * 230.0 + lpos.y * 160.0) * sin(lpos.z * 205.0 - lpos.y * 120.0);
+	col *= 1.0 - pores * 0.1 - max(fine, 0.0) * 0.05;
 	float depth = water_level - wpos.y;
 	float under = step(0.0, depth);
 	float k = caustic_strength * clamp(1.0 - depth / 11.0, 0.0, 1.0) * under;
@@ -59,6 +71,10 @@ void fragment() {
 	vec3 absorb = mix(vec3(1.0), vec3(0.55, 0.85, 0.95), clamp(depth / 9.0, 0.0, 1.0) * under);
 	ALBEDO = col * absorb * (1.0 + c * k);
 	EMISSION = col * c * k * 0.12;
-	ROUGHNESS = rough;
+	ROUGHNESS = rough + pores * 0.12;
 	SPECULAR = wet_spec;
+	// «подповерхностное» рассеяние дёшево: свет сзади и мягкий ободок цвета ткани
+	BACKLIGHT = col * 0.35;
+	float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
+	EMISSION += col * rim * 0.10 * (1.0 - clamp(depth / 14.0, 0.0, 1.0) * under);
 }

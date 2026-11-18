@@ -235,6 +235,18 @@ static func _warp(u: float) -> float:
 	return signf(u) * f
 
 func update(dt: float, cam_pos: Vector3, level: float, scale_waves: float) -> void:
+	var __pt := PerfStats.begin()
+	_update(dt, cam_pos, level, scale_waves)
+	PerfStats.end(&"ocean", __pt)
+	# вызовы wave_height (плоты, плавание, боты, акулы) за прошлый кадр
+	wave_calls_last = _wave_calls
+	_wave_calls = 0
+
+## Сколько раз за кадр спрашивали высоту волны (оверлей F3: «ocean_wave_h»).
+var wave_calls_last := 0
+var _wave_calls := 0
+
+func _update(dt: float, cam_pos: Vector3, level: float, scale_waves: float) -> void:
 	time_s += dt
 	water_level = level
 	wave_scale = scale_waves
@@ -250,6 +262,13 @@ func set_night_tint(c: Color) -> void:
 
 ## Высота поверхности воды в точке (волны + прилив) — как в шейдере.
 func wave_height(x: float, z: float) -> float:
+	_wave_calls += 1
+	var __pt := PerfStats.begin()
+	var r := _wave_height(x, z)
+	PerfStats.end(&"ocean_wave_h", __pt)
+	return r
+
+func _wave_height(x: float, z: float) -> float:
 	var depth := depth_at(x, z)
 	var shoal := clampf(depth / 3.0, 0.15, 1.0)
 	var h := 0.0

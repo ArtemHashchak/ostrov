@@ -699,7 +699,7 @@ func consume(id: StringName) -> void:
 
 ## Можно попить: стоим в воде или смотрим на воду рядом.
 func can_drink_here() -> bool:
-	if not alive or carrying_log:
+	if not alive or carrying_log or is_underwater():
 		return false
 	var wl := water_level()
 	if is_in_water() and not swimming:
