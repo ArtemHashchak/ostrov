@@ -16,6 +16,7 @@ const ZONES := {
 	&"build": {"name": "Стройка", "c": Vector2(-80, 4), "r": 34.0},
 	&"survival": {"name": "Выживание", "c": Vector2(-60, 74), "r": 26.0},
 	&"bots": {"name": "Арена ботов", "c": Vector2(68, 62), "r": 26.0},
+	&"pack": {"name": "Пак моделей", "c": Vector2(40, 8), "r": 18.0},
 }
 
 const FLORA_NAMES := {
@@ -84,7 +85,7 @@ func setup(w: World) -> void:
 
 func build_all() -> void:
 	for id: StringName in [&"hub", &"flora", &"fauna", &"items", &"range", &"build", &"bridge", &"survival", &"beach",
-			&"sea", &"reef", &"bots"]:
+			&"sea", &"reef", &"bots", &"pack"]:
 		build_zone(id)
 		await get_tree().process_frame
 	_add_island_points()
@@ -108,6 +109,9 @@ func build_zone(id: StringName) -> void:
 		&"sea": _sea(root)
 		&"reef": _reef(root)
 		&"bots": _bots(root)
+		&"pack":
+			SandboxPack.build(self, root, ZONES[&"pack"].c)
+			SandboxPack.build_sea(self, root)
 
 ## Вернуть зону к начальному виду (деревья в зоне растений не восстанавливаются).
 func reset_zone(id: StringName) -> void:
@@ -173,7 +177,7 @@ func _place_xf(id: StringName, def_id: StringName, xf: Transform3D, anchor: Dict
 func _hub(root: Node3D) -> void:
 	P.signpost(root, 0.0, 0.0, "ПОЛИГОН", "F1 или M — меню и быстрое перемещение\nV — полёт · Shift — быстрее · колесо — скорость")
 	var dirs := {&"flora": "Растения", &"fauna": "Животные", &"items": "Предметы и оружие", &"build": "Стройка",
-		&"survival": "Выживание", &"bots": "Арена ботов"}
+		&"survival": "Выживание", &"bots": "Арена ботов", &"pack": "Пак моделей"}
 	for id: StringName in dirs:
 		var c: Vector2 = ZONES[id].c
 		var d := c.normalized()
