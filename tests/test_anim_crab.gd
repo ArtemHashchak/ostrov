@@ -48,6 +48,7 @@ func _follow(a: Node3D, off: Vector3, fov: float = 38.0) -> void:
 	_look(a.global_position + off, a.global_position + Vector3(0, 0.06, 0), fov)
 
 func run() -> void:
+	UserCrabRig.use_pack = false   # тест процедурного краба (краб пака — test_user_crab)
 	root = Node3D.new()
 	add_child(root)
 	var env := WorldEnvironment.new()

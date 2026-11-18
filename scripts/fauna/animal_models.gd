@@ -332,7 +332,10 @@ static func _boar() -> Node3D:
 # ---------------------------- краб ----------------------------
 static func _crab() -> Node3D:
 	var root := _root(&"crab", 0.3)
-	ArthropodRig.build_crab(root, root.get_meta(&"mat"))
+	if UserCrabRig.available():
+		UserCrabRig.make_model(root)     # модель из пака пользователя (скелет + IK)
+	else:
+		ArthropodRig.build_crab(root, root.get_meta(&"mat"))
 	root.set_meta(&"length", 0.3)
 	return root
 
