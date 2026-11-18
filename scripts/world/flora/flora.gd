@@ -22,13 +22,13 @@ extends Node3D
 signal flora_ready
 
 const TREE_VIS_RANGE := 280.0   # ChoppableTree (проснувшиеся)
-const LOD_DIST := 120.0
+const LOD_DIST := 140.0   # с TCHUNK 96: ближайший LOD1 ~72 м от камеры (как было при 64/120)
 const TREE_FAR := 650.0
 ## Дальность видимости считается от центра AABB всей группы MultiMesh, поэтому детальный (LOD0)
 ## и упрощённый (LOD1) уровни делят одинаковые мелкие чанки — иначе у камеры вместо деревьев
 ## остаются «болванки». LOD2 — тот же меш, что LOD1, крупными чанками для дальних деревьев;
 ## перекрытие LOD1/LOD2 безвредно (одинаковая геометрия), поэтому диапазоны с запасом.
-const TCHUNK := 64.0           # LOD0 (полные меши вариантов)
+const TCHUNK := 96.0           # LOD0 (полные меши вариантов); 96 м — вдвое меньше MultiMesh-групп, чем 64
 const FAR_CHUNK := 144.0
 const LOD1_END := 400.0  # перекрытие с LOD2 ≥ разницы центров чанков
 const LOD2_BEGIN := 250.0
@@ -950,6 +950,10 @@ static var _streams: Dictionary = {}
 
 static func play_sfx(from: Node, sound: String, pos: Vector3, db: float = 0.0, pitch: float = 1.0) -> void:
 	if from == null or not from.is_inside_tree():
+		return
+	# дальше слышимости (max_distance 90 м) — не создаём плеер (боты рубят далеко)
+	var cam := from.get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(pos) > 90.0:
 		return
 	var path := "res://assets/sounds/oculus_pack/%s.ogg" % sound
 	if not _streams.has(path):

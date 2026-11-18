@@ -41,6 +41,10 @@ static func sound_at(ctx: Node, sound_name: String, pos: Vector3, db: float = 0.
 	var s := stream(sound_name)
 	if s == null or ctx == null or not ctx.is_inside_tree():
 		return null
+	# дальше слышимости — без плеера (бой ботов вдали); вызывающие проверяют null
+	var cam := ctx.get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(pos) > max_dist:
+		return null
 	var p := AudioStreamPlayer3D.new()
 	p.stream = s
 	p.volume_db = db

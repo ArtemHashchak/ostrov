@@ -57,9 +57,11 @@ func build(a: Archipelago, mat: Material) -> void:
 	var t1 := Time.get_ticks_usec()
 	var tris := {"lod0": 0, "lod1": 0, "lod2": 0, "lod3": 0, "sea": 0}
 	_sea_blocks.clear()
+	_far_blocks.clear()
 	for i in _keys.size():
 		_build_chunk(_keys[i], _jobs[i], tris)
 	_flush_sea_blocks()
+	_flush_far_blocks()
 	_jobs.clear()
 	var t2 := Time.get_ticks_usec()
 	stats = {"sample_ms": (t1 - t0) / 1000, "mesh_ms": (t2 - t1) / 1000, "chunks": _keys.size(),
@@ -138,6 +140,14 @@ func _build_chunk(key: Vector2i, data: Dictionary, tris: Dictionary) -> void:
 		if under:
 			levels = [[1, 0.0, LOD2, "lod1"], [2, LOD2, LOD3, "lod2"], [4, LOD3, FAR, "lod3"]]
 		for L in levels:
+			if String(L[3]) == "lod3":
+				# дальний LOD (520–1500 м) — в общие блоки, см. _flush_far_blocks
+				var fbk := Vector2i(floori(float(key.x) / SEA_BLOCK), floori(float(key.y) / SEA_BLOCK))
+				if not _far_blocks.has(fbk):
+					_far_blocks[fbk] = []
+				(_far_blocks[fbk] as Array).append(_make_mesh(data, int(L[0])).surface_get_arrays(0))
+				tris[L[3]] += _tri_count(int(data.n), int(L[0]))
+				continue
 			var mi := MeshInstance3D.new()
 			mi.name = base + "_" + String(L[3])
 			mi.mesh = _make_mesh(data, int(L[0]))
@@ -174,38 +184,64 @@ func _build_chunk(key: Vector2i, data: Dictionary, tris: Dictionary) -> void:
 const SEA_BLOCK := 4
 var _sea_blocks: Dictionary = {}   # Vector2i блока → [массивы поверхностей чанков]
 
+var _far_blocks: Dictionary = {}   # Vector2i блока → [массивы LOD3 чанков]
+
+## Склейка массивов поверхностей чанков в один меш (вершины уже мировые); dy — сдвиг по высоте.
+static func _merge(parts: Array, dy: float = 0.0) -> ArrayMesh:
+	var v := PackedVector3Array()
+	var nr := PackedVector3Array()
+	var c := PackedColorArray()
+	var ix := PackedInt32Array()
+	for a: Array in parts:
+		var base := v.size()
+		v.append_array(a[Mesh.ARRAY_VERTEX])
+		nr.append_array(a[Mesh.ARRAY_NORMAL])
+		c.append_array(a[Mesh.ARRAY_COLOR])
+		var src: PackedInt32Array = a[Mesh.ARRAY_INDEX]
+		var off := ix.size()
+		ix.append_array(src)
+		for i in range(off, ix.size()):
+			ix[i] += base
+	if dy != 0.0:
+		for i in v.size():
+			v[i].y += dy
+	var arr := []
+	arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = v
+	arr[Mesh.ARRAY_NORMAL] = nr
+	arr[Mesh.ARRAY_COLOR] = c
+	arr[Mesh.ARRAY_INDEX] = ix
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	return mesh
+
 func _flush_sea_blocks() -> void:
 	for bk: Vector2i in _sea_blocks:
-		var v := PackedVector3Array()
-		var nr := PackedVector3Array()
-		var c := PackedColorArray()
-		var ix := PackedInt32Array()
-		for a: Array in _sea_blocks[bk]:
-			var base := v.size()
-			v.append_array(a[Mesh.ARRAY_VERTEX])
-			nr.append_array(a[Mesh.ARRAY_NORMAL])
-			c.append_array(a[Mesh.ARRAY_COLOR])
-			var src: PackedInt32Array = a[Mesh.ARRAY_INDEX]
-			var off := ix.size()
-			ix.append_array(src)
-			for i in range(off, ix.size()):
-				ix[i] += base
-		var arr := []
-		arr.resize(Mesh.ARRAY_MAX)
-		arr[Mesh.ARRAY_VERTEX] = v
-		arr[Mesh.ARRAY_NORMAL] = nr
-		arr[Mesh.ARRAY_COLOR] = c
-		arr[Mesh.ARRAY_INDEX] = ix
-		var mesh := ArrayMesh.new()
-		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
 		var mi := MeshInstance3D.new()
 		mi.name = "Tsea_%d_%d" % [bk.x, bk.y]
-		mi.mesh = mesh
+		mi.mesh = _merge(_sea_blocks[bk])
 		mi.material_override = material
 		mi.visibility_range_end = FAR
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mi)
 	_sea_blocks.clear()
+
+## Дальний рельеф блоками 4×4 чанка. Блок включается раньше, чем гаснет LOD2 любого
+## своего чанка (LOD3 − полудиагональ блока), поэтому дыр нет; там, где оба видны,
+## блок на 0.8 м ниже и прячется под LOD2.
+func _flush_far_blocks() -> void:
+	var half_diag := CHUNK * SEA_BLOCK * 0.5 * sqrt(2.0)
+	for bk: Vector2i in _far_blocks:
+		var mi := MeshInstance3D.new()
+		mi.name = "Tfar_%d_%d" % [bk.x, bk.y]
+		mi.mesh = _merge(_far_blocks[bk], -0.8)
+		mi.material_override = material
+		mi.visibility_range_begin = maxf(LOD3 - half_diag, 0.0)
+		mi.visibility_range_end = FAR
+		mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mi)
+	_far_blocks.clear()
 
 static func _tri_count(n: int, sub: int) -> int:
 	var q := (n - 1) / sub

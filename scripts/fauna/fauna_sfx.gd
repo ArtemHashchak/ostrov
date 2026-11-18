@@ -32,6 +32,10 @@ static func stream(kind: StringName) -> AudioStream:
 static func play(at: Node3D, kind: StringName, volume_db: float = 0.0, unit_size: float = 6.0, pitch: float = 1.0) -> void:
 	if at == null or not at.is_inside_tree():
 		return
+	# дальше слышимости — не создаём плеер вовсе (звери и боты далеко от камеры)
+	var cam := at.get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(at.global_position) > unit_size * 12.0:
+		return
 	var st := stream(kind)
 	if st == null:
 		return
