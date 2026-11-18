@@ -59,6 +59,12 @@ func run() -> void:
 	sb.cheats.teleport(Vector3(c.x, SandboxProps.ground(c.x, c.y - 4.0) + 0.2, c.y - 4.0), Vector3(c.x, SandboxProps.ground(c.x, c.y + 6.0) + 5.0, c.y + 6.0))
 	await wait(1.5)
 	await shot("03_palms")
+	# краб из пака в загоне (скелет + IK)
+	check(z.points.has(&"pack_crab"), "есть точка перемещения: pack_crab")
+	if z.points.has(&"pack_crab"):
+		sb.panel.go(&"pack_crab")
+		await wait(2.0)
+		await shot("07_crab")
 	# под водой: полёт, чтобы не всплывать
 	sb.cheats.set_fly(true)
 	sb.panel.go(&"pack_shark")

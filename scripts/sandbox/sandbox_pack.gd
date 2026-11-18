@@ -63,6 +63,17 @@ static func build(zones: SandboxZones, root: Node3D, c: Vector2) -> void:
 			_n(r2.get("before_tris")), _n(r2.get("after_tris")), int(r2.get("bones", 0)), str(r2.get("tex_mb_vram_est", "?")),
 			", ".join(anims.slice(0, half)), ", ".join(anims.slice(half))], 3.4, 45.0)
 		_board(root, Vector3(sx + 7.0, 0.0, sz - 4.0), DIR + "preview/shark_compare.png", "Акула: оригинал (без текстур) → в игре")
+	# --- краб: живой, в загоне (модель пака со скелетом, анимация — UserCrabRig)
+	if UserCrabRig.available():
+		var cx := c.x + 8.0
+		var cz := c.y + 13.0
+		P.pen(root, cx, cz, 2.6)
+		var fa := Fauna.instance()
+		if fa:
+			zones._penned(fa, &"crab", Vector2(cx, cz), 2.6)
+		P.tag(root, cx, cz + 3.1, "Краб (crab.blend, скелет автора + подвижные пальцы клешней)\n130k (multires) → 32.5k → 7.0k треуг. · 37 костей · текстуры 1024\nходьба боком на IK, клешни: щелчки, угроза, щипок, кормёжка", 2.2, 45.0)
+		var g := P.ground(cx, cz)
+		zones._point(&"pack_crab", "Пак: краб", Vector3(cx - 1.6, P.ground(cx - 1.6, cz - 2.4) + 0.2, cz - 2.4), Vector3(cx, g + 0.1, cz))
 	zones._stand(&"pack", "Пак моделей", c.x, c.y - 12.0, c.x + 2.0, c.y + 2.0, 2.5)
 
 
