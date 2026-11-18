@@ -9,6 +9,7 @@ var cam: Camera3D
 var damaged_by_bot := 0
 var deaths: Array[Node] = []
 var spawns := 0
+var deaths_with_flag := 0   # смерти, когда флаг команды павшего ещё стоял
 
 func _init() -> void:
 	scene_path = "res://scenes/world/match.tscn"
@@ -36,7 +37,11 @@ func run() -> void:
 	Events.character_damaged.connect(func(ch: Node, _a: float, src: Node) -> void:
 		if ch is Bot and Game.character_of(src) is Bot:
 			damaged_by_bot += 1)
-	Events.character_died.connect(func(ch: Node, _k: Node) -> void: deaths.append(ch))
+	Events.character_died.connect(func(ch: Node, _k: Node) -> void:
+		deaths.append(ch)
+		var tm: Variant = ch.get(&"team")
+		if ch is Bot and tm != null and Game.can_respawn(int(tm)):
+			deaths_with_flag += 1)
 	Events.character_spawned.connect(func(ch: Node) -> void:
 		if ch is Bot:
 			spawns += 1)
@@ -79,7 +84,10 @@ func run() -> void:
 	Engine.time_scale = 1.0
 	check(damaged_by_bot > 0, "боты били друг друга (%d попаданий)" % damaged_by_bot)
 	check(not deaths.is_empty(), "был убитый (%d)" % deaths.size())
-	check(spawns > spawns0, "павший бот возрождался у флага")
+	if deaths_with_flag > 0:
+		check(spawns > spawns0, "павший бот возрождался у флага")
+	else:
+		print("[bots] все смерти — после потери флага, возрождение не ожидается")
 	check(not Game.teams[1].flag_alive, "налётчик уничтожил флаг команды 1")
 	await snap("after")
 	# защитник: убить — флага нет, возрождения нет
