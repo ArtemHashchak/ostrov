@@ -587,10 +587,11 @@ func _storage_inv(n: Node) -> Inventory:
 func _act_steal(dt: float) -> void:
 	var phase: StringName = get_meta(&"steal_phase", &"approach")
 	if phase == &"approach":
-		var loot: Node3D = get_meta(&"loot", null)
-		if loot == null or not is_instance_valid(loot) or not loot.is_inside_tree():
+		var lv: Variant = get_meta(&"loot", null)
+		if lv == null or not is_instance_valid(lv) or not (lv as Node3D).is_inside_tree():
 			_set_state(&"idle")
 			return
+		var loot := lv as Node3D
 		_steer(loot.global_position, float(cfg["run"]) * 0.7, dt)
 		if _flat_dist(loot.global_position) < 0.9:
 			_take_from(loot)
