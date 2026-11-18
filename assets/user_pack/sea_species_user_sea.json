@@ -24,5 +24,5 @@
   "depth": [8.0, 60.0], "school": [3, 8], "groups": 0.5, "anim": "octopus",
   "mesh": "res://assets/user_pack/sea/squid_biolum.res", "shader": "res://scripts/sea/user_pack/user_species.gdshader",
   "length": 0.9, "speed": 0.6, "roam": 8.0, "min_quality": 1,
-  "params": {"use_tex": false, "use_vertex_color": false, "tent_amp": 0.16, "tent_start": 0.3, "glow": 1.6, "glow_color": "#33ddff", "color_a": "#e8dcef", "color_b": "#c9b8dd"}}
+  "params": {"use_tex": false, "use_vertex_color": false, "tent_amp": 0.16, "tent_start": 0.3, "glow": 0.55, "glow_color": "#33ddff", "color_a": "#e8dcef", "color_b": "#c9b8dd"}}
 ]
