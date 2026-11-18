@@ -32,6 +32,8 @@ func _ready() -> void:
 
 ## Тёмное пятно копоти.
 func _scorch() -> void:
+	if _on_water:
+		return # на воде копоти нет (раньше Decal создавался и «терялся» — утечка)
 	var d := Decal.new()
 	d.size = Vector3(radius * 2.0, 1.0, radius * 2.0)
 	var g := Gradient.new()
@@ -44,8 +46,7 @@ func _scorch() -> void:
 	t.fill_to = Vector2(1.0, 0.5)
 	d.texture_albedo = t
 	d.cull_mask = 1
-	if not _on_water:
-		add_child(d)
+	add_child(d)
 
 func _process(delta: float) -> void:
 	_t += delta

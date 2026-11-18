@@ -17,7 +17,7 @@ func _ready() -> void:
 	linear_damp = 0.1
 	var cs := CollisionShape3D.new()
 	var bs := BoxShape3D.new()
-	bs.size = Vector3(0.09, 0.2, 0.04)
+	bs.size = Vector3(0.12, 0.22, 0.08)
 	cs.shape = bs
 	add_child(cs)
 	var m := CombatModels.projectile(&"dynamite")
@@ -36,6 +36,13 @@ func _physics_process(delta: float) -> void:
 		var fl := find_child("Flame", true, false) as Node3D
 		if fl:
 			_sparks.global_position = fl.global_position
+	# страховка от «туннелирования» сквозь рельеф (тонкое быстрое тело, низкий FPS физики)
+	if BuildEnv.world() != null:
+		var gy := BuildEnv.height_at(global_position.x, global_position.z)
+		if global_position.y < gy - 0.02:
+			global_position.y = gy + 0.06
+			if linear_velocity.y < 0.0:
+				linear_velocity = Vector3(linear_velocity.x * 0.4, -linear_velocity.y * 0.15, linear_velocity.z * 0.4)
 	# в воде фитиль гаснет
 	if global_position.y < BuildEnv.water_surface(global_position.x, global_position.z) - 0.15 and not _done:
 		_done = true

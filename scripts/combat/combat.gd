@@ -8,7 +8,7 @@ extends Node
 ## API для ботов и модулей (статический, сцена модуля не обязательна):
 ##   Combat.WEAPONS[id]                       — таблица оружия (type/damage/ammo/…)
 ##   Combat.fire(shooter, id, origin, dir, opts={}) -> bool   — выстрел/бросок/удар
-##   Combat.melee(attacker, id) -> Dictionary  — удар ближнего боя (результат попадания)
+##   Combat.melee(attacker, id, dir=ZERO) -> Dictionary  — удар ближнего боя (dir — для ботов; пусто = взгляд)
 ##   Combat.throw_item(thrower, id, origin, dir, power=1.0) -> Node — бросок (копьё/молотов/динамит)
 ##   Combat.start_reload(shooter, id) -> float       — начать перезарядку (сек, 0 — нечем/не нужно)
 ##   Combat.is_loaded(shooter, id) / Combat.is_ready(shooter, id) / Combat.has_ammo(shooter, id)
@@ -244,11 +244,11 @@ static func fire(shooter: Node, weapon_id: StringName, origin: Vector3, dir: Vec
 	dir = dir.normalized()
 	match w.type:
 		&"melee":
-			melee(shooter, weapon_id)
+			melee(shooter, weapon_id, dir)
 			return true
 		&"throw":
 			if bool(opts.get("melee", false)) and w.get("melee", false):
-				melee(shooter, weapon_id)
+				melee(shooter, weapon_id, dir)
 				return true
 			return throw_item(shooter, weapon_id, origin, dir, float(opts.get("power", 1.0))) != null
 	var power := clampf(float(opts.get("power", 1.0)), 0.15, 1.0)
@@ -325,7 +325,7 @@ static func _root(n: Node) -> Node:
 	return n.get_parent()
 
 ## Удар ближнего боя (для ботов; игрок бьёт своей анимацией). Возвращает hit-словарь.
-static func melee(attacker: Node, weapon_id: StringName) -> Dictionary:
+static func melee(attacker: Node, weapon_id: StringName, dir: Vector3 = Vector3.ZERO) -> Dictionary:
 	var w := weapon(weapon_id)
 	if w.is_empty():
 		w = {"damage": 6.0, "reach": 2.0, "kind": &"melee", "cooldown": 0.5}
@@ -337,7 +337,9 @@ static func melee(attacker: Node, weapon_id: StringName) -> Dictionary:
 	if a3 == null:
 		return {}
 	var from := eye_of(a3)
-	var to := from + look_of(a3) * float(w.get("reach", 2.2))
+	# бот может передать направление удара явно (иначе — взгляд/−Z узла)
+	var look := dir.normalized() if dir.length_squared() > 0.0001 else look_of(a3)
+	var to := from + look * float(w.get("reach", 2.2))
 	var q := PhysicsRayQueryParameters3D.create(from, to)
 	q.collide_with_areas = true
 	if attacker is CollisionObject3D:
@@ -349,12 +351,12 @@ static func melee(attacker: Node, weapon_id: StringName) -> Dictionary:
 		var sh := SphereShape3D.new()
 		sh.radius = 0.45
 		sp.shape = sh
-		sp.transform = Transform3D(Basis(), from + look_of(a3) * float(w.get("reach", 2.2)) * 0.75)
+		sp.transform = Transform3D(Basis(), from + look * float(w.get("reach", 2.2)) * 0.75)
 		sp.exclude = q.exclude
 		var res := a3.get_world_3d().direct_space_state.intersect_shape(sp, 4)
 		for r in res:
 			if _find_with(r.collider as Node, &"apply_damage"):
-				hit = {"collider": r.collider, "position": sp.transform.origin, "normal": -look_of(a3)}
+				hit = {"collider": r.collider, "position": sp.transform.origin, "normal": -look}
 				break
 	if hit.is_empty():
 		return {"miss": true}

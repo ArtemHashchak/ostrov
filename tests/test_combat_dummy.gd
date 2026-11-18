@@ -235,7 +235,6 @@ func run() -> void:
 	var b2 := Node3D.new()
 	scene.add_child(b2)
 	b2.global_position = dp + fwd * -1.5
-	b2.look_at(dp + Vector3.UP * 1.2)
-	var mh := Combat.melee(b2, &"club")
+	var mh := Combat.melee(b2, &"club", (dp + Vector3.UP * 1.3) - Combat.eye_of(b2))
 	check(not mh.is_empty() and not mh.has("miss"), "бот: Combat.melee дубиной попал")
 	print("[test] damage log: ", dummy.hits.size(), " попаданий, всего ", dummy.total)
