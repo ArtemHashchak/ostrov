@@ -311,6 +311,8 @@ func apply_poison(ch: Node, dps: float, sec: float) -> void:
 
 # ============================== тик ==============================
 
+const _LOD_TAGS: Array[StringName] = [&"fauna_lod0", &"fauna_lod1", &"fauna_lod2", &"fauna_lod3", &"fauna_lod4"]
+
 func _physics_process(dt: float) -> void:
 	var __pt := PerfStats.begin()
 	_perf_physics(dt)
@@ -319,8 +321,10 @@ func _physics_process(dt: float) -> void:
 func _perf_physics(dt: float) -> void:
 	clock += dt
 	_frame += 1
+	var __p0 := PerfStats.begin()
 	_tick_poison(dt)
 	_tick_flocks(dt)
+	PerfStats.end(&"fauna_misc", __p0)
 	_breed_t += dt
 	if _breed_t > 2.0:
 		_tick_breeding(_breed_t)
@@ -361,8 +365,13 @@ func _perf_physics(dt: float) -> void:
 		if step == 0:
 			a._acc = 0.0
 			continue
-		if (_frame + a.get_instance_id()) % step == 0:
+		# фаза по хэшу id: id объектов идут с шагом, кратным 2/4, и без хэша
+		# все звери одного уровня тикали в одном кадре (всплески по 8+ мс)
+		if (_frame + (hash(a.get_instance_id()) & 1023)) % step == 0:
+			var __p1 := PerfStats.begin()
 			a.tick(minf(a._acc, 0.5))
+			if __p1 != 0:
+				PerfStats.end(_LOD_TAGS[clampi(a.lod, 0, 4)], __p1)
 			a._acc = 0.0
 
 func _tick_poison(dt: float) -> void:

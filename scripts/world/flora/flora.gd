@@ -662,7 +662,7 @@ func _tick(sync: bool) -> void:
 			if c.distance_squared_to(rec["pos"]) < r * r:
 				_spawn_node(rec)
 				spawned += 1
-				if not sync and spawned > 80:
+				if not sync and spawned > 30:
 					capped = true
 					break
 	if not capped:

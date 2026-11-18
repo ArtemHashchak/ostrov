@@ -714,6 +714,9 @@ func _make_fire() -> void:
 	_fire_light.light_energy = 2.0
 	_fire_light.omni_range = 7.0
 	_fire_light.position = flames.position + Vector3(0, 0.5, 0)
+	_fire_light.distance_fade_enabled = true
+	_fire_light.distance_fade_begin = 60.0
+	_fire_light.distance_fade_length = 20.0
 	_fire_root.add_child(_fire_light)
 
 func _process_fire(delta: float) -> void:

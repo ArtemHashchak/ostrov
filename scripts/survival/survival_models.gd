@@ -268,7 +268,9 @@ static func obj(name: String, cutout: bool = false) -> MeshInstance3D:
 		return null
 	var key := "obj|" + name
 	if not _meshes.has(key):
-		_meshes[key] = load(p)
+		# OBJ импортируется без LOD и кусками по 5–20 поверхностей с одним
+		# материалом: сливаем в одну поверхность и строим LOD один раз.
+		_meshes[key] = MeshOptimizer.merged_with_lods(key, load(p) as Mesh)
 	var mi := MeshInstance3D.new()
 	mi.mesh = _meshes[key] as Mesh
 	var mk := "objmat|%s" % name
@@ -572,6 +574,9 @@ static func fire(parent: Node3D, size: float = 1.0, pos: Vector3 = Vector3.ZERO)
 	light.omni_range = 7.0 * size
 	light.position = Vector3(0, 0.45, 0)
 	light.shadow_enabled = false
+	light.distance_fade_enabled = true # дальние костры не считают свет
+	light.distance_fade_begin = 45.0
+	light.distance_fade_length = 15.0
 	root.add_child(light)
 	# угли
 	var em := StandardMaterial3D.new()

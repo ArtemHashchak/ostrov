@@ -125,11 +125,11 @@ func run() -> void:
 		if ms > 50.0:
 			long_frames += 1
 	log_line("cpu worst frame %.1f ms, frames >50 ms: %d" % [worst, long_frames])
-	for sp: Array in PerfStats.spikes:
+	for spk: Array in PerfStats.spikes:
 		var parts: PackedStringArray = []
-		for k: StringName in (sp[1] as Dictionary):
-			parts.append("%s=%.1f" % [k, float(sp[1][k]) / 1000.0])
-		log_line("  spike frame %d: %s" % [sp[0], ", ".join(parts)])
+		for k: StringName in (spk[1] as Dictionary):
+			parts.append("%s=%.1f" % [k, float(spk[1][k]) / 1000.0])
+		log_line("  spike frame %d: %s" % [spk[0], ", ".join(parts)])
 	var snapc := PerfStats.snapshot()
 	log_line("cpu: process %.2f ms, physics %.2f ms (последний кадр)" % [snapc.process_ms, snapc.physics_ms])
 	for row: Array in PerfStats.systems_ms():

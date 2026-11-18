@@ -56,6 +56,7 @@ func setup(start_hour: float = 8.5) -> void:
 	_cur = (WEATHERS[&"clear"] as Dictionary).duplicate()
 	_from = _cur.duplicate()
 	_make_rain()
+	_apply_quality()
 	_thunder = AudioStreamPlayer.new()
 	var th := _find_sound("thunder")
 	if th:
@@ -89,6 +90,8 @@ func _apply_quality() -> void:
 		GraphicsQuality.apply_sun(sky3d.sun)
 	if not RenderProfile.is_compat():
 		sky3d.fog_enabled = bool(GraphicsQuality.preset().get("sky_fog", true))
+	if _rain:
+		_rain.amount = [900, 1600, 2600, 3200][clampi(Settings.graphics_quality, 0, 3)]
 
 func _find_sound(key: String) -> AudioStream:
 	for dir_path in ["res://assets/sounds/", "res://assets/sounds/cc0/", "res://assets/sounds/oculus/"]:

@@ -772,6 +772,9 @@ func _physics_process(delta: float) -> void:
 	_perf_physics(delta)
 	PerfStats.end(&"sea", __pt)
 
+var _wet: Array[Vector3] = []
+var _lod_acc: Dictionary = {}
+
 func _perf_physics(delta: float) -> void:
 	_time += delta
 	var cam := get_viewport().get_camera_3d()
@@ -779,40 +782,39 @@ func _perf_physics(delta: float) -> void:
 	_far_acc += delta
 	_sleep_acc += delta
 	var far_tick := _far_acc >= 0.25
-	var sleep_tick := _sleep_acc >= 1.0
 	# персонажи в воде/у воды (боты далеко от камеры тоже должны встречать акул)
-	var wet: Array[Vector3] = []
-	if far_tick or sleep_tick:
+	if far_tick:
+		_far_acc = 0.0
+		_wet.clear()
 		for n in get_tree().get_nodes_in_group(&"characters"):
 			if n is Node3D and (n as Node3D).global_position.y < water_y() + 3.0:
-				wet.append((n as Node3D).global_position)
+				_wet.append((n as Node3D).global_position)
+	# Дальние акулы тикают реже, у каждой свой накопитель со случайной фазой —
+	# иначе все 100+ дальних акул считались в одном кадре (всплеск).
 	for s in sharks:
 		if not is_instance_valid(s):
 			continue
 		var d := s.global_position.distance_to(cam_p)
 		var near := d < LOD_NEAR or s.state == Shark.State.ATTACK or s.state == Shark.State.STALK
 		s.visible = d < LOD_FAR
+		var id := s.get_instance_id()
 		if near:
+			_lod_acc[id] = 0.0
 			s.tick(delta, true)
-		elif d < LOD_FAR * 1.4 or s.state != Shark.State.PATROL:
-			if far_tick:
-				s.tick(_far_acc, d < LOD_FAR)
+			continue
+		var acc: float = float(_lod_acc.get(id, randf() * 0.25)) + delta
+		var period := 1.0
+		if d < LOD_FAR * 1.4 or s.state != Shark.State.PATROL:
+			period = 0.25
 		else:
-			# спящая дальняя акула: раз в секунду, но чаще, если рядом кто-то у воды
-			var awake := false
-			if far_tick:
-				for w in wet:
-					if w.distance_to(s.global_position) < 120.0:
-						awake = true
-						break
-			if awake and far_tick:
-				s.tick(_far_acc, false)
-			elif sleep_tick:
-				s.tick(_sleep_acc, false)
-	if far_tick:
-		_far_acc = 0.0
-	if sleep_tick:
-		_sleep_acc = 0.0
+			for w in _wet:
+				if w.distance_to(s.global_position) < 120.0:
+					period = 0.25 # рядом кто-то у воды — просыпается
+					break
+		if acc >= period:
+			s.tick(acc, period < 1.0 and d < LOD_FAR)
+			acc = 0.0
+		_lod_acc[id] = acc
 	_pickup_acc += delta
 	if _pickup_acc >= 0.5:
 		_pickup_acc = 0.0
