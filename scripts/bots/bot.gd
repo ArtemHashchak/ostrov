@@ -329,10 +329,16 @@ func _perf_physics(delta: float) -> void:
 	_think_t -= delta
 	if _think_t <= 0.0 and brain:
 		_think_t = cfg("think") * randf_range(0.85, 1.15)
+		var t0 := PerfStats.begin()
 		brain.think(cfg("think"))
+		PerfStats.end(&"bots_think", t0)
 	if brain:
+		var t1 := PerfStats.begin()
 		brain.act(delta)
+		PerfStats.end(&"bots_act", t1)
+	var t2 := PerfStats.begin()
 	_move(delta)
+	PerfStats.end(&"bots_move", t2)
 
 func _update_water(delta: float) -> void:
 	_water_cache_t -= delta

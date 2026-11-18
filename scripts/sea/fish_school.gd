@@ -141,12 +141,24 @@ func _physics_process(delta: float) -> void:
 	_perf_physics(delta)
 	PerfStats.end(&"fish", __pt)
 
+var _skip_acc := 0.0
+var _skip_n := 0
+
 func _perf_physics(delta: float) -> void:
 	var cam := get_viewport().get_camera_3d()
-	if cam and cam.global_position.distance_to(_pos) > lod_distance:
+	var dist := cam.global_position.distance_to(_pos) if cam else 0.0
+	if dist > lod_distance:
 		visible = false
 		return
 	visible = true
+	# дальше 45 м косяк обновляется через кадр (разница не видна)
+	_skip_acc += delta
+	if dist > 45.0:
+		_skip_n += 1
+		if _skip_n % 2 != 0:
+			return
+	delta = _skip_acc
+	_skip_acc = 0.0
 	_goal_t -= delta
 	if _goal_t <= 0.0 or _pos.distance_to(_goal) < 1.5:
 		_goal_t = _rng.randf_range(5.0, 12.0)
