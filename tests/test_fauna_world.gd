@@ -185,7 +185,10 @@ func run() -> void:
 	for a in fl_p:
 		if a.global_position.y > Fauna.ground_y_at(fauna, a.global_position.x, a.global_position.z) + 2.0:
 			flying += 1
-	check(flying >= 5, "попугаи летают (%d)" % flying)
+	for a in fl_p:
+		var gy := Fauna.ground_y_at(fauna, a.global_position.x, a.global_position.z)
+		print("[test] parrot y=%.1f ground=%.1f state=%s mode=%s night=%s" % [a.global_position.y, gy, a.state, a.flock.get("mode"), Fauna.is_night_now(fauna)])
+	check(flying >= 5, "попугаи летают или сидят на кронах (%d)" % flying)
 	# обзор популяции
 	var some := fauna.animals_near(home, 60.0)
 	print("[test] near home: ", some.size())

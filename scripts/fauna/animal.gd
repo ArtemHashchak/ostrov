@@ -137,7 +137,8 @@ func _ready() -> void:
 	_mat = _model.get_meta(&"mat")
 	_legs = _model.get_meta(&"legs")
 	_wings = _model.get_meta(&"wings")
-	anim_ctrl = _model.get_meta(&"anim", null)
+	# get_meta(…, null) в Godot 4 ругается при отсутствии ключа — сначала has_meta
+	anim_ctrl = _model.get_meta(&"anim") as Object if _model.has_meta(&"anim") else null
 	if anim_ctrl and anim_ctrl.has_method(&"setup"):
 		anim_ctrl.call(&"setup", self)
 	if _mat:
@@ -587,7 +588,7 @@ func _storage_inv(n: Node) -> Inventory:
 func _act_steal(dt: float) -> void:
 	var phase: StringName = get_meta(&"steal_phase", &"approach")
 	if phase == &"approach":
-		var lv: Variant = get_meta(&"loot", null)
+		var lv: Variant = get_meta(&"loot") if has_meta(&"loot") else null
 		if lv == null or not is_instance_valid(lv) or not (lv as Node3D).is_inside_tree():
 			_set_state(&"idle")
 			return
@@ -736,9 +737,15 @@ func _tick_bird(dt: float) -> void:
 			# днём летучие мыши висят вниз головой под кроной дерева (если нашлось)
 			visible = _day_roost()
 			return
-	elif species == &"parrot" and night and state == &"fly":
-		# ночью попугаи садятся на деревья
-		flock["mode"] = &"perch"
+	elif species == &"parrot" and night and state == &"fly" and flock.get("mode", &"fly") != &"perch":
+		# ночью попугаи садятся на кроны деревьев (деревьев нет — на землю у центра стаи)
+		var pp: Vector3 = flock.get("perch", Vector3.INF)
+		if pp == Vector3.INF and fauna and fauna.has_method(&"_find_perch") and not flock.has("night_tried"):
+			flock["night_tried"] = true
+			pp = fauna.call(&"_find_perch", &"parrot", flock.get("home", home), float(flock.get("r", home_r)))
+			flock["perch"] = pp
+		if pp != Vector3.INF:
+			flock["mode"] = &"perch"
 	var c: Vector3 = flock.get("pos", home)
 	var mode: StringName = flock.get("mode", &"fly")
 	var pl := _nearest_character(float(cfg["flee_r"]))
@@ -748,6 +755,9 @@ func _tick_bird(dt: float) -> void:
 		mode = &"fly"
 		_sound(cfg["sound"], 0.0)
 	var goal := c + flock_offset
+	if mode == &"perch" and flock.get("perch", Vector3.INF) == Vector3.INF:
+		flock["mode"] = &"fly"
+		mode = &"fly"
 	if mode == &"perch":
 		var perch: Vector3 = flock.get("perch", c)
 		goal = perch + Vector3(flock_offset.x * 0.25, 0.0, flock_offset.z * 0.25)

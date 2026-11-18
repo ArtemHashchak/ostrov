@@ -137,7 +137,7 @@ func spawn_flock(sp: StringName, center: Vector3, n: int, radius: float = 40.0) 
 	var g := ground_y_at(self, center.x, center.z)
 	var fl := {"species": sp, "home": Vector3(center.x, g, center.z), "r": radius, "mode": &"fly",
 		"pos": Vector3(center.x, g + 10.0, center.z), "target": Vector3(center.x, g + 10.0, center.z), "t": 0.0,
-		"perch": Vector3(center.x, g, center.z), "members": []}
+		"perch": Vector3.INF, "members": []}  # точку посадки выбирают на кроне (_find_perch)
 	flocks.append(fl)
 	var out: Array[Animal] = []
 	for i in n:
@@ -432,8 +432,12 @@ func _tick_flocks(dt: float) -> void:
 		if pos.distance_to(tgt) < 1.5 or float(fl["t"]) < -25.0:
 			fl["t"] = 0.0
 			var roll := _rng.randf()
-			if sp != &"bat" and roll < 0.3:
-				var perch := _find_perch(sp, home_p, R)
+			# садятся только после хотя бы одного перелёта (не прямо на месте появления)
+			var legs := int(fl.get("legs", 0)) + 1
+			fl["legs"] = legs
+			if sp != &"bat" and roll < 0.3 and legs > 1:
+				# днём попугаи садятся только на кроны: на землю — нет
+				var perch := _find_perch(sp, home_p, R, sp != &"parrot")
 				if perch != Vector3.INF:
 					fl["perch"] = perch
 					fl["mode"] = &"perch"
@@ -452,7 +456,7 @@ func _tick_flocks(dt: float) -> void:
 				h = 7.0 + _rng.randf() * 12.0
 			fl["target"] = Vector3(x, g + h, z)
 
-func _find_perch(sp: StringName, home_p: Vector3, R: float) -> Vector3:
+func _find_perch(sp: StringName, home_p: Vector3, R: float, allow_ground: bool = true) -> Vector3:
 	if sp == &"gull":
 		for i in 10:
 			var p := home_p + Vector3(_rng.randf_range(-R, R), 0, _rng.randf_range(-R, R)) * 0.6
@@ -460,18 +464,34 @@ func _find_perch(sp: StringName, home_p: Vector3, R: float) -> Vector3:
 				return Vector3(p.x, ground_y_at(self, p.x, p.z) + 0.08, p.z)
 		return Vector3.INF
 	var best := Vector3.INF
+	# деревья архипелага живут записями Flora (MultiMesh); узлы в группе trees — только разбуженные рядом
+	var fl := Flora.instance()
+	if fl:
+		var near := fl.nodes_near(home_p, R * 2.0, &"tree")
+		if not near.is_empty():
+			var e: Dictionary = near[_rng.randi_range(0, mini(near.size(), 6) - 1)]
+			var rec: Dictionary = e["rec"]
+			var v := FloraLib.variant(rec["kind"], int(rec["idx"]))
+			var xf := Transform3D(Basis(Vector3.UP, float(rec["yaw"])), rec["pos"])
+			return xf * FloraLib.trunk_point(v, float(v["H"]) * 0.97) + Vector3.UP * 0.1
 	var trees := get_tree().get_nodes_in_group(&"trees")
 	if trees.is_empty():
+		if not allow_ground:
+			return Vector3.INF
 		# нет деревьев — садятся на землю
 		var p := home_p + Vector3(_rng.randf_range(-8, 8), 0, _rng.randf_range(-8, 8))
 		return Vector3(p.x, ground_y_at(self, p.x, p.z) + 0.08, p.z)
-	for k in 8:
+	# ближайшее живое дерево к центру стаи (выборка — деревьев на острове сотни)
+	var bd := INF
+	var tries := mini(trees.size(), 32)
+	for k in tries:
 		var t := trees[_rng.randi() % trees.size()] as Node3D
-		if t == null or t.global_position.distance_to(home_p) > R * 1.3:
+		if t == null or not t.is_inside_tree() or bool(t.get(&"felled")):
 			continue
-		if bool(t.get(&"felled")):
-			continue
-		return _tree_top(t)
+		var d := Vector2(t.global_position.x - home_p.x, t.global_position.z - home_p.z).length()
+		if d < bd and d < R * 3.0:
+			bd = d
+			best = _tree_top(t)
 	return best
 
 static func _tree_top(t: Node3D) -> Vector3:
