@@ -90,6 +90,19 @@ func run() -> void:
 	sb.panel.call(&"_spawn_animal")
 	await wait(0.3)
 	check(fa != null and fa.animals.size() == na + 1, "животное создано у прицела")
+	# посылка спонсора
+	var sup := get_tree().get_first_node_in_group(&"supply")
+	if sup:
+		var nc: int = (sup.call(&"crates") as Array).size()
+		sb.panel.call(&"_drop_supply")
+		await wait(0.5)
+		check(int(sup.get(&"drops")) >= 1, "посылка спонсора вызвана")
+		# ждём сброса ящика (иначе ящик в самолёте не в дереве на выходе)
+		var tw := 0.0
+		while (sup.call(&"crates") as Array).size() <= nc and tw < 150.0:
+			await wait(1.0)
+			tw += 1.0
+		check((sup.call(&"crates") as Array).size() > nc, "ящик сброшен с самолёта (%d с)" % int(tw))
 	# клик по карте — перемещение
 	sb.panel.open_panel()
 	await wait_frames(3)

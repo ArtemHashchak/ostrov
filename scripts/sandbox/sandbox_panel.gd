@@ -186,6 +186,10 @@ func _tools_col() -> Control:
 	ba.text = "Создать бота на арене"
 	ba.pressed.connect(func() -> void: _spawn_bot(true))
 	col.add_child(ba)
+	var sup := Button.new()
+	sup.text = "Посылка спонсора у прицела"
+	sup.pressed.connect(_drop_supply)
+	col.add_child(sup)
 	col.add_child(_gap())
 	col.add_child(UITheme.label("Сбросить зону", 15, UITheme.ACCENT, true))
 	_reset_opt = OptionButton.new()
@@ -404,3 +408,14 @@ func _spawn_bot(arena: bool) -> void:
 		_toast("Бот команды «%s» (%s)" % [Game.TEAM_NAMES[team], DIFF_NAMES[_diff_opt.selected]])
 		if arena:
 			go(&"bots")
+
+func _drop_supply() -> void:
+	var sup := get_tree().get_first_node_in_group(&"supply")
+	if sup == null or not sup.has_method(&"drop_now"):
+		_toast("Посылок в этой версии нет")
+		return
+	var p := aim_point()
+	p.y = maxf(world.height_at(p.x, p.z), world.water_level())
+	sup.call(&"drop_now", p)
+	_toast("Самолёт со сбросом летит — смотрите в небо")
+	close_panel()

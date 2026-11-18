@@ -13,6 +13,7 @@ const MODULES: Array[Dictionary] = [
 	{"slot": "Survival", "scene": "res://scenes/survival/survival.tscn", "set": {"spawn_debris": false, "spawn_wild": false}},
 	{"slot": "Combat", "scene": "res://scenes/combat/combat.tscn"},
 	{"slot": "Bots", "scene": "res://scenes/bots/bots.tscn"},
+	{"slot": "Supply", "script": "res://scripts/supply/supply.gd"},
 ]
 
 signal ready_to_play
@@ -40,9 +41,17 @@ func _ready() -> void:
 	$Flora.add_child(flora)
 	for m in MODULES:
 		var slot := get_node_or_null(String(m.slot))
-		if slot == null or not ResourceLoader.exists(m.scene):
+		if slot == null:
+			slot = Node3D.new()
+			slot.name = String(m.slot)
+			add_child(slot)
+		var n: Node = null
+		if m.has("scene") and ResourceLoader.exists(m.scene):
+			n = (load(m.scene) as PackedScene).instantiate()
+		elif m.has("script") and ResourceLoader.exists(m.script):
+			n = (load(m.script) as Script).new() as Node
+		if n == null:
 			continue
-		var n := (load(m.scene) as PackedScene).instantiate()
 		var props: Dictionary = m.get("set", {})
 		for k: String in props:
 			n.set(k, props[k])
