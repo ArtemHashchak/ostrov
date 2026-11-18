@@ -567,17 +567,19 @@ func deploy_trap(pos: Vector3, owner: Node = null) -> Node3D:
 
 var traps: Array[Node3D] = []
 
-## Предметы, упавшие в воду: еда → приманка, верша → ставится на дно.
+## Предметы, брошенные в воду (один стек, не добыча моря): еда → приманка, верша → на дно.
 func _scan_pickups() -> void:
 	var wy := water_y()
 	for n in get_tree().get_nodes_in_group(&"pickups"):
 		var p := n as Node3D
-		if p == null or not ("stacks" in p) or p.is_queued_for_deletion():
+		if p == null or not ("stacks" in p) or p.is_queued_for_deletion() or p.has_meta(&"sea_loot"):
 			continue
 		var pos := p.global_position
 		if pos.y > wy - 0.15 or depth_at(pos.x, pos.z) < 0.5:
 			continue
 		var stacks: Array = p.get(&"stacks")
+		if stacks.size() != 1:
+			continue   # мешок с вещами погибшего — не трогаем, только выброшенный стек
 		var rest: Array[Dictionary] = []
 		var bait_sec := 0.0
 		var traps_n := 0

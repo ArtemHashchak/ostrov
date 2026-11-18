@@ -68,6 +68,12 @@ func run() -> void:
 	var rate_before := float(sw.bites - before) / 10.0
 	# бросаем мясо в воду в 25 м — как игрок клавишей G (ItemPickup падает в воду)
 	var bait_pos := sw.global_position + Vector3(0, 0, 25)
+	for k in 36:
+		var a := TAU * k / 36.0
+		var cand := sw.global_position + Vector3(cos(a), 0, sin(a)) * 25.0
+		if sea.depth_at(cand.x, cand.z) > 3.0:
+			bait_pos = cand
+			break
 	var bait_arr: Array[Dictionary] = [{"id": &"meat_raw", "n": 3}, {"id": &"fish_raw", "n": 2}]
 	var pk := ItemPickup.spawn(scene, Vector3(bait_pos.x, -0.6, bait_pos.z), bait_arr)
 	await wait(1.0)
@@ -168,10 +174,10 @@ func run() -> void:
 			shark = s
 			break
 	await wait_frames(3)
-	var space := scene.get_world_3d().direct_space_state
+	var space := shark.get_world_3d().direct_space_state
 	var from := shark.global_position + Vector3(0, 3.0, 0)
 	var q := PhysicsRayQueryParameters3D.create(from, shark.global_position + Vector3(0, -2.0, 0))
-	var hit := space.intersect_ray(q)
+	var hit: Dictionary = space.intersect_ray(q)
 	var tgt: Node = null
 	if not hit.is_empty():
 		tgt = Combat._find_with(hit.collider as Node, &"apply_damage")

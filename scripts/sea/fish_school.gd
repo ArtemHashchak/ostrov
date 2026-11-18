@@ -120,7 +120,9 @@ func apply_damage(_amount: float, source: Node, kind: StringName = &"melee") -> 
 			Events.toast.emit("Рыба на копье!")
 	if got > 0:
 		var arr: Array[Dictionary] = [{"id": &"fish_raw", "n": got}]
-		ItemPickup.spawn(sea, _pos, arr)
+		var pk := ItemPickup.spawn(sea, _pos, arr)
+		if pk:
+			pk.set_meta(&"sea_loot", true)
 
 func hit_zone(_pos_hit: Vector3) -> StringName:
 	return &"body"

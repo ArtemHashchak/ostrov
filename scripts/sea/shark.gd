@@ -140,7 +140,9 @@ func _drop_loot() -> void:
 	var p := global_position
 	if sea:
 		p.y = maxf(p.y, float(sea.water_y()) - 0.6)
-	ItemPickup.spawn(parent, p, arr)
+	var pk := ItemPickup.spawn(parent, p, arr)
+	if pk:
+		pk.set_meta(&"sea_loot", true)   # не превращать в приманку
 
 ## Приманка: бросить текущую жертву (если та не истекает кровью) и плыть кормиться.
 func lure(pos: Vector3, seconds: float) -> bool:
@@ -195,7 +197,7 @@ func tick(delta: float, full: bool) -> void:
 			target_kind = found["kind"]
 			var stalk: float = _rng.randf_range(1.4, 3.0) * (0.45 if found.get("blood", false) else 1.0)
 			_enter(State.STALK, stalk)
-		elif sea.has_method(&"nearest_attractor"):
+		elif bait_t <= 0.0 and sea.has_method(&"nearest_attractor"):
 			var at: Variant = sea.nearest_attractor(global_position, float(cfg["sense"]) * 2.2)
 			if at is Vector3:
 				investigate_at = at

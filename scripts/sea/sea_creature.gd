@@ -144,7 +144,9 @@ func _die() -> void:
 		return
 	var n := 2 if kind == Kind.RAY else 4
 	var arr: Array[Dictionary] = [{"id": &"meat_raw", "n": n}]
-	ItemPickup.spawn(get_parent(), global_position + Vector3.UP * 0.2, arr)
+	var pk := ItemPickup.spawn(get_parent(), global_position + Vector3.UP * 0.2, arr)
+	if pk:
+		pk.set_meta(&"sea_loot", true)
 
 func is_dead() -> bool:
 	return dead
