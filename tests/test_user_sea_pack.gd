@@ -71,4 +71,14 @@ func run() -> void:
 	await shot("04_underwater_a")
 	await wait(2.0)
 	await shot("04_underwater_b")
+	# живые особи вблизи (UserSeaActor): осьминог на дне, кальмары, рыбы пака
+	var live := get_tree().root.find_child("PackSeaLive", true, false) as UserSeaActors
+	check(live != null and live.actors.size() >= 8, "живые особи пака у пирса: %d" % (live.actors.size() if live else 0))
+	if live:
+		for a: UserSeaActor in live.actors:
+			if a.kind == "octopus" or a.kind == "squid":
+				var p := a.global_position
+				sb.cheats.teleport(p + Vector3(1.6, 0.8, 1.6), p + Vector3(0, 0.15, 0))
+				await wait(1.5)
+				await shot("05_live_%s" % a.kind)
 	sb.cheats.set_fly(false)
