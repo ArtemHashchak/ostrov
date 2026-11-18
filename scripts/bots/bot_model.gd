@@ -205,8 +205,8 @@ func set_logs(n: int) -> void:
 
 func set_dead(on: bool) -> void:
 	_dead = on
-	var tw := create_tween()
 	if on:
+		var tw := create_tween()
 		_cur = &""
 		if anim:
 			anim.pause()

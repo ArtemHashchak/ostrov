@@ -134,8 +134,11 @@ func debug() -> String:
 	var gd := -1.0
 	if g is Vector3:
 		gd = (g as Vector3).distance_to(bot.global_position)
-	return "%s/%s goal=%.1f path=%d stuck=%d pos=%s" % [task.get("type", "-"), task.get("phase", ""), gd,
-		bot.path.size(), bot.stuck, str(bot.global_position.snapped(Vector3.ONE * 0.1))]
+	var en := "-"
+	if is_instance_valid(enemy):
+		en = String(enemy.get(&"species")) if enemy.get(&"species") != null else String(enemy.name)
+	return "%s/%s goal=%.1f path=%d stuck=%d pos=%s enemy=%s held=%s" % [task.get("type", "-"), task.get("phase", ""), gd,
+		bot.path.size(), bot.stuck, str(bot.global_position.snapped(Vector3.ONE * 0.1)), en, bot.held_id]
 
 ## Узел из задачи (null, если удалён).
 func _tn(key: String) -> Object:
@@ -204,6 +207,9 @@ func _can_see(from: Vector3, to: Vector3, who: Node) -> bool:
 static func _chest(n: Node3D) -> Vector3:
 	if n is Bot or n.is_in_group(&"player"):
 		return n.global_position + Vector3.UP * 1.25
+	var sp: Variant = n.get(&"species")
+	if sp != null and StringName(sp) in [&"snake", &"scorpion", &"spider", &"crab", &"iguana", &"turtle"]:
+		return n.global_position + Vector3.UP * 0.12
 	return n.global_position + Vector3.UP * 0.5
 
 func _threat() -> float:
@@ -319,7 +325,7 @@ func _raid_job() -> Dictionary:
 	var gi := bot.nav.island_id(goal)
 	if not bot.nav.reachable(my_i, gi, bot.cfg("swim")):
 		return {}
-	if Combat.best_weapon(bot, false) == &"" and bot.inv_count(&"axe_crude") == 0:
+	if _best_weapon(false) == &"" and bot.inv_count(&"axe_crude") == 0:
 		return {}
 	return {"type": "raid", "team": tt}
 
@@ -844,8 +850,25 @@ func _do_herb() -> void:
 
 # ============================================================ бой
 
+const RANGED_ORDER: Array[StringName] = [&"musket", &"crossbow", &"bow", &"pistol", &"spear", &"axe_modern", &"club", &"axe_crude"]
+const MELEE_ORDER: Array[StringName] = [&"axe_modern", &"spear", &"club", &"axe_crude", &"musket", &"crossbow", &"pistol", &"bow"]
+
+## Лучшее оружие из инвентаря (как Combat.best_weapon).
+func _best_weapon(prefer_ranged: bool) -> StringName:
+	var order := RANGED_ORDER if prefer_ranged else MELEE_ORDER
+	for id in order:
+		if bot.inventory.count(id) <= 0:
+			continue
+		var w := Combat.weapon(id)
+		if w.is_empty():
+			continue
+		if String(w.type) in ["gun", "crossbow", "bow"] and not Combat.is_loaded(bot, id) and not Combat.has_ammo(bot, id):
+			continue
+		return id
+	return &""
+
 func _weapon_for(dist: float) -> StringName:
-	var w := Combat.best_weapon(bot, dist > 7.0)
+	var w := _best_weapon(dist > 7.0)
 	if w == &"":
 		return &""
 	return w
@@ -917,8 +940,28 @@ func _do_fight() -> void:
 		var dir3 := _spread((_chest(e) - eye3).normalized(), bot.cfg("spread") * 2.0)
 		bot.swing_anim()
 		var res := Combat.melee(bot, w, dir3)
-		if res.get("miss", false) == false and not res.is_empty():
+		var landed := _hit_is(res, e)
+		if not landed and d < reach + 0.4 and not res.is_empty():
+			# невысокий зверь/узкая цель: луч прошёл мимо — засчитываем удар вплотную
+			var wdmg := (float(wd.get("damage", 6.0)) if not wd.is_empty() else 6.0) * bot.cfg("dmg")
+			if randf() > bot.cfg("spread") / 20.0:
+				if e.has_method(&"on_hit"):
+					e.call(&"on_hit", bot, {"position": _chest(e), "normal": -dir3, "tool": PlayerItems.tool_of(w) if w != &"" else &"hand", "damage": wdmg, "item": w})
+				elif e.has_method(&"apply_damage"):
+					e.call(&"apply_damage", wdmg, bot, &"melee")
+				landed = true
+		if landed:
 			stats.hits = int(stats.hits) + 1
+
+static func _hit_is(res: Dictionary, target: Node) -> bool:
+	var c: Node = res.get("collider") as Node if is_instance_valid(res.get("collider")) else null
+	for i in 6:
+		if c == null:
+			return false
+		if c == target:
+			return true
+		c = c.get_parent()
+	return false
 
 static func _spread(dir: Vector3, deg: float) -> Vector3:
 	var a := deg_to_rad(deg) * randf()
@@ -1033,7 +1076,7 @@ func _wall_between(fp: Vector3, t: int) -> Blueprint:
 func _melee_struct(target: Node3D, at: Vector3) -> void:
 	if target == null or not is_instance_valid(target):
 		return
-	var w := Combat.best_weapon(bot, false)
+	var w := _best_weapon(false)
 	if w in [&"bow", &"crossbow", &"musket", &"pistol"]:
 		w = &"axe_crude" if bot.inv_count(&"axe_crude") > 0 else &""
 	bot.hold(w)

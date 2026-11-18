@@ -20,6 +20,7 @@ func _match_ready() -> bool:
 
 func run() -> void:
 	check(await _match_ready(), "матч загрузился")
+	_render(false)
 	bots = Bots.instance()
 	check(bots != null, "модуль ботов подключён к матчу")
 	if bots == null:
@@ -40,7 +41,7 @@ func run() -> void:
 		player.set_physics_process(false)
 	get_tree().root.content_scale_factor = 1.0
 	get_tree().root.size = Vector2i(640, 360)
-	Engine.time_scale = 3.0
+	Engine.time_scale = 4.0
 	var t0 := Game.match_time
 	var shot_i := 0
 	var next_log := 0.0
@@ -53,10 +54,10 @@ func run() -> void:
 				bot.brain.debug(), int(bot.brain.stats.logs), int(bot.brain.stats.felled), int(bot.brain.stats.delivered), bot.logs_carried, int(bot.health)])
 		if shot_i == 0 and String(bot.brain.task.get("phase", "")) == "chop":
 			shot_i = 1
-			await shot("chop")
+			await snap("chop")
 		if shot_i == 1 and bot.logs_carried > 0:
 			shot_i = 2
-			await shot("carry")
+			await snap("carry")
 		if int(bot.brain.stats.delivered) >= 4:
 			break
 	Engine.time_scale = 1.0
@@ -71,7 +72,7 @@ func run() -> void:
 	check(logs_in >= 4, "в постройке бота есть брёвна (%d)" % logs_in)
 	_follow()
 	await wait(0.5)
-	await shot("base")
+	await snap("base")
 	check(bot.alive, "бот жив")
 
 func _follow() -> void:
@@ -81,3 +82,13 @@ func _follow() -> void:
 	var back := bot.global_basis.z * 5.0 + Vector3(2.0, 2.6, 0.0)
 	cam.global_position = p + back
 	cam.look_at(p + Vector3.UP * 1.0)
+
+## Под llvmpipe кадр мира очень дорогой: 3D рисуем только для скриншотов.
+func _render(on: bool) -> void:
+	get_viewport().disable_3d = not on
+
+func snap(n: String) -> void:
+	_render(true)
+	await wait_frames(3)
+	await shot(n)
+	_render(false)

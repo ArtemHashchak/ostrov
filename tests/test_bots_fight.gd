@@ -24,6 +24,7 @@ func _match_ready() -> bool:
 
 func run() -> void:
 	check(await _match_ready(), "матч загрузился")
+	_render(false)
 	bots = Bots.instance()
 	if bots == null:
 		check(false, "нет модуля ботов")
@@ -69,7 +70,7 @@ func run() -> void:
 		_look(raider if raider.alive else defender)
 		if not shot_fight and raider.global_position.distance_to(defender.global_position) < 4.0 and raider.alive and defender.alive:
 			shot_fight = true
-			await shot("fight")
+			await snap("fight")
 		if int(Game.match_time - t0) % 15 == 0:
 			print("[bots] t=%d flag1=%d def[%s hp=%d] raid[%s hp=%d] dmg=%d deaths=%d" % [int(Game.match_time - t0), int(Game.teams[1].flag_hp),
 				defender.brain.status, int(defender.health), raider.brain.status, int(raider.health), damaged_by_bot, deaths.size()])
@@ -80,7 +81,7 @@ func run() -> void:
 	check(not deaths.is_empty(), "был убитый (%d)" % deaths.size())
 	check(spawns > spawns0, "павший бот возрождался у флага")
 	check(not Game.teams[1].flag_alive, "налётчик уничтожил флаг команды 1")
-	await shot("after")
+	await snap("after")
 	# защитник: убить — флага нет, возрождения нет
 	if defender.alive:
 		defender.apply_damage(500.0, raider, &"melee")
@@ -93,3 +94,13 @@ func _look(b: Node3D) -> void:
 	var p := b.global_position
 	cam.global_position = p + Vector3(5.0, 4.0, 5.0)
 	cam.look_at(p + Vector3.UP)
+
+## Под llvmpipe кадр мира очень дорогой: 3D рисуем только для скриншотов.
+func _render(on: bool) -> void:
+	get_viewport().disable_3d = not on
+
+func snap(n: String) -> void:
+	_render(true)
+	await wait_frames(3)
+	await shot(n)
+	_render(false)

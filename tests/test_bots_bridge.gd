@@ -24,6 +24,7 @@ func _fill(bp: Blueprint) -> void:
 
 func run() -> void:
 	check(await _match_ready(), "матч загрузился")
+	_render(false)
 	bots = Bots.instance()
 	if bots == null:
 		check(false, "нет модуля ботов")
@@ -89,7 +90,7 @@ func run() -> void:
 			if not shot_done:
 				shot_done = true
 				_look(bot)
-				await shot("on_bridge")
+				await snap("on_bridge")
 		if bot.brain.task.get("type", "") != "goto" and String(bot.brain.task.get("type", "")) != "":
 			bot.brain.order_goto(to_pt, 2.0)
 		if nav.island_id(bot.global_position) == other and bot.global_position.distance_to(to_pt) < 4.0:
@@ -101,9 +102,19 @@ func run() -> void:
 	check(not swam, "бот не плыл")
 	check(nav.island_id(bot.global_position) == other, "бот на соседнем острове")
 	_look(bot)
-	await shot("arrived")
+	await snap("arrived")
 
 func _look(b: Node3D) -> void:
 	var p := b.global_position
 	cam.global_position = p + b.global_basis.z * 6.0 + Vector3(1.5, 3.0, 0.0)
 	cam.look_at(p + Vector3.UP)
+
+## Под llvmpipe кадр мира очень дорогой: 3D рисуем только для скриншотов.
+func _render(on: bool) -> void:
+	get_viewport().disable_3d = not on
+
+func snap(n: String) -> void:
+	_render(true)
+	await wait_frames(3)
+	await shot(n)
+	_render(false)
