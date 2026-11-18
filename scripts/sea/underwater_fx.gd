@@ -45,7 +45,8 @@ func _process(_delta: float) -> void:
 	if under:
 		(_rect.material as ShaderMaterial).set_shader_parameter(&"depth", depth)
 		if _env:
-			_env.fog_density = 0.055 + clampf(depth / 15.0, 0.0, 1.0) * 0.04
+			# тропическая вода прозрачная: видно риф метров на 30
+			_env.fog_density = 0.038 + clampf(depth / 15.0, 0.0, 1.0) * 0.03
 			var c := Color(0.08, 0.36, 0.40).lerp(Color(0.02, 0.10, 0.16), clampf(depth / 14.0, 0.0, 1.0))
 			_env.fog_light_color = c
 		if _plankton:

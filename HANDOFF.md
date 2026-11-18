@@ -24,6 +24,8 @@
 - Экспорт: export_presets.cfg (Windows x64, macOS universal с ad-hoc подписью), import_etc2_astc=true. Локально сборки собираются без ошибок (Windows ~400 МБ, macOS ~330 МБ). Экран «Авторы» в главном меню (CC BY титры).
 - Публикация: .github/workflows/release.yml собирает и выкладывает Release (Actions → Run workflow, или тег v*). BUILD.md — как собрать вручную.
 
+- Живой риф (фон, по просьбе пользователя): scripts/sea/reef_life/ — ReefLife (подгрузка клетками 32 м вокруг камеры, 5×5; коралловые головы, луга травы, крабы/лангусты, 15 видов рыб), ReefSchool (рыбы MultiMesh, движение в shaders/reef_fish.gdshader; те же формулы на CPU — fish_pos), ReefScenes (сценки: барракуда/каранксы, акула, электрический скат, чайка), ReefMeshes/ReefSpecies. Глобальные шейдер-параметры sea_time/sea_level в project.godot. Тест tests/test_sea_reef_life.gd. Нагрузка: ~0.25 мс/кадр CPU, клетка ~2.5 мс.
+
 ## Что дальше
 - 2026-11-18 ~11:00 UTC: пользователю отданы сборки Windows/macOS с 7db6e03 (тестовые, не «финал»). Боты доделаны (4c498a6/11bb2a9: мосты в обход островков, все 3 теста ботов проходят).
 1. [x] SEA+/BUILD+ — все test_sea*.gd (4) и test_build*.gd (8) проходят (890a040: приманка, верша). Было: SEA+: прогнать все tests/test_sea*.gd по одному (агент проверки был убит перезапуском; правка приманки в shark.gd закоммичена без прогона test_sea_bait). Затем tests/test_build*.gd.
