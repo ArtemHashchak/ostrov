@@ -131,7 +131,10 @@ func run() -> void:
 		cam.global_position = tr.global_position + Vector3(-2.2, 0.9, 1.8)
 		cam.look_at(tr.global_position + Vector3(0, 0.3, 0))
 		await wait(0.2)
+		SeaTrap.speed = 1.0   # чтобы за время снимка не наловилось новой рыбы
 		await shot("trap")
+		if tr.held > 0:
+			tr.interact(fisher)
 		tr.interact(fisher)
 		await wait(0.1)
 		check(inv.count(&"fish_trap") == 1 and sea.traps.is_empty(), "пустую вершу забрали обратно")
