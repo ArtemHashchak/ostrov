@@ -131,7 +131,9 @@ func load_settings() -> void:
 	var old_keys := int(cfg.get_value("meta", "keys_version", 1)) < KEYS_VERSION
 	master_volume = cfg.get_value("audio", "master_volume", master_volume)
 	for action: StringName in DEFAULT_KEYS.keys():
-		var saved: Variant = cfg.get_value("keys", String(action), null)
+		if not cfg.has_section_key("keys", String(action)):
+			continue
+		var saved: Variant = cfg.get_value("keys", String(action))
 		# v2: крафт B→C, C больше не приседание (B занят стройкой).
 		if old_keys and action in [&"craft", &"crouch"]:
 			continue
