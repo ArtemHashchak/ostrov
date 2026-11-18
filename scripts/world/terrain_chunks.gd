@@ -56,8 +56,10 @@ func build(a: Archipelago, mat: Material) -> void:
 	WorkerThreadPool.wait_for_group_task_completion(gid)
 	var t1 := Time.get_ticks_usec()
 	var tris := {"lod0": 0, "lod1": 0, "lod2": 0, "lod3": 0, "sea": 0}
+	_sea_blocks.clear()
 	for i in _keys.size():
 		_build_chunk(_keys[i], _jobs[i], tris)
+	_flush_sea_blocks()
 	_jobs.clear()
 	var t2 := Time.get_ticks_usec()
 	stats = {"sample_ms": (t1 - t0) / 1000, "mesh_ms": (t2 - t1) / 1000, "chunks": _keys.size(),
@@ -160,15 +162,50 @@ func _build_chunk(key: Vector2i, data: Dictionary, tris: Dictionary) -> void:
 				sh.visibility_range_end_margin = MARGIN
 				add_child(sh)
 	else:
+		# глубокое дно: копим в блоки SEA_BLOCK×SEA_BLOCK чанков и рисуем одним мешем
+		# (вершины чанков уже в мировых координатах) — вместо ~250 вызовов отрисовки ~20
+		var bk := Vector2i(floori(float(key.x) / SEA_BLOCK), floori(float(key.y) / SEA_BLOCK))
+		if not _sea_blocks.has(bk):
+			_sea_blocks[bk] = []
+		(_sea_blocks[bk] as Array).append(_make_mesh(data, 1).surface_get_arrays(0))
+		tris.sea += _tri_count(int(data.n), 1)
+	_make_collision(data, key)
+
+const SEA_BLOCK := 4
+var _sea_blocks: Dictionary = {}   # Vector2i блока → [массивы поверхностей чанков]
+
+func _flush_sea_blocks() -> void:
+	for bk: Vector2i in _sea_blocks:
+		var v := PackedVector3Array()
+		var nr := PackedVector3Array()
+		var c := PackedColorArray()
+		var ix := PackedInt32Array()
+		for a: Array in _sea_blocks[bk]:
+			var base := v.size()
+			v.append_array(a[Mesh.ARRAY_VERTEX])
+			nr.append_array(a[Mesh.ARRAY_NORMAL])
+			c.append_array(a[Mesh.ARRAY_COLOR])
+			var src: PackedInt32Array = a[Mesh.ARRAY_INDEX]
+			var off := ix.size()
+			ix.append_array(src)
+			for i in range(off, ix.size()):
+				ix[i] += base
+		var arr := []
+		arr.resize(Mesh.ARRAY_MAX)
+		arr[Mesh.ARRAY_VERTEX] = v
+		arr[Mesh.ARRAY_NORMAL] = nr
+		arr[Mesh.ARRAY_COLOR] = c
+		arr[Mesh.ARRAY_INDEX] = ix
+		var mesh := ArrayMesh.new()
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
 		var mi := MeshInstance3D.new()
-		mi.name = base + "_sea"
-		mi.mesh = _make_mesh(data, 1)
+		mi.name = "Tsea_%d_%d" % [bk.x, bk.y]
+		mi.mesh = mesh
 		mi.material_override = material
 		mi.visibility_range_end = FAR
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mi)
-		tris.sea += _tri_count(int(data.n), 1)
-	_make_collision(data, key)
+	_sea_blocks.clear()
 
 static func _tri_count(n: int, sub: int) -> int:
 	var q := (n - 1) / sub
