@@ -71,6 +71,7 @@ func _ground_mesh(w: Node3D) -> MeshInstance3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = Color(0.8, 0.72, 0.55)
 	m.roughness = 1.0
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mi.material_override = m
 	return mi
 
@@ -136,8 +137,8 @@ func run() -> void:
 	# ---------------- змея ----------------
 	var sn := _spawn(&"snake", Vector3(-6, 0.5, 4), &"wander", {"move_to": Vector3(-6, 0.5, -6)})
 	check(sn.anim_ctrl is ReptileAnim, "у змеи контроллер рептилий")
-	_look(Vector3(-4.2, 2.2, 1.8), Vector3(-6, 0.45, 0.5))
 	await wait(1.6)
+	_look(sn.global_position + Vector3(1.2, 1.3, 0.6), sn.global_position + Vector3(0, 0, 0.3))
 	check(_spine_bent(sn) > 0.03, "змея извивается на ходу (%.3f)" % _spine_bent(sn))
 	await shot("snake_slither_a")
 	await wait(0.35)
@@ -186,7 +187,7 @@ func run() -> void:
 	_force(cr, &"idle")
 	await wait(6.0)
 	_look(cr.global_position + Vector3(1.3, 0.8, -2.6), cr.global_position + Vector3(0, 0.3, -1.2))
-	check((cr.anim_ctrl as ReptileAnim).jaw > 0.3, "крокодил греется с открытой пастью")
+	check((cr.anim_ctrl as ReptileAnim).jaw > 0.2, "крокодил греется с открытой пастью")
 	await shot("croc_jaw")
 	# в воде: хвост гребёт
 	cr.global_position = Vector3(11, -0.3, 6)

@@ -22,6 +22,7 @@ var ys := 0.0                # высота оси тела в покое
 var spine := true
 var reach := 0.12            # вынос стопы вбок (для амплитуды шага)
 var stride := 0.3            # длина шага (ед. модели)
+var amp_cap := 0.7           # предел размаха лапы (рад)
 
 var pts := PackedVector3Array()        # текущий позвоночник (пространство модели)
 var trail := PackedVector3Array()      # след головы (мир), [0] — голова
@@ -61,7 +62,7 @@ func setup(an: Animal) -> void:
 		&"snake":
 			z0 = -L * 0.5; z1 = L * 0.5; ys = 0.03
 		&"croc":
-			z0 = -1.7; z1 = 1.7; ys = 0.22; reach = 0.26; stride = 0.75
+			z0 = -1.7; z1 = 1.7; ys = 0.22; reach = 0.26; stride = 0.6; amp_cap = 0.5
 		&"iguana", &"monitor":
 			var sc := L / 1.25
 			z0 = -0.45 * L; z1 = 0.55 * L; ys = 0.08 * sc; reach = 0.125 * sc; stride = 0.36 * L
@@ -264,7 +265,7 @@ func _gait_legs(dt: float, freq_cap: float, lift_amt: float) -> Array:
 	var stride_w := stride * maxf(a.growth, 0.05)
 	if a.speed > 0.05:
 		gait += minf(a.speed / maxf(stride_w, 0.01), freq_cap) * dt
-	var amp := clampf(stride * 0.5 / maxf(reach, 0.01), 0.25, 0.85)
+	var amp := clampf(stride * 0.5 / maxf(reach, 0.01), 0.25, amp_cap)
 	for i in legs.size():
 		var side := -1.0 if i % 2 == 0 else 1.0
 		var off := 0.0 if (i == 0 or i == 3) else 0.5
@@ -371,18 +372,19 @@ func _croc(dt: float) -> void:
 			# лапы прижаты к бокам и назад
 			b = Basis.from_euler(Vector3(0.0, -side * 1.05, -side * 0.15))
 		else:
-			b = Basis.from_euler(Vector3(0.0, 0.0, -side * 0.42 * high)) * b
+			# ход: лапы под туловищем; покой: раскинуты в стороны, лежит на брюхе
+			b = Basis.from_euler(Vector3(0.0, side * 0.25 * (1.0 - high), -side * 0.36 * high + side * 0.32 * (1.0 - high))) * b
 		legs[i] = b
-	var y_off := 0.09 * high
+	var y_off := 0.11 * high - 0.035 * (1.0 - high) * (0.0 if water else 1.0)
 	if water and a.state == &"ambush":
 		y_off = sin(a._anim_t * 0.7) * 0.015 - 0.02
 	model.position.y = lerpf(model.position.y, y_off, clampf(dt * 5.0, 0.0, 1.0))
 	# пасть: приоткрыта на солнце, раскрыта перед броском, захлопывается при укусе
 	var want := 0.0
 	if a.state in [&"attack", &"chase"] and a.target and a.global_position.distance_to(a.target.global_position) < 5.0:
-		want = 0.62
+		want = 0.5
 	elif not water and idle_t > 4.0:
-		want = 0.42   # греется с открытой пастью
+		want = 0.3    # греется с открытой пастью
 	if jaw_hold > 0.0:
 		jaw_hold -= dt
 		jaw = move_toward(jaw, 0.0, dt * 12.0)

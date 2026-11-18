@@ -153,7 +153,7 @@ void fragment() {
 	float grain = fbm(v_obj.xz * 40.0 + v_obj.y * 30.0);
 	col *= 0.86 + 0.24 * grain;
 	float mb = clamp(v_mouth * (1.0 - v_mouth) * 4.0, 0.0, 1.0) * clamp(jaw_open * 4.0, 0.0, 1.0);
-	col = mix(col, vec3(0.5, 0.26, 0.24), mb);
+	col = mix(col, vec3(0.78, 0.62, 0.5), mb);
 	ALBEDO = col;
 	ROUGHNESS = clamp(roughness_base - wetness * 0.45 + (grain - 0.5) * 0.1, 0.05, 1.0);
 	SPECULAR = 0.35 + wetness * 0.4;
