@@ -1,14 +1,17 @@
 class_name FallenTrunk
 extends RigidBody3D
-## Падающий / лежащий ствол. Состоит из участков по ~2 м (будущие брёвна) и кроны.
-## Удары по стволу отделяют бревно (FloraLog); удары по кроне дают листья и палки.
+## Падающий / лежащий ствол. Логически состоит из участков по ~2 м (будущие брёвна: коллизии,
+## `segments`) и кроны, но ВИДИМЫЙ ствол — цельный меш на каждый непрерывный кусок: без швов и
+## торцов посередине. Удары по стволу сначала делают надпил на границе участка, затем отделяют
+## бревно (FloraLog); оставшиеся куски перестраиваются, на распиле — торец с годичными кольцами.
+## Удары по кроне дают листья и палки.
 
 const LOG_CUT_DMG := 55.0
 const SETTLE_SPEED := 0.15
 
 var variant: Dictionary = {}
 var cut_h: float = 1.0
-var segments: Array[Dictionary] = [] # {mesh, shape, h0, h1}
+var segments: Array[Dictionary] = [] # {mesh, shape, h0, h1}; mesh — общий меш непрерывного куска
 var crown: MeshInstance3D = null
 var crown_shape: CollisionShape3D = null
 var crown_hp: float = 60.0
@@ -17,6 +20,8 @@ var chop_acc: float = 0.0
 var landed: bool = false
 var settled: bool = false
 var _t: float = 0.0
+var _pieces: Array[MeshInstance3D] = []
+var _notch: Dictionary = {} # надпил под текущий распил: {h, dir, depth}
 
 func setup(v: Dictionary, cut: float, xform: Transform3D, coconuts: int = 0) -> void:
 	variant = v
@@ -54,6 +59,7 @@ func _ready() -> void:
 	crown_shape.position = cc
 	crown_shape.disabled = true # включается, когда ствол наклонился (иначе цепляет соседей)
 	add_child(crown_shape)
+	_rebuild_mesh()
 	mass = maxf(80.0, total_mass)
 	center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
 	center_of_mass = FloraLib.trunk_point(variant, lerpf(cut_h, H, 0.42))
@@ -68,9 +74,6 @@ func _ready() -> void:
 	physics_material_override = pm
 
 func _add_segment(h0: float, h1: float) -> void:
-	var mi := MeshInstance3D.new()
-	mi.mesh = FloraLib.trunk_mesh(variant, h0, h1, 3, 12)
-	add_child(mi)
 	var cs := CollisionShape3D.new()
 	var a := FloraLib.trunk_point(variant, h0)
 	var b := FloraLib.trunk_point(variant, h1)
@@ -86,7 +89,48 @@ func _add_segment(h0: float, h1: float) -> void:
 	var z := x.cross(y).normalized()
 	cs.transform = Transform3D(Basis(x, y, z), (a + b) * 0.5)
 	add_child(cs)
-	segments.append({"mesh": mi, "shape": cs, "h0": h0, "h1": h1})
+	segments.append({"mesh": null, "shape": cs, "h0": h0, "h1": h1})
+
+## Непрерывные куски ствола: [[i0, i1], ...] — индексы участков подряд без распила между ними.
+func _runs() -> Array:
+	var out: Array = []
+	for i in segments.size():
+		if i > 0 and absf(float(segments[i]["h0"]) - float(segments[i - 1]["h1"])) < 0.001:
+			out[-1][1] = i
+		else:
+			out.append([i, i])
+	return out
+
+## Перестроить видимый ствол: по одному цельному мешу на непрерывный кусок. Торцы (годичные
+## кольца) — только на настоящих срезах: у пня и на распилах; надпил — если идёт распил.
+func _rebuild_mesh() -> void:
+	for mi in _pieces:
+		mi.queue_free()
+	_pieces.clear()
+	var H: float = variant["H"]
+	for run: Array in _runs():
+		var lo: float = segments[run[0]]["h0"]
+		var hi: float = segments[run[1]]["h1"]
+		var caps := 1
+		var top := hi
+		if hi >= H - 0.001 and crown != null:
+			top = H * (1.0 if variant["kind"] == &"palm" else 1.02) # как у стоящего дерева: уходит в крону
+		else:
+			caps = 3
+		var notch: Dictionary = {}
+		if not _notch.is_empty() and float(_notch["h"]) > lo + 0.05 and float(_notch["h"]) < hi - 0.05:
+			notch = _notch
+		var mi := MeshInstance3D.new()
+		mi.name = "Trunk%d" % _pieces.size()
+		mi.mesh = FloraLib.trunk_mesh(variant, lo, top, caps, 12, Vector3.ZERO, notch)
+		add_child(mi)
+		_pieces.append(mi)
+		for i in range(run[0], run[1] + 1):
+			segments[i]["mesh"] = mi
+
+## Число видимых кусков ствола (для тестов).
+func piece_count() -> int:
+	return _pieces.size()
 
 var _fall_axis: Vector3 = Vector3.ZERO
 
@@ -146,8 +190,10 @@ func on_hit(by: Node, hit: Dictionary) -> void:
 	if chop_acc >= LOG_CUT_DMG:
 		chop_acc = 0.0
 		_split_log(pos)
+	else:
+		_update_notch(pos, hit, by)
 
-func _split_log(near: Vector3) -> void:
+func _nearest_segment(near: Vector3) -> int:
 	var best := 0
 	var best_d := INF
 	for i in segments.size():
@@ -157,12 +203,55 @@ func _split_log(near: Vector3) -> void:
 		if d < best_d:
 			best_d = d
 			best = i
+	return best
+
+## Надпил на границе отделяемого участка (там, где пройдёт распил), глубина растёт с ударами.
+func _update_notch(pos: Vector3, hit: Dictionary, by: Node) -> void:
+	var i := _nearest_segment(pos)
+	var s: Dictionary = segments[i]
+	var lp := to_local(pos)
+	var cand: Array[float] = []
+	if i > 0 and absf(float(segments[i - 1]["h1"]) - float(s["h0"])) < 0.001:
+		cand.append(s["h0"])
+	if i < segments.size() - 1 and absf(float(segments[i + 1]["h0"]) - float(s["h1"])) < 0.001:
+		cand.append(s["h1"])
+	if cand.is_empty():
+		return # участок и так отделён с обеих сторон — пилить нечего
+	var nh: float = cand[0]
+	if cand.size() > 1 and FloraLib.trunk_point(variant, cand[1]).distance_to(lp) < FloraLib.trunk_point(variant, cand[0]).distance_to(lp):
+		nh = cand[1]
+	var c := FloraLib.trunk_point(variant, nh)
+	var ax := (FloraLib.trunk_point(variant, nh + 0.05) - c).normalized()
+	# сторона надпила: откуда пришёл удар (нормаль), иначе — к рубящему, иначе — вверх
+	var tries: Array[Vector3] = []
+	if hit.has("normal"):
+		tries.append(global_basis.inverse() * (hit["normal"] as Vector3))
+	if by is Node3D:
+		tries.append(to_local((by as Node3D).global_position) - c)
+	tries.append(lp - c)
+	tries.append(global_basis.inverse() * Vector3.UP)
+	var dir := Vector3.ZERO
+	for t in tries:
+		var d := t - ax * t.dot(ax)
+		if d.length() > 0.05:
+			dir = d.normalized()
+			break
+	if dir == Vector3.ZERO:
+		return
+	if not _notch.is_empty() and absf(float(_notch["h"]) - nh) < 0.001:
+		dir = _notch["dir"] # зарубка не «прыгает» по кругу от удара к удару
+	_notch = {"h": nh, "dir": dir, "depth": 0.1 + 0.35 * clampf(chop_acc / LOG_CUT_DMG, 0.0, 1.0)}
+	_rebuild_mesh()
+
+func _split_log(near: Vector3) -> void:
+	var best := _nearest_segment(near)
 	var seg: Dictionary = segments[best]
 	segments.remove_at(best)
 	var lg := FloraLog.from_segment(variant, seg["h0"], seg["h1"], global_transform)
 	get_parent().add_child(lg)
-	(seg["mesh"] as Node).queue_free()
 	(seg["shape"] as Node).queue_free()
+	_notch = {}
+	_rebuild_mesh()
 	Flora.play_sfx(self, "WOODImpt_LargeWoodDrop_OS_01", lg.global_position, -6.0, 1.3)
 	if segments.is_empty() and crown == null:
 		queue_free()
@@ -195,6 +284,7 @@ func _hit_crown(by: Node, dmg: float, pos: Vector3) -> void:
 	if segments.is_empty():
 		queue_free()
 	else:
+		_rebuild_mesh() # верх ствола теперь срез — торец
 		_wake()
 
 func logs_left() -> int:

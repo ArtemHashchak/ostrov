@@ -23,7 +23,7 @@ static func from_segment(v: Dictionary, h0: float, h1: float, xform: Transform3D
 	var b := FloraLib.trunk_point(v, h1)
 	var mid := (a + b) * 0.5
 	lg._mesh = FloraLib.trunk_mesh(v, h0, h1, 3, 12, mid)
-	lg.radius = FloraLib.trunk_radius(v, (h0 + h1) * 0.5)
+	lg.radius = maxf(FloraLib.trunk_radius(v, h0), FloraLib.trunk_radius(v, h1)) # по толстому торцу — не тонет в земле
 	lg.length = a.distance_to(b)
 	var cap := CapsuleShape3D.new()
 	cap.radius = lg.radius

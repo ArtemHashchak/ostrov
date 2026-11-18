@@ -6,6 +6,7 @@ extends RefCounted
 
 const TEX := "res://scenes/world/flora/tex/"
 const LOG_LEN := 2.0
+const RING_STEP := 0.45 # шаг колец меша ствола (общая сетка по высоте от основания)
 
 static var _mat_cache: Dictionary = {}
 static var _mesh_cache: Dictionary = {}
@@ -160,6 +161,19 @@ static func trunk_point(v: Dictionary, h: float) -> Vector3:
 	var z := sin(t * PI * 1.3) * bend * 0.2
 	return Vector3(x, t * H, z)
 
+## Длина оси ствола от основания до высоты h (для непрерывных UV коры).
+static func trunk_arc(v: Dictionary, h: float) -> float:
+	if h <= 0.0:
+		return 0.0
+	var n := maxi(1, int(ceil(h / 0.1)))
+	var acc := 0.0
+	var prev := trunk_point(v, 0.0)
+	for i in n:
+		var c := trunk_point(v, h * float(i + 1) / float(n))
+		acc += c.distance_to(prev)
+		prev = c
+	return acc
+
 static func trunk_radius(v: Dictionary, h: float) -> float:
 	var H: float = v["H"]
 	var t := clampf(h / H, 0.0, 1.0)
@@ -187,11 +201,15 @@ static func trunk_mesh(v: Dictionary, h0: float, h1: float, caps: int = 0, sides
 		var rn := trunk_radius(v, nh)
 		up_band = rn * (0.35 + 1.1 * ndepth)
 		lo_band = rn * (0.08 + 0.25 * ndepth)
-	# высоты колец: обычные через ~0.45 м + частые в полосе зарубки
-	var hs: Array[float] = []
-	var n_norm := maxi(2, int(ceil((h1 - h0) / 0.45)) + 1)
-	for i in n_norm:
-		hs.append(lerpf(h0, h1, float(i) / float(n_norm - 1)))
+	# высоты колец: по общей сетке RING_STEP от основания дерева (у соседних кусков ствола,
+	# пня и брёвен кольца совпадают — нет «скачков» профиля) + частые в полосе зарубки
+	var hs: Array[float] = [h0]
+	var k0 := int(floor(h0 / RING_STEP)) + 1
+	while float(k0) * RING_STEP < h1 - 0.06:
+		if float(k0) * RING_STEP > h0 + 0.06:
+			hs.append(float(k0) * RING_STEP)
+		k0 += 1
+	hs.append(h1)
 	if has_notch:
 		var a0 := maxf(h0, nh - lo_band - 0.03)
 		var a1 := minf(h1, nh + up_band + 0.03)
@@ -212,7 +230,9 @@ static func trunk_mesh(v: Dictionary, h0: float, h1: float, caps: int = 0, sides
 	var nor: Array[Vector3] = []
 	var uv: Array[Vector2] = []
 	var cut: Array[float] = []
-	var v_acc := 0.0
+	# UV коры — от длины оси от основания дерева: у пня, стоящего/лежащего ствола и брёвен
+	# текстура продолжается без скачка на стыке
+	var v_acc := trunk_arc(v, h0)
 	var prev := trunk_point(v, h0) - offset
 	for i in rings:
 		var h: float = hs[i]
@@ -259,7 +279,9 @@ static func trunk_mesh(v: Dictionary, h0: float, h1: float, caps: int = 0, sides
 		for s in sides:
 			var a := i * (sides + 1) + s
 			var b := a + sides + 1
-			var quad := [a, b, a + 1, a + 1, b, b + 1]
+			# по часовой стрелке снаружи — лицевая сторона в Godot (иначе ствол «вывернут»:
+			# видна внутренняя дальняя стенка, освещённая со спины, — чёрная кора и «дыры» у земли)
+			var quad := [a, a + 1, b, a + 1, b + 1, b]
 			var in_cut := (cut[a] + cut[b] + cut[a + 1] + cut[b + 1]) > 0.03
 			if in_cut:
 				for q in quad:
@@ -485,7 +507,7 @@ static func _tube(st: SurfaceTool, a: Vector3, b: Vector3, r0: float, r1: float,
 		var n1 := side * cos(a1) + fwd * sin(a1)
 		var quad := [[a + n0 * r0, n0, Vector2(float(s) / sides, 0)], [b + n0 * r1, n0, Vector2(float(s) / sides, L)],
 			[b + n1 * r1, n1, Vector2(float(s + 1) / sides, L)], [a + n1 * r0, n1, Vector2(float(s + 1) / sides, 0)]]
-		for idx in [0, 1, 2, 0, 2, 3]:
+		for idx in [0, 2, 1, 0, 3, 2]: # по часовой снаружи (лицевая в Godot)
 			st.set_color(Color(0, 1, 1))
 			st.set_normal(quad[idx][1])
 			st.set_uv(quad[idx][2])

@@ -155,7 +155,8 @@ func _shake(t: float) -> void:
 func _update_notch() -> void:
 	var k := clampf(1.0 - health / max_health, 0.0, 1.0)
 	var depth := 0.12 + 0.6 * k
-	_trunk.mesh = FloraLib.trunk_mesh(variant, 0.0, variant["H"], 0, 12, Vector3.ZERO, {"h": cut_h, "dir": notch_side, "depth": depth})
+	# та же верхняя граница, что у целого ствола — макушка не «прыгает» при первом ударе
+	_trunk.mesh = FloraLib.trunk_mesh(variant, 0.0, (variant["H"] as float) * (1.0 if kind == &"palm" else 1.02), 0, 12, Vector3.ZERO, {"h": cut_h, "dir": notch_side, "depth": depth})
 
 func _drop_coconut(by: Node) -> void:
 	if coconuts <= 0:
