@@ -29,9 +29,8 @@ const TREE_FAR := 650.0
 ## остаются «болванки». LOD2 — тот же меш, что LOD1, крупными чанками для дальних деревьев;
 ## перекрытие LOD1/LOD2 безвредно (одинаковая геометрия), поэтому диапазоны с запасом.
 const TCHUNK := 64.0           # LOD0 (полные меши вариантов)
-const MID_CHUNK := 96.0        # LOD1 (упрощённый меш варианта 0)
 const FAR_CHUNK := 144.0
-const LOD1_END := 300.0
+const LOD1_END := 400.0  # перекрытие с LOD2 ≥ разницы центров чанков
 const LOD2_BEGIN := 250.0
 const CCHUNK := 192.0          # чанк коллизий стволов
 const PROMOTE_R := 26.0
@@ -416,8 +415,8 @@ func _build_trees() -> void:
 		rec["g"] = gk
 		rec["mi"] = (g["xf"] as Array).size()
 		(g["xf"] as Array).append(_xf(rec))
-		var mck := Vector2i(int(floor(p.x / MID_CHUNK)), int(floor(p.z / MID_CHUNK)))
-		var fk := "%s|%d|%d" % [rec["kind"], mck.x, mck.y]
+		# LOD1 — та же сетка, что LOD0: переключение по центру чанка без дыр
+		var fk := "%s|%d|%d" % [rec["kind"], ck.x, ck.y]
 		if not _fgroups.has(fk):
 			_fgroups[fk] = {"v": FloraLib.variant(rec["kind"], 0), "xf": []}
 		rec["gf"] = fk
