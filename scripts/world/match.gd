@@ -9,6 +9,7 @@ const MODULES: Array[Dictionary] = [
 	{"slot": "Sea", "scenes": ["res://scenes/sea/sea.tscn"], "scripts": ["res://scripts/sea/sea.gd"]},
 	{"slot": "Fauna", "scenes": ["res://scenes/fauna/fauna.tscn"], "scripts": ["res://scripts/fauna/fauna.gd"]},
 	{"slot": "Survival", "scenes": ["res://scenes/survival/survival.tscn"], "scripts": ["res://scripts/survival/survival.gd"]},
+	{"slot": "Combat", "scenes": ["res://scenes/combat/combat.tscn"], "scripts": ["res://scripts/combat/combat.gd"]},
 	{"slot": "Bots", "scenes": ["res://scenes/bots/bots.tscn"], "scripts": ["res://scripts/bots/bots.gd"]},
 	{"slot": "UI", "scenes": ["res://scenes/ui/ui.tscn", "res://scenes/ui/hud.tscn"], "scripts": ["res://scripts/ui/ui.gd"]},
 ]
