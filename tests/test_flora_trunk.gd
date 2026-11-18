@@ -25,6 +25,7 @@ func run() -> void:
 	cam.make_current()
 	await _case(&"broadleaf", 1, Vector3(8, 0, 6))
 	await _case(&"palm", 2, Vector3(-6, 0, 10))
+	await wait(2.0) # щепки (CPUParticles) живут 1.5 с — не оставлять их к выходу
 
 func _case(kind: StringName, idx: int, at: Vector3) -> void:
 	var v := FloraLib.variant(kind, idx)

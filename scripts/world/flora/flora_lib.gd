@@ -229,7 +229,8 @@ static func trunk_mesh(v: Dictionary, h0: float, h1: float, caps: int = 0, sides
 	var pos: Array[Vector3] = []
 	var nor: Array[Vector3] = []
 	var uv: Array[Vector2] = []
-	var cut: Array[float] = []
+	var cut: Array[float] = [] # знаковое «превышение» над плоскостью зарубки (>0 — срезано), в долях r
+	var orig: Array[Vector3] = [] # точка на коре до среза
 	# UV коры — от длины оси от основания дерева: у пня, стоящего/лежащего ствола и брёвен
 	# текстура продолжается без скачка на стыке
 	var v_acc := trunk_arc(v, h0)
@@ -257,15 +258,16 @@ static func trunk_mesh(v: Dictionary, h0: float, h1: float, caps: int = 0, sides
 		for s in sides + 1:
 			var a := TAU * float(s) / float(sides)
 			var n := (side * cos(a) + fwd * sin(a)).normalized()
-			var cut_k := 0.0
+			var cut_k := -1.0
 			var pp := c + n * r
-			if prof > 0.0:
+			orig.append(pp)
+			if has_notch:
 				# плоский срез: всё, что дальше плоскости (r·(1−depth·prof) вдоль dir), срезается на неё
 				var plane := r * (1.0 - ndepth * prof)
 				var ex := (pp - c).dot(ndir) - plane
+				cut_k = ex / r
 				if ex > 0.0:
 					pp -= ndir * ex
-					cut_k = ex / r
 			pos.append(pp)
 			nor.append(n)
 			uv.append(Vector2(float(s) / float(sides) * 2.0, v_acc / (TAU * (v["r0"] as float)) * 0.9))
@@ -281,19 +283,48 @@ static func trunk_mesh(v: Dictionary, h0: float, h1: float, caps: int = 0, sides
 			var b := a + sides + 1
 			# по часовой стрелке снаружи — лицевая сторона в Godot (иначе ствол «вывернут»:
 			# видна внутренняя дальняя стенка, освещённая со спины, — чёрная кора и «дыры» у земли)
-			var quad := [a, a + 1, b, a + 1, b + 1, b]
-			var in_cut := (cut[a] + cut[b] + cut[a + 1] + cut[b + 1]) > 0.03
-			if in_cut:
-				for q in quad:
-					wood.set_uv(Vector2(pos[q].x + pos[q].z, pos[q].y) * 1.6)
-					wood.add_vertex(pos[q])
-				wood_n += 1
-			else:
-				for q in quad:
-					st.set_normal(nor[q])
-					st.set_color(Color(0.0, 1.0, 1.0))
-					st.set_uv(uv[q])
-					st.add_vertex(pos[q])
+			for tri: Array in [[a, a + 1, b], [a + 1, b + 1, b]]:
+				var c0: float = cut[tri[0]]
+				var c1: float = cut[tri[1]]
+				var c2: float = cut[tri[2]]
+				if c0 <= 0.0 and c1 <= 0.0 and c2 <= 0.0:
+					for q: int in tri:
+						st.set_normal(nor[q])
+						st.set_color(Color(0.0, 1.0, 1.0))
+						st.set_uv(uv[q])
+						st.add_vertex(pos[q])
+				elif c0 > 0.0 and c1 > 0.0 and c2 > 0.0:
+					for q: int in tri:
+						wood.set_uv(Vector2(pos[q].x + pos[q].z, pos[q].y) * 1.6)
+						wood.add_vertex(pos[q])
+					wood_n += 1
+				else:
+					# треугольник на краю зарубки: режем по линии cut = 0 — ровный край без «лесенки»
+					var bp: Array = [] # [pos, normal, uv] коры
+					var wp: Array[Vector3] = []
+					for e in 3:
+						var p: int = tri[e]
+						var q: int = tri[(e + 1) % 3]
+						if cut[p] > 0.0:
+							wp.append(pos[p])
+						else:
+							bp.append([pos[p], nor[p], uv[p]])
+						if (cut[p] > 0.0) != (cut[q] > 0.0):
+							var t: float = cut[p] / (cut[p] - cut[q])
+							var x: Vector3 = orig[p].lerp(orig[q], t)
+							wp.append(x)
+							bp.append([x, nor[p].lerp(nor[q], t).normalized(), uv[p].lerp(uv[q], t)])
+					for k in range(1, bp.size() - 1):
+						for vv: Array in [bp[0], bp[k], bp[k + 1]]:
+							st.set_normal(vv[1])
+							st.set_color(Color(0.0, 1.0, 1.0))
+							st.set_uv(vv[2])
+							st.add_vertex(vv[0])
+					for k in range(1, wp.size() - 1):
+						for x: Vector3 in [wp[0], wp[k], wp[k + 1]]:
+							wood.set_uv(Vector2(x.x + x.z, x.y) * 1.6)
+							wood.add_vertex(x)
+						wood_n += 1
 	st.generate_tangents()
 	var mesh := st.commit()
 	mesh.surface_set_material(0, bark_material(v["bark"]))

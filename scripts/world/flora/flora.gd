@@ -914,6 +914,22 @@ static func play_sfx(from: Node, sound: String, pos: Vector3, db: float = 0.0, p
 	p.finished.connect(p.queue_free)
 	p.play()
 
+static var _chip_meshes: Dictionary = {}
+
+## Меш щепки по цвету — общий (раньше на каждый удар создавались новые меш+материал;
+## щепки, не успевшие исчезнуть к выходу из игры, давали «resources still in use»).
+static func _chip_mesh(color: Color) -> BoxMesh:
+	var key := color.to_html()
+	if _chip_meshes.has(key):
+		return _chip_meshes[key]
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.05, 0.02, 0.03)
+	var m := StandardMaterial3D.new()
+	m.albedo_color = color
+	bm.material = m
+	_chip_meshes[key] = bm
+	return bm
+
 ## Щепки/листья/каменная крошка.
 static func chips(parent: Node, pos: Vector3, color: Color, amount: int) -> void:
 	if parent == null or not parent.is_inside_tree():
@@ -923,13 +939,7 @@ static func chips(parent: Node, pos: Vector3, color: Color, amount: int) -> void
 	cp.explosiveness = 0.95
 	cp.amount = amount
 	cp.lifetime = 0.9
-	var bm := BoxMesh.new()
-	bm.size = Vector3(0.05, 0.02, 0.03)
-	var m := StandardMaterial3D.new()
-	m.albedo_color = color
-	m.vertex_color_use_as_albedo = false
-	bm.material = m
-	cp.mesh = bm
+	cp.mesh = _chip_mesh(color)
 	cp.direction = Vector3.UP
 	cp.spread = 70.0
 	cp.initial_velocity_min = 1.5
