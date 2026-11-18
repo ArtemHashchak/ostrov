@@ -93,6 +93,7 @@ var _t := 0.0
 var _died := false
 var _target_rec: Dictionary = {}
 var _next_delay := -1.0
+var _prebuilding := false
 
 static func instance() -> TutorialDirector:
 	var t := Engine.get_main_loop() as SceneTree
@@ -163,13 +164,14 @@ func _prepare_world() -> void:
 				neighbour = I
 				bridge_info = bt
 	if not bridge_info.is_empty():
-		landing = bridge_info.end
-		var c: Vector2 = neighbour.center
-		var inward := (Vector2(c.x, c.y) - Vector2(landing.x, landing.z)).normalized()
-		landing = _ground(Vector3(landing.x + inward.x * 4.0, 0, landing.z + inward.y * 4.0))
-	# день, ясно — чтобы было видно
+		var e: Vector3 = bridge_info.end
+		var lp: Variant = _land_near(e, 0.0, 12.0, 0.25)
+		landing = lp if lp is Vector3 else e
+	# день, ясно и время стоит — чтобы всё было видно
 	if world.has_method(&"set_time_of_day"):
 		world.call(&"set_time_of_day", 9.5)
+	if world.has_method(&"set_time_paused"):
+		world.call(&"set_time_paused", true)
 	if world.has_method(&"set_weather"):
 		world.call(&"set_weather", &"clear", true)
 	_cull_wildlife()
@@ -213,6 +215,49 @@ static func _near_any(n: Node3D, centers: Array[Vector2], radii: Array[float]) -
 func _ground(p: Vector3) -> Vector3:
 	return Vector3(p.x, float(world.call(&"height_at", p.x, p.z)), p.z)
 
+func _dry(x: float, z: float, min_h: float) -> bool:
+	if not bool(world.call(&"is_land", x, z)):
+		return false
+	var h := float(world.call(&"height_at", x, z))
+	if h < float(world.call(&"water_level")) + min_h:
+		return false
+	var n := world.call(&"normal_at", x, z) as Vector3 if world.has_method(&"normal_at") else Vector3.UP
+	return n.y > 0.8
+
+## Ближайшая к c ровная суша на кольцах rmin..rmax (null — нет).
+func _land_near(c: Vector3, rmin: float, rmax: float, min_h: float = 0.4) -> Variant:
+	var r := rmin
+	while r <= rmax:
+		var steps := maxi(1, int(TAU * maxf(r, 0.5) / 1.5)) if r > 0.0 else 1
+		var off := randf() * TAU
+		for k in steps:
+			var a := off + TAU * float(k) / float(steps)
+			var x := c.x + cos(a) * r
+			var z := c.z + sin(a) * r
+			if _dry(x, z, min_h):
+				return _ground(Vector3(x, 0, z))
+		r += 1.0
+	return null
+
+## Ровная суша острова I, дальше всего от точки from.
+func _land_far(I: Dictionary, from: Vector3, min_h: float = 1.0) -> Variant:
+	var c: Vector2 = I.center
+	var R := float(I.radius) * 1.15
+	var best: Variant = null
+	var bd := -1.0
+	var x := c.x - R
+	while x <= c.x + R:
+		var z := c.y - R
+		while z <= c.y + R:
+			if _dry(x, z, min_h):
+				var d := Vector2(x - from.x, z - from.z).length()
+				if d > bd:
+					bd = d
+					best = _ground(Vector3(x, 0, z))
+			z += 3.0
+		x += 3.0
+	return best
+
 ## Заготовка моста: все секции, кроме последней, достроены.
 func build_bridge() -> void:
 	if not bridge.is_empty() or bridge_info.is_empty():
@@ -221,6 +266,11 @@ func build_bridge() -> void:
 	if bm == null:
 		return
 	var n := int(bridge_info.sections)
+	_prebuilding = true
+	_build_bridge_sections(bm, n)
+	_prebuilding = false
+
+func _build_bridge_sections(bm: BuildModule, n: int) -> void:
 	var prev: Blueprint = bm.place_blueprint(&"raft", bridge_info.xform, 0)
 	if prev == null:
 		return
@@ -280,43 +330,56 @@ func _setup_enemy_base() -> void:
 	if Game.teams.size() < 2 or Game.teams[1].flag_placed or neighbour.is_empty():
 		return
 	var bm := BuildModule.instance()
-	# флаг: на суше, подальше от места высадки (территория 40 м не мешает мосту)
-	var fp := _far_side(0.35)
-	for k: float in [0.35, 0.25, 0.45, 0.15, 0.55]:
-		var q := _far_side(k)
-		if bool(world.call(&"is_land", q.x, q.z)) and q.y > float(world.call(&"water_level")) + 1.0:
-			fp = q
-			break
+	# флаг: на ровной суше, дальше всего от места высадки (территория 40 м не мешает мосту)
+	var fv: Variant = _land_far(neighbour, landing, 1.0)
+	if not (fv is Vector3):
+		fv = _land_far(neighbour, landing, 0.4)
+	var fp: Vector3 = fv if fv is Vector3 else _far_side(0.5)
 	enemy_flag_pos = fp
 	if bm:
 		bm.place_flag(1, fp, 0.0)
 	else:
 		Game.set_flag_placed(1, fp)
-	# мост Синих — секция у дальнего берега
 	if bm == null:
 		return
+	# мост Синих — секция у ближайшего к флагу берега
 	var c: Vector2 = neighbour.center
-	var away := (c - Vector2(landing.x, landing.z)).normalized()
-	for da: float in [0.0, 0.3, -0.3, 0.6, -0.6, 0.9, -0.9]:
-		var dir := away.rotated(da)
-		for r in range(int(float(neighbour.radius) * 0.5), int(float(neighbour.radius) * 1.6), 2):
-			var p := c + dir * float(r)
-			if bool(world.call(&"is_land", p.x, p.y)):
-				continue
-			var yaw := atan2(-dir.x, -dir.y)
-			var res := bm.shore_raft(Vector3(p.x, 0, p.y), yaw)
-			if bool(res.ok):
-				var bp := bm.place_blueprint(&"raft", res.xform, 1)
-				if bp:
-					_fill_all(bp)
-					enemy_raft = bp
-					var s2 := bm.next_raft_slot(bp)
-					if not s2.is_empty():
-						var bp2 := bm.place_blueprint(&"raft", s2.xform, 1, {"type": &"raft", "parent": s2.parent, "offset": s2.offset})
-						if bp2:
-							_fill_all(bp2)
-				return
-			break
+	var out := (Vector2(fp.x, fp.z) - c)
+	out = out.normalized() if out.length() > 0.5 else (c - Vector2(landing.x, landing.z)).normalized()
+	for da: float in [0.0, 0.35, -0.35, 0.7, -0.7, 1.1, -1.1, 1.6, -1.6, 2.2, -2.2, PI]:
+		var dir := out.rotated(da)
+		var yaw := atan2(-dir.x, -dir.y)
+		var water_from := -1.0
+		var r := 1.0
+		while r < 45.0:
+			var q := Vector2(fp.x, fp.z) + dir * r
+			if bool(world.call(&"is_land", q.x, q.y)):
+				water_from = -1.0
+			else:
+				if water_from < 0.0:
+					water_from = r
+				if r - water_from > 6.0:
+					break
+				var res := bm.shore_raft(Vector3(q.x, 0, q.y), yaw)
+				if bool(res.ok):
+					var bp := bm.place_blueprint(&"raft", res.xform, 1)
+					if bp:
+						_fill_all(bp)
+						enemy_raft = bp
+						var s2 := bm.next_raft_slot(bp)
+						if not s2.is_empty():
+							var bp2 := bm.place_blueprint(&"raft", s2.xform, 1, {"type": &"raft", "parent": s2.parent, "offset": s2.offset})
+							if bp2:
+								_fill_all(bp2)
+						return
+			r += 0.5
+	# берега не нашлось — деревянная стена Синих у флага (тоже горит)
+	var wv: Variant = _land_near(fp, 5.0, 14.0, 0.4)
+	if wv is Vector3:
+		var w := bm.place_blueprint(&"wall", Transform3D(Basis(Vector3.UP, randf() * TAU), wv), 1)
+		if w:
+			_fill_all(w)
+			enemy_raft = w
 
 # ================================================================== шаги
 
@@ -484,6 +547,17 @@ func _process(delta: float) -> void:
 	_prev_pos = player.global_position
 	_prev_fwd = _fwd()
 
+## Прыжки ловим на физическом шаге: при низком FPS прыжок целиком
+## укладывается между двумя кадрами отрисовки.
+func _physics_process(_delta: float) -> void:
+	if not started or done or step_id() != &"jump" or player == null:
+		return
+	var body := player as CharacterBody3D
+	var air := body != null and not body.is_on_floor() and body.velocity.y > 0.5 and not bool(player.get(&"swimming"))
+	if air and not _was_air:
+		_cnt += 1
+	_was_air = air
+
 func _fwd() -> Vector3:
 	var cam := get_viewport().get_camera_3d()
 	return -cam.global_basis.z if cam else Vector3.FORWARD
@@ -520,11 +594,6 @@ func _check(id: StringName, delta: float) -> bool:
 			ui.set_progress("Пройдено: %d / 10 м" % int(minf(_acc, 10.0)))
 			return _acc >= 10.0
 		&"jump":
-			var body := p as CharacterBody3D
-			var air := body != null and not body.is_on_floor() and body.velocity.y > 1.0 and not bool(p.get(&"swimming"))
-			if air and not _was_air:
-				_cnt += 1
-			_was_air = air
 			ui.set_progress("Прыжков: %d / 2" % mini(_cnt, 2))
 			return _cnt >= 2
 		&"sprint":
@@ -630,7 +699,8 @@ func _check(id: StringName, delta: float) -> bool:
 			var here: Dictionary = world.call(&"island_at", p.global_position.x, p.global_position.z)
 			var on_land := bool(world.call(&"is_land", p.global_position.x, p.global_position.z))
 			ui.set_progress("До берега: %d м" % int(p.global_position.distance_to(landing)))
-			return alive and on_land and not here.is_empty() and here.id == neighbour.get("id", -99)
+			var at_landing := p.global_position.distance_to(landing) < 5.0 and not bool(p.get(&"swimming"))
+			return alive and (at_landing or (on_land and not here.is_empty() and here.id == neighbour.get("id", -99)))
 		&"dummy":
 			var n := 0
 			if dummy and is_instance_valid(dummy):
@@ -646,7 +716,7 @@ func _check(id: StringName, delta: float) -> bool:
 			return _flag
 		&"molotov":
 			if enemy_raft and is_instance_valid(enemy_raft):
-				ui.set_target(enemy_raft.global_position, "Мост Синих")
+				ui.set_target(enemy_raft.global_position, "Мост Синих" if BuildDefs.kind_of(StringName(enemy_raft.get(&"def_id"))) == &"raft" else "Постройка Синих")
 				if bool(enemy_raft.get(&"burning")):
 					_acc += delta
 			ui.set_progress("Мост горит!" if _acc > 0.0 else "Мост цел")
@@ -683,7 +753,7 @@ func _timed() -> void:
 # ================================================================== события
 
 func _on_blueprint_placed(node: Node, def_id: StringName) -> void:
-	if node == null or int(node.get(&"team")) != 0:
+	if _prebuilding or node == null or int(node.get(&"team")) != 0:
 		return
 	match step_id():
 		&"shelter":
@@ -699,7 +769,7 @@ func _on_blueprint_placed(node: Node, def_id: StringName) -> void:
 				_assist.append(node)
 
 func _on_structure_completed(node: Node, def_id: StringName) -> void:
-	if node == null or node.get(&"team") == null or int(node.get(&"team")) != 0:
+	if _prebuilding or node == null or node.get(&"team") == null or int(node.get(&"team")) != 0:
 		return
 	match step_id():
 		&"shelter":
@@ -757,10 +827,14 @@ func _process_assist(delta: float) -> void:
 func _spawn_dummy() -> void:
 	if dummy and is_instance_valid(dummy):
 		return
-	var base := landing if landing != Vector3.ZERO else player.global_position
-	var c: Vector2 = neighbour.get("center", Vector2(base.x, base.z))
-	var dir := (c - Vector2(base.x, base.z)).normalized()
-	var p := _ground(Vector3(base.x + dir.x * 9.0, 0, base.z + dir.y * 9.0))
+	var base := player.global_position
+	var fwd := _fwd()
+	fwd.y = 0.0
+	fwd = fwd.normalized() if fwd.length() > 0.01 else Vector3.FORWARD
+	var pv: Variant = _land_near(base + fwd * 9.0, 0.0, 8.0, 0.3)
+	if not (pv is Vector3):
+		pv = _land_near(base, 5.0, 20.0, 0.3)
+	var p: Vector3 = pv if pv is Vector3 else _ground(base + fwd * 6.0)
 	dummy = TrainingDummy.new()
 	dummy.name = "TutorialDummy"
 	get_parent().add_child(dummy)
@@ -777,10 +851,11 @@ func _spawn_bot() -> void:
 	var fwd := _fwd()
 	fwd.y = 0.0
 	fwd = fwd.normalized() if fwd.length() > 0.01 else Vector3.FORWARD
-	var p := player.global_position + fwd * 14.0
-	if not bool(world.call(&"is_land", p.x, p.z)):
-		p = enemy_flag_pos if enemy_flag_pos != Vector3.ZERO else player.global_position + Vector3(6, 0, 6)
-	bot = bots.spawn_bot(1, &"easy", _ground(p))
+	var pv: Variant = _land_near(player.global_position + fwd * 14.0, 0.0, 8.0, 0.3)
+	if not (pv is Vector3):
+		pv = _land_near(player.global_position, 9.0, 30.0, 0.3)
+	var p: Vector3 = pv if pv is Vector3 else enemy_flag_pos
+	bot = bots.spawn_bot(1, &"easy", p)
 	if bot == null:
 		_flag = true
 		return

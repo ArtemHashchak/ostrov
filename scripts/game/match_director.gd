@@ -31,6 +31,8 @@ func _on_match_started(cfg: Dictionary) -> void:
 	_attack_note_t.clear()
 	if bool(cfg.get("auto_flags", true)):
 		place_all_flags()
+	if bool(cfg.get("tutorial", false)):
+		return
 	var mins := float(cfg.get("minutes", 180))
 	var mode := "Каждый за себя" if String(cfg.get("mode", "ffa")) == "ffa" else "2 × 2"
 	notice.emit("%s · %s" % [mode, ("%d ч" % int(mins / 60.0)) if mins >= 60.0 else ("%d мин" % int(mins)) if mins > 0.0 else "до последнего флага"], UITheme.ACCENT)
