@@ -140,7 +140,7 @@ func _detect_islands() -> Array[Dictionary]:
 	return [{"id": 0, "kind": "home", "team": 0, "center": Vector2.ZERO, "radius": r}]
 
 # ---------------- заселение ----------------
-const MAX_SHARKS := 110
+const MAX_SHARKS := 160
 const REEF_KINDS := [&"atoll", &"shared", &"spring", &"wreck"]
 
 func populate() -> void:
@@ -155,6 +155,16 @@ func populate() -> void:
 	var isl := islands()
 	var seed_i := 100
 	_init_fish_stock(isl)
+	# проливы: глубокая вода между островами — больше и крупнее акулы
+	for st in straits():
+		var mid: Vector2 = st["mid"]
+		var gap: float = st["gap"]
+		var cnt := maxi(1, int(round((0.9 + gap / 90.0) * density)))
+		for k in cnt:
+			if sharks.size() >= MAX_SHARKS:
+				break
+			seed_i += 1
+			spawn_shark(&"tiger" if _rng.randf() < 0.62 else &"white", mid, maxf(gap * 0.3, 14.0), seed_i)
 	for d in isl:
 		var c: Vector2 = d["center"]
 		var r: float = d["radius"]
@@ -162,7 +172,7 @@ func populate() -> void:
 		var reefy := REEF_KINDS.has(kind)
 		var circ := TAU * (r + 30.0)
 		# над рифами и отмелями акул меньше и они мелкие; у больших островов — крупнее
-		var per := 120.0 if reefy else 85.0
+		var per := 150.0 if reefy else 105.0
 		var n := maxi(1 if reefy else 2, int(round(circ / per * density)))
 		for i in n:
 			if sharks.size() >= MAX_SHARKS:
@@ -183,16 +193,6 @@ func populate() -> void:
 				continue
 			_spawn_school(pos, k + (int(d.get("id", 0)) * 3))
 	_build_reefs_and_life()
-	# проливы: глубокая вода между островами — больше и крупнее акулы
-	for st in straits():
-		var mid: Vector2 = st["mid"]
-		var gap: float = st["gap"]
-		var cnt := maxi(1, int(round((1.6 + gap / 60.0) * density)))
-		for k in cnt:
-			if sharks.size() >= MAX_SHARKS:
-				break
-			seed_i += 1
-			spawn_shark(&"tiger" if _rng.randf() < 0.62 else &"white", mid, maxf(gap * 0.3, 14.0), seed_i)
 
 func _build_reefs_and_life() -> void:
 	if reefs_enabled:

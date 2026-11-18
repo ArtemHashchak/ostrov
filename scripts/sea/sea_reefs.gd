@@ -5,10 +5,10 @@ extends Node3D
 ## с двумя уровнями детализации (visibility range): вблизи подробные, дальше
 ## упрощённые, ещё дальше — ничего. API: zones() — пятна рифа для ботов/рыбалки.
 
-const CELL := 32.0
-const HI_END := 45.0
-const LO_END := 130.0
-const GRASS_END := 50.0
+const CELL := 64.0
+const HI_END := 70.0
+const LO_END := 160.0
+const GRASS_END := 60.0
 
 ## Насколько густой риф у острова по типу.
 const KIND_DENSITY := {
@@ -92,21 +92,27 @@ func _island(I: Dictionary) -> void:
 		var reef := _noise.get_noise_2d(x, z) * 0.5 + 0.5
 		var g := _gnoise.get_noise_2d(x, z) * 0.5 + 0.5
 		var t: StringName = &""
-		if reef > 0.56:
+		if reef > 0.52:
 			t = _pick_type(depth)
 			if t != &"":
-				# в пятне рифа кораллы гуще — пара соседей
-				for k in (2 if reef > 0.66 else 1):
-					var ox := x + _rng.randf_range(-1.6, 1.6)
-					var oz := z + _rng.randf_range(-1.6, 1.6)
+				# в пятне рифа кораллы гуще — куст соседей
+				for k in (5 if reef > 0.66 else 3):
+					var ox := x + _rng.randf_range(-2.4, 2.4)
+					var oz := z + _rng.randf_range(-2.4, 2.4)
 					var fy2: float = sea.call(&"floor_at", ox, oz)
 					var t2 := _pick_type(wy - fy2)
 					if t2 != &"":
 						_add(t2, Vector3(ox, fy2, oz))
 				zc += Vector2(x, z)
 				placed += 1
-		elif g > 0.6 and depth < 4.5 and depth > 0.5:
+		elif g > 0.58 and depth < 4.5 and depth > 0.5:
 			t = &"grass"
+			for k in 3:
+				var gx := x + _rng.randf_range(-1.5, 1.5)
+				var gz := z + _rng.randf_range(-1.5, 1.5)
+				var gy: float = sea.call(&"floor_at", gx, gz)
+				if wy - gy > 0.5:
+					_add(&"grass", Vector3(gx, gy, gz))
 		elif _rng.randf() < 0.04:
 			t = &"rock"
 		if t != &"":
@@ -175,7 +181,7 @@ func _emit() -> void:
 		var mat := SeaMeshes.coral_material(float(d["sway"]), wy, 0.9 if t == &"rock" else 0.78)
 		var end_hi := GRASS_END if t == &"grass" else (LO_END if not bool(d["lo"]) else HI_END)
 		if t == &"fan" or t == &"sponge":
-			end_hi = 70.0
+			end_hi = 100.0
 		_mm(t, 0, xf, col, mat, 0.0, end_hi, 1)
 		if bool(d["lo"]):
 			# дальний уровень: только крупные (каждый второй)

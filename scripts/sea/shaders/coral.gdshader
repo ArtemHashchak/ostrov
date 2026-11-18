@@ -43,6 +43,9 @@ void vertex() {
 }
 
 void fragment() {
+	if (dot(NORMAL, VIEW) < 0.0) {
+		NORMAL = -NORMAL;
+	}
 	vec3 col = COLOR.rgb * tint;
 	float depth = water_level - wpos.y;
 	float under = step(0.0, depth);

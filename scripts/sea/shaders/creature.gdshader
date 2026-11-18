@@ -47,6 +47,9 @@ void vertex() {
 }
 
 void fragment() {
+	if (dot(NORMAL, VIEW) < 0.0) {
+		NORMAL = -NORMAL;
+	}
 	float depth = water_level - wpos.y;
 	float under = step(0.0, depth);
 	float k = caustic_strength * clamp(1.0 - depth / 10.0, 0.0, 1.0) * under;

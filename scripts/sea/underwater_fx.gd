@@ -83,16 +83,13 @@ func _apply(under: bool) -> void:
 		_plankton.gravity = Vector3(0, 0.02, 0)
 		_plankton.initial_velocity_min = 0.0
 		_plankton.initial_velocity_max = 0.08
-		_plankton.scale_amount_min = 0.01
-		_plankton.scale_amount_max = 0.025
+		_plankton.scale_amount_min = 0.5
+		_plankton.scale_amount_max = 1.0
 		_plankton.local_coords = false
+		# BILLBOARD_PARTICLES учитывает масштаб частиц (BILLBOARD_ENABLED его терял — квадраты по 1 м)
 		var q := QuadMesh.new()
-		q.size = Vector2(1, 1)
-		var pm := StandardMaterial3D.new()
-		pm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		pm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-		pm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		pm.albedo_color = Color(0.85, 0.95, 0.9, 0.55)
+		q.size = Vector2(0.03, 0.03)
+		var pm := Sea.soft_material(Color(0.85, 0.95, 0.9, 0.5))
 		q.material = pm
 		_plankton.mesh = q
 		(sea as Node).add_child(_plankton)
