@@ -1,10 +1,11 @@
-// VAT — анимация из текстуры вершин (tools/bake_vat.gd). Скелета нет, процессор не участвует:
-// одна заросль/стая/толпа = один MultiMesh = один вызов отрисовки.
-// В vertex():  VERTEX += vat_offset(float(VERTEX_ID), TIME * speed + INSTANCE_CUSTOM.x);
-// (VERTEX_ID — порядок вершин меша из bake_vat; UV2.x дублирует его на случай сжатия меша)
+// VAT — анимация из текстуры вершин (единая реализация, запекает VatBaker / tools/bake_vat.gd).
+// Скелета нет, процессор не участвует: одна стая/толпа = один MultiMesh = один вызов отрисовки.
+// Текстура: строка = кадр, столбец = номер вершины, RGB — смещение от кадра 0 (меш — кадр 0).
+// В vertex():  VERTEX += vat_offset(float(VERTEX_ID), TIME * скорость + фаза);
+// Параметры ставит VatBaker.apply(меш_или_данные, материал).
 uniform sampler2D vat_tex : filter_nearest, repeat_disable;
 uniform float vat_frames = 24.0;
-uniform float vat_length = 1.0;
+uniform float vat_length = 1.0;   // длительность цикла, с
 
 vec3 vat_offset(float vid, float t) {
 	float f = fract(t / vat_length) * vat_frames;

@@ -1,20 +1,24 @@
 class_name VatBaker
 extends RefCounted
-## Запекание скелетной анимации в текстуру (Vertex Animation Texture, VAT).
-## Один раз (инструментом или при импорте): кости проигрываются на процессоре, позиции
-## вершин каждого кадра пишутся в строку текстуры (RGBH, ширина = число вершин).
-## В игре шейдер sea_species (anim_mode 5) читает строку по времени и VERTEX_ID —
+## Запекание скелетной анимации в текстуру (Vertex Animation Texture, VAT) — единственная
+## реализация в проекте (море, полигон, паки моделей).
+## Один раз (tools/bake_vat.gd или при подготовке пака): кости проигрываются на процессоре,
+## для каждого кадра пишется СМЕЩЕНИЕ вершины от кадра 0 (RGBH, ширина = число вершин,
+## строка = кадр). Меш — поза кадра 0 в пространстве модели (корень сцены), нормали
+## повёрнуты так же. В игре шейдер подключает res://shaders/vat.gdshaderinc:
+##     VERTEX += vat_offset(float(VERTEX_ID), TIME * скорость + фаза);
 ## скелета, AnimationPlayer и пересчёта костей нет, особей можно рисовать сотнями
-## в одном MultiMesh. Нормали — из позы покоя (для плавающих тел незаметно).
+## в одном MultiMesh; кадры интерполируются.
+## Берётся самый большой скинованный меш модели (тело); глаза/зубы — у скелетной модели вблизи.
 ##
-##   var data := VatBaker.bake(scene_root, "Swim", 32)   # -> {mesh, texture, frames, fps}
-##   VatBaker.save(data, "res://assets/user_pack/animals/shark_vat.res")
-##   VatBaker.apply(load(...), shader_material)
+##   var data := VatBaker.bake(scene_root, "swim", 32)
+##   VatBaker.save(data, "res://.../model_vat.res")      # меш + метаданные vat_*
+##   VatBaker.apply(load("res://.../model_vat.res"), shader_material)
 
 const MAX_VERTS := 16384
 
-## root — инстанс сцены модели (в дереве не обязателен). anim — имя анимации ("" — первая).
-static func bake(root: Node, anim: String = "", frames: int = 32, fps: float = 0.0) -> Dictionary:
+## root — инстанс сцены модели (лучше в дереве). anim — имя анимации ("" — swim или первая).
+static func bake(root: Node, anim: String = "", frames: int = 32, _fps: float = 0.0) -> Dictionary:
 	var mi := _find_skinned(root)
 	if mi == null:
 		push_warning("VatBaker: нет MeshInstance3D со скелетом")
@@ -27,19 +31,23 @@ static func bake(root: Node, anim: String = "", frames: int = 32, fps: float = 0
 	var names := ap.get_animation_list()
 	if names.is_empty():
 		return {}
-	if anim == "" or not ap.has_animation(anim):
-		anim = names[0]
+	var picked := ""
+	for n in names:
+		var sn := String(n)
+		if anim != "" and (sn == anim or sn.ends_with("/" + anim)):
+			picked = sn
+			break
+	if picked == "":
+		picked = String(names[0])
 		for n in names:
-			if String(n).to_lower().contains("swim"):
-				anim = n
+			if String(n).to_lower().ends_with("swim"):
+				picked = String(n)
 				break
-	var a := ap.get_animation(anim)
+	var a := ap.get_animation(picked)
 	var length := maxf(a.length, 0.01)
-	if fps <= 0.0:
-		fps = frames / length
-	# объединённая поверхность (VERTEX_ID сквозной)
 	var merged := _merge(mi.mesh)
 	var verts: PackedVector3Array = merged.v
+	var norms: PackedVector3Array = merged.n
 	var bones: PackedInt32Array = merged.b
 	var weights: PackedFloat32Array = merged.w
 	var nv := verts.size()
@@ -56,19 +64,26 @@ static func bake(root: Node, anim: String = "", frames: int = 32, fps: float = 0
 		if bi < 0:
 			bi = skel.find_bone(skin.get_bind_name(b))
 		bind_bone.append(bi)
-	var mi_to_skel := (skel.global_transform.affine_inverse() * mi.global_transform) if mi.is_inside_tree() else Transform3D.IDENTITY
+	# скелетное пространство -> пространство модели (корня)
+	var to_model := Transform3D.IDENTITY
+	if skel.is_inside_tree() and root is Node3D and (root as Node3D).is_inside_tree():
+		to_model = (root as Node3D).global_transform.affine_inverse() * skel.global_transform
 	var img := Image.create(nv, frames, false, Image.FORMAT_RGBH)
-	ap.play(anim)
+	var rest := PackedVector3Array()
+	var rest_n := PackedVector3Array()
+	var bounds := AABB()
+	ap.play(picked)
 	for f in frames:
 		ap.seek(length * f / frames, true)
 		var mats: Array[Transform3D] = []
 		for b in skin.get_bind_count():
 			var bi := bind_bone[b]
 			var g := skel.get_bone_global_pose(bi) if bi >= 0 else Transform3D.IDENTITY
-			mats.append(g * skin.get_bind_pose(b))
+			mats.append(to_model * g * skin.get_bind_pose(b))
 		for i in nv:
 			var v := verts[i]
 			var acc := Vector3.ZERO
+			var accn := Vector3.ZERO
 			var wsum := 0.0
 			for j in per:
 				var w := weights[i * per + j]
@@ -77,43 +92,70 @@ static func bake(root: Node, anim: String = "", frames: int = 32, fps: float = 0
 				var bi := bones[i * per + j]
 				if bi < mats.size():
 					acc += (mats[bi] * v) * w
+					if f == 0:
+						accn += (mats[bi].basis * norms[i]) * w
 					wsum += w
-			var p := acc / wsum if wsum > 0.0 else v
-			p = mi_to_skel * p
-			img.set_pixel(i, f, Color(p.x, p.y, p.z))
+			var p := acc / wsum if wsum > 0.0 else to_model * v
+			if f == 0:
+				rest.append(p)
+				rest_n.append(accn.normalized() if wsum > 0.0 else (to_model.basis * norms[i]).normalized())
+				bounds = AABB(p, Vector3.ZERO) if i == 0 else bounds.expand(p)
+			else:
+				bounds = bounds.expand(p)
+			var off := p - rest[i]
+			img.set_pixel(i, f, Color(off.x, off.y, off.z))
 	ap.stop()
-	return {"mesh": merged.mesh, "texture": ImageTexture.create_from_image(img), "frames": frames, "fps": fps,
-		"anim": String(anim), "verts": nv}
+	# меш кадра 0 в пространстве модели
+	var arr: Array = (merged.mesh as ArrayMesh).surface_get_arrays(0)
+	arr[Mesh.ARRAY_VERTEX] = rest
+	arr[Mesh.ARRAY_NORMAL] = rest_n
+	arr[Mesh.ARRAY_TANGENT] = null
+	var out := ArrayMesh.new()
+	out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	var mat := (merged.mesh as ArrayMesh).surface_get_material(0)
+	if mat:
+		out.surface_set_material(0, mat)
+	out.custom_aabb = bounds.grow(0.05)
+	return {"mesh": out, "texture": ImageTexture.create_from_image(img), "frames": frames,
+		"length": length, "anim": picked, "verts": nv, "aabb": bounds}
 
-## Сохранить результат как ресурс (меш + текстура + параметры в метаданных меша).
+## Сохранить как один ресурс: меш кадра 0 + метаданные vat_texture/vat_frames/vat_length/vat_aabb.
 static func save(data: Dictionary, path: String) -> Error:
 	var m: ArrayMesh = data.mesh
 	m.set_meta(&"vat_texture", data.texture)
 	m.set_meta(&"vat_frames", data.frames)
-	m.set_meta(&"vat_fps", data.fps)
+	m.set_meta(&"vat_length", data.length)
+	m.set_meta(&"vat_aabb", data.aabb)
+	m.set_meta(&"vat_anim", data.anim)
 	return ResourceSaver.save(m, path)
 
-## Настроить материал sea_species на VAT (data — словарь bake() или сохранённый меш).
+## Настроить материал с vat.gdshaderinc (data — словарь bake() или сохранённый меш).
 static func apply(data: Variant, mat: ShaderMaterial) -> void:
 	var tex: Texture2D
 	var frames := 1.0
-	var fps := 24.0
+	var length := 1.0
 	if data is Dictionary:
 		tex = data.texture
 		frames = float(data.frames)
-		fps = float(data.fps)
+		length = float(data.length)
 	elif data is Mesh:
 		tex = (data as Mesh).get_meta(&"vat_texture", null)
 		frames = float((data as Mesh).get_meta(&"vat_frames", 1))
-		fps = float((data as Mesh).get_meta(&"vat_fps", 24.0))
+		length = float((data as Mesh).get_meta(&"vat_length", 1.0))
 	if tex == null:
 		return
-	mat.set_shader_parameter(&"anim_mode", 5)
-	mat.set_shader_parameter(&"vat_pos", tex)
+	mat.set_shader_parameter(&"vat_tex", tex)
 	mat.set_shader_parameter(&"vat_frames", frames)
-	mat.set_shader_parameter(&"vat_fps", fps)
-	mat.set_shader_parameter(&"vat_min", Vector3.ZERO)
-	mat.set_shader_parameter(&"vat_scale", Vector3.ONE)
+	mat.set_shader_parameter(&"vat_length", length)
+
+## Длина модели по самой длинной оси (с учётом анимации).
+static func model_length(data: Variant) -> float:
+	var a: AABB
+	if data is Dictionary:
+		a = data.aabb
+	elif data is Mesh:
+		a = (data as Mesh).get_meta(&"vat_aabb", (data as Mesh).get_aabb())
+	return maxf(a.size.x, maxf(a.size.y, a.size.z))
 
 static func _merge(mesh: Mesh) -> Dictionary:
 	var v := PackedVector3Array()
@@ -161,17 +203,22 @@ static func _merge(mesh: Mesh) -> Dictionary:
 	am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, out)
 	if mesh.get_surface_count() > 0 and mesh.surface_get_material(0):
 		am.surface_set_material(0, mesh.surface_get_material(0))
-	return {"mesh": am, "v": v, "b": b, "w": w}
+	return {"mesh": am, "v": v, "n": n, "b": b, "w": w}
 
-static func _find_skinned(n: Node) -> MeshInstance3D:
-	if n is MeshInstance3D and (n as MeshInstance3D).mesh and not (n as MeshInstance3D).skeleton.is_empty() \
-			and (n as MeshInstance3D).get_node_or_null((n as MeshInstance3D).skeleton) is Skeleton3D:
-		return n
-	for c in n.get_children():
-		var r := _find_skinned(c)
-		if r:
-			return r
-	return null
+static func _find_skinned(root: Node) -> MeshInstance3D:
+	var best: MeshInstance3D = null
+	var best_n := -1
+	for n in [root] + root.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		if mi == null or mi.mesh == null or mi.skeleton.is_empty() or not (mi.get_node_or_null(mi.skeleton) is Skeleton3D):
+			continue
+		var cnt := 0
+		for si in mi.mesh.get_surface_count():
+			cnt += mi.mesh.surface_get_array_len(si)
+		if cnt > best_n:
+			best_n = cnt
+			best = mi
+	return best
 
 static func _find(n: Node, cls: String) -> Node:
 	if n.is_class(cls):

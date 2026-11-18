@@ -88,11 +88,13 @@ func _apply_quality() -> void:
 
 ## Атлас FFT-кадров -> Texture2DArray (слои с повтором и mip-картами) + высоты для CPU.
 func _load_fft() -> void:
-	var meta_path := "res://assets/ocean/fft_meta.json"
+	var meta_path := "res://assets/ocean/fft_meta.gd"
 	var atlas_path := "res://assets/ocean/fft_atlas.png"
-	if not FileAccess.file_exists(meta_path) or not ResourceLoader.exists(atlas_path):
+	if not ResourceLoader.exists(meta_path) or not ResourceLoader.exists(atlas_path):
 		return
-	_fft_meta = JSON.parse_string(FileAccess.get_file_as_string(meta_path))
+	_fft_meta = (load(meta_path) as GDScript).get_script_constant_map().get("META", {})
+	if _fft_meta.is_empty():
+		return
 	var tex := load(atlas_path) as Texture2D
 	var atlas := tex.get_image() if tex else null
 	if atlas == null:

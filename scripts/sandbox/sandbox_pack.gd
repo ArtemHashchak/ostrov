@@ -119,18 +119,18 @@ static func build_sea(zones: SandboxZones, root: Node3D) -> void:
 		zones._point(&"pack_shark", "Пак: акула в море", Vector3(deep.x, -2.2, deep.y) - Vector3(dir2.x, 0, dir2.y) * 14.0, Vector3(deep.x, -2.6, deep.y))
 
 
-## Стая акул из VAT (tools/bake_vat.gd): статичный меш + текстура смещений вершин.
+## Стая акул из VAT (VatBaker / tools/bake_vat.gd): меш кадра 0 + текстура смещений вершин
+## (единая реализация с модулем моря: shaders/vat.gdshaderinc).
 static func make_vat_school(n: int, center: Vector3) -> Node3D:
-	var base := DIR + "animals/animal_shark_great_white_vat"
-	if not ResourceLoader.exists(base + "_mesh.res") or not ResourceLoader.exists(base + "_tex.res"):
+	var path := DIR + "animals/shark_vat.res"
+	if not ResourceLoader.exists(path):
 		return null
-	var info = JSON.parse_string(FileAccess.get_file_as_string(base + ".json")) if FileAccess.file_exists(base + ".json") else {}
-	var mesh := load(base + "_mesh.res") as Mesh
+	var mesh := load(path) as Mesh
+	if mesh == null or not mesh.has_meta(&"vat_texture"):
+		return null
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://scripts/sandbox/shaders/shark_vat.gdshader")
-	mat.set_shader_parameter(&"vat_tex", load(base + "_tex.res"))
-	mat.set_shader_parameter(&"vat_frames", float(info.get("frames", 32)) if info is Dictionary else 32.0)
-	mat.set_shader_parameter(&"vat_length", float(info.get("length", 1.0)) if info is Dictionary else 1.0)
+	VatBaker.apply(mesh, mat)
 	var src := mesh.surface_get_material(0) as StandardMaterial3D
 	if src:
 		mat.set_shader_parameter(&"albedo_tex", src.albedo_texture)

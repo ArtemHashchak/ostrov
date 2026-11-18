@@ -30,8 +30,94 @@ const SPECIES := {
 
 static var _mesh_cache: Dictionary = {}
 
+## Модель из пака пользователя (большая белая, 7k треуг., 29 костей, swim/bite/hurt/die…).
+## false — процедурная модель ниже (запасной вариант; так же, если файлов пака нет).
+static var use_pack := true
+const PACK_SCENE := "res://assets/user_pack/animals/animal_shark_great_white.glb"
+const PACK_VAT := "res://assets/user_pack/animals/shark_vat.res"
+const PACK_VAT_SHADER := "res://scripts/sea/shaders/shark_vat_one.gdshader"
+## Оттенок кожи пака по виду (модель одна, виды отличаются размером и цветом).
+const PACK_TINT := {&"reef": Color(0.92, 0.95, 1.0), &"tiger": Color(1.0, 0.94, 0.8), &"white": Color(1, 1, 1)}
+static var _pack_ps: PackedScene = null
+static var _pack_vat: Mesh = null
+static var _pack_len := 0.0
+static var _pack_vat_mats: Dictionary = {}
+
+static func clear_cache() -> void:
+	_pack_ps = null
+	_pack_vat = null
+	_pack_vat_mats.clear()
+	_mesh_cache.clear()
+
+static func pack_available() -> bool:
+	return use_pack and ResourceLoader.exists(PACK_SCENE)
+
+## Модель из пака: узел "Skel" (скелет, вблизи) + "Far" (VAT-меш без скелета, вдали).
+## Нос в -Z, длина — по виду. Метаданные: pack=true, anim — AnimationPlayer.
+static func build_pack(species: StringName) -> Node3D:
+	var cfg: Dictionary = SPECIES[species]
+	var L: float = cfg["length"]
+	if _pack_ps == null:
+		_pack_ps = load(PACK_SCENE) as PackedScene
+		if ResourceLoader.exists(PACK_VAT):
+			_pack_vat = load(PACK_VAT) as Mesh
+		_pack_len = VatBaker.model_length(_pack_vat) if _pack_vat else 4.46
+	var root := Node3D.new()
+	root.name = "SharkModel"
+	root.set_meta(&"pack", true)
+	var k := L / maxf(_pack_len, 0.1)
+	var skel := _pack_ps.instantiate() as Node3D
+	skel.name = "Skel"
+	skel.scale = Vector3.ONE * k
+	root.add_child(skel)
+	var aps := skel.find_children("*", "AnimationPlayer", true, false)
+	if not aps.is_empty():
+		var ap := aps[0] as AnimationPlayer
+		root.set_meta(&"anim", ap)
+		for an in ap.get_animation_list():
+			var sn := String(an)
+			if sn.ends_with("swim") or sn.ends_with("swim_fast") or sn.ends_with("idle"):
+				ap.get_animation(an).loop_mode = Animation.LOOP_LINEAR
+	var tint: Color = PACK_TINT.get(species, Color.WHITE)
+	if tint != Color.WHITE:
+		for mi in skel.find_children("*", "MeshInstance3D", true, false):
+			var m := (mi as MeshInstance3D)
+			for si in m.mesh.get_surface_count():
+				var src := m.mesh.surface_get_material(si) as StandardMaterial3D
+				if src:
+					var c := src.duplicate() as StandardMaterial3D
+					c.albedo_color = src.albedo_color * tint
+					m.set_surface_override_material(si, c)
+	if _pack_vat:
+		var far := MeshInstance3D.new()
+		far.name = "Far"
+		far.mesh = _pack_vat
+		far.scale = Vector3.ONE * k
+		var fm := _vat_material(species, tint).duplicate() as ShaderMaterial
+		fm.set_shader_parameter(&"phase", randf())
+		far.material_override = fm
+		far.visible = false
+		far.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(far)
+	return root
+
+static func _vat_material(species: StringName, tint: Color) -> ShaderMaterial:
+	if _pack_vat_mats.has(species):
+		return _pack_vat_mats[species]
+	var mat := ShaderMaterial.new()
+	mat.shader = load(PACK_VAT_SHADER)
+	VatBaker.apply(_pack_vat, mat)
+	var src := _pack_vat.surface_get_material(0) as StandardMaterial3D
+	if src:
+		mat.set_shader_parameter(&"albedo_tex", src.albedo_texture)
+	mat.set_shader_parameter(&"tint", Vector3(tint.r, tint.g, tint.b))
+	_pack_vat_mats[species] = mat
+	return mat
+
 ## Готовая модель: Node3D с телом (MeshInstance3D "Body", свой ShaderMaterial) и глазами.
 static func build(species: StringName, lod: int = 0) -> Node3D:
+	if pack_available():
+		return build_pack(species)
 	var cfg: Dictionary = SPECIES[species]
 	var L: float = cfg["length"]
 	var root := Node3D.new()

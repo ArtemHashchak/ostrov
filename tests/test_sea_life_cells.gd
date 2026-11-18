@@ -220,13 +220,15 @@ func _vat_check() -> void:
 	var t0 := img.get_pixel(tail_i, 0)
 	var t4 := img.get_pixel(tail_i, 4)
 	var h4 := img.get_pixel(head_i, 4)
-	print("[test] VAT хвост кадр0 (%.2f,%.2f) кадр4 (%.2f,%.2f), голова кадр4 (%.2f,%.2f)" % [t0.r, t0.b, t4.r, t4.b, h4.r, h4.b])
-	check(absf(t0.b - 0.5) < 0.02 and absf(t4.r - t0.r) > 0.2, "хвост в середине цикла повёрнут")
-	check(absf(h4.r + 0.05) < 0.02 and absf(h4.b + 0.5) < 0.02, "голова (вес 0 у хвоста) на месте")
+	print("[test] VAT смещение хвоста кадр0 (%.2f,%.2f) кадр4 (%.2f,%.2f), головы кадр4 (%.2f,%.2f)" % [t0.r, t0.b, t4.r, t4.b, h4.r, h4.b])
+	var rest: PackedVector3Array = (data.mesh as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	check(rest[tail_i].distance_to(Vector3(0.05, 0, 0.5)) < 0.02, "меш VAT — поза кадра 0 в пространстве модели")
+	check(absf(t0.r) + absf(t0.b) < 0.01 and absf(t4.r) > 0.2, "хвост в середине цикла смещён (смещения от кадра 0)")
+	check(absf(h4.r) + absf(h4.b) < 0.02, "голова (вес 0 у хвоста) на месте")
 	check(int(data.verts) == v.size(), "вершин: %d" % int(data.verts))
 	# материал вида на VAT собирается без ошибок
 	var m := ShaderMaterial.new()
 	m.shader = SeaLifeCells.SHADER
 	VatBaker.apply(data, m)
-	check(int(m.get_shader_parameter(&"anim_mode")) == 5, "материал переведён на VAT")
+	check(m.get_shader_parameter(&"vat_tex") != null and float(m.get_shader_parameter(&"vat_frames")) == 8.0, "материал получил VAT")
 	root.queue_free()

@@ -237,15 +237,21 @@ func _resources(d: Dictionary) -> Dictionary:
 		m.set_shader_parameter(&"albedo_tex", tex)
 	var vat_path := String(d.get("vat", ""))
 	if String(d.anim) == "vat" and vat_path != "" and ResourceLoader.exists(vat_path):
-		# VAT: меш из запекания (порядок вершин совпадает с текстурой), масштаб — в шейдере
+		# VAT: меш кадра 0 из запекания (порядок вершин = столбцы текстуры), длина — в шейдере
 		var vm := load(vat_path) as Mesh
-		if vm:
+		if vm and vm.has_meta(&"vat_texture"):
 			mesh = vm
 			VatBaker.apply(vm, m)
-			var a := vm.get_aabb()
-			var long := maxf(a.size.x, maxf(a.size.y, a.size.z))
+			m.set_shader_parameter(&"anim_mode", 5)
+			var long := VatBaker.model_length(vm)
 			if long > 0.0001:
-				m.set_shader_parameter(&"vat_scale", Vector3.ONE * (L / long))
+				m.set_shader_parameter(&"model_scale", L / long)
+			m.set_shader_parameter(&"vat_speed", clampf(float(d.speed) / maxf(L * 0.3, 0.1), 0.5, 2.0))
+			var src := vm.surface_get_material(0) as BaseMaterial3D
+			if src and src.albedo_texture:
+				m.set_shader_parameter(&"use_tex", true)
+				m.set_shader_parameter(&"use_vertex_color", false)
+				m.set_shader_parameter(&"albedo_tex", src.albedo_texture)
 	SeaPush.register(m)
 	var r := {"mesh": mesh, "mat": m}
 	_mesh_cache[id] = r

@@ -18,6 +18,7 @@ const BLOOD_TIME := 9.0            # сколько живёт след кров
 const DECK_LOW := 1.0              # настил ниже — акулы достают людей на нём
 const LOD_NEAR := 140.0
 const LOD_FAR := 280.0
+const PACK_SKEL_DIST := 45.0        # дальше — акула из пака без скелета (VAT)
 const SPLASH_SOUND := "res://assets/sounds/sfx-kit/props-splash.wav"
 
 @export var density: float = 1.0
@@ -237,6 +238,7 @@ func reef_zones() -> Array[Dictionary]:
 
 func _exit_tree() -> void:
 	SeaMeshes.clear_cache()
+	SharkModel.clear_cache()
 	SeaPush.clear()
 	SeaCreature.clear_cache()
 
@@ -808,6 +810,8 @@ func _perf_physics(delta: float) -> void:
 		var near := d < LOD_NEAR or s.state == Shark.State.ATTACK or s.state == Shark.State.STALK
 		# над водой глубокая акула не видна сквозь толщу — не рисуем (плавник у поверхности виден)
 		s.visible = d < LOD_FAR and not (cam_above and d > 22.0 and s.global_position.y < wy_now - 1.6)
+		# модель пака: скелет вблизи, VAT-меш дальше PACK_SKEL_DIST
+		s.set_far(d > PACK_SKEL_DIST and s.state != Shark.State.ATTACK)
 		var id := s.get_instance_id()
 		if near:
 			_lod_acc[id] = 0.0

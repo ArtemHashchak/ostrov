@@ -26,7 +26,11 @@ var investigate_at: Vector3 = Vector3.ZERO
 var length: float = 2.0
 
 var _model: Node3D
-var _mat: ShaderMaterial
+var _mat: ShaderMaterial          # процедурная модель (шейдер плавания)
+var _ap: AnimationPlayer = null   # модель из пака (скелет)
+var _anims: Dictionary = {}       # "swim" -> полное имя анимации
+var _oneshot_t := 0.0             # идёт разовая анимация (укус/боль)
+var _far := false                 # вдали — VAT-меш без скелета
 var _phase: float = 0.0
 var _turn_rate: float = 0.0
 var _state_t: float = 0.0
@@ -69,7 +73,15 @@ func _ready() -> void:
 	add_to_group(&"animals")
 	_model = SharkModel.build(species)
 	add_child(_model)
-	_mat = (_model.get_node(^"Body") as MeshInstance3D).material_override as ShaderMaterial
+	if _model.has_meta(&"pack"):
+		_ap = _model.get_meta(&"anim", null) as AnimationPlayer
+		if _ap:
+			for an in _ap.get_animation_list():
+				var short := String(an).get_slice("/", String(an).get_slice_count("/") - 1)
+				_anims[short] = an
+			_play(&"swim")
+	else:
+		_mat = (_model.get_node(^"Body") as MeshInstance3D).material_override as ShaderMaterial
 	yaw = rotation.y
 	# хитбокс для копья/стрел/пуль: капсула вдоль тела (нос в -Z)
 	_hitbox = StaticBody3D.new()
@@ -87,6 +99,30 @@ func _ready() -> void:
 
 func is_dead() -> bool:
 	return state == State.DEAD
+
+## Модель из пака: вблизи скелет с анимациями, вдали — VAT-меш (скелет не считается).
+func set_far(far: bool) -> void:
+	if far == _far or _ap == null or state == State.DEAD:
+		return
+	_far = far
+	var sk := _model.get_node_or_null(^"Skel") as Node3D
+	var fm := _model.get_node_or_null(^"Far") as Node3D
+	if fm == null:
+		return
+	if sk:
+		sk.visible = not far
+	fm.visible = far
+	_ap.active = not far
+
+func uses_pack_model() -> bool:
+	return _ap != null
+
+func _play(short: StringName, once: bool = false, blend: float = 0.25) -> void:
+	if _ap == null or not _anims.has(String(short)):
+		return
+	_ap.play(_anims[String(short)], blend)
+	if once:
+		_oneshot_t = _ap.current_animation_length / maxf(_ap.speed_scale, 0.1)
 
 func display_name() -> String:
 	return cfg.get("name", "Акула")
@@ -112,6 +148,8 @@ func apply_damage(amount: float, source: Node, kind: StringName = &"melee") -> v
 	if health <= 0.0:
 		_die(source)
 		return
+	if _oneshot_t <= 0.0:
+		_play(&"hurt", true, 0.1)
 	if source is Node3D and source.has_method(&"is_in_water"):
 		_last_aggressor = source
 	if health < max_health * 0.25:
@@ -127,6 +165,17 @@ func _die(killer: Node) -> void:
 	if _hitbox:
 		_hitbox.collision_layer = 0
 	_drop_loot()
+	if _ap:
+		_far = false
+		var sk := _model.get_node_or_null(^"Skel") as Node3D
+		var fm := _model.get_node_or_null(^"Far") as Node3D
+		if sk:
+			sk.visible = true
+		if fm:
+			fm.visible = false
+		_ap.active = true
+		_ap.speed_scale = 1.0
+		_play(&"die", true, 0.15)
 	if sea and sea.has_method(&"on_shark_died"):
 		sea.on_shark_died(self, killer)
 
@@ -268,6 +317,7 @@ func tick(delta: float, full: bool) -> void:
 				var dh := Vector2(tp.x - head.x, tp.z - head.z).length()
 				if dh < 0.7 + length * 0.18 and absf(tp.y - head.y) < 1.6 + _leap:
 					if sea.try_bite(self, target):
+						_play(&"bite", true, 0.08)
 						_enter(State.RETREAT, _fz(1.0, 1.7))
 					else:
 						_enter(State.STALK, _fz(0.5, 1.0))
@@ -353,14 +403,28 @@ func _steer(want: Vector3, want_speed: float, delta: float, depth_here: float) -
 func _animate(delta: float) -> void:
 	var freq := 1.6 + speed * 0.55
 	_phase += delta * freq * TAU * 0.5
+	if _ap:
+		_oneshot_t -= delta
+		var rel := speed / maxf(float(cfg["speed"]), 0.1)
+		if _oneshot_t <= 0.0:
+			var want: StringName = &"swim_fast" if rel > 1.6 and _anims.has("swim_fast") else &"swim"
+			var cur := _ap.current_animation
+			if cur != _anims.get(String(want), cur) or not _ap.is_playing():
+				_play(want)
+			_ap.speed_scale = clampf(0.55 + rel * 0.45, 0.5, 2.0)
+		var fm := _model.get_node_or_null(^"Far") as GeometryInstance3D
+		if _far and fm:
+			(fm.material_override as ShaderMaterial).set_shader_parameter(&"speed", clampf(0.55 + rel * 0.45, 0.5, 2.0))
+		return
 	_mat.set_shader_parameter(&"swim_phase", _phase)
 	_mat.set_shader_parameter(&"swim_amp", 0.05 + clampf(speed / float(cfg["burst"]), 0.0, 1.0) * 0.05)
 	_mat.set_shader_parameter(&"turn_bend", clampf(-_turn_rate, -1.0, 1.0))
 
 func _tick_dead(delta: float) -> void:
 	_dead_t += delta
-	# брюхом вверх, медленно тонет
-	rotation.z = lerpf(rotation.z, PI, clampf(delta * 1.2, 0.0, 1.0))
+	# брюхом вверх, медленно тонет (у модели пака это делает анимация die)
+	if _ap == null:
+		rotation.z = lerpf(rotation.z, PI, clampf(delta * 1.2, 0.0, 1.0))
 	var floor_y: float = sea.floor_at(global_position.x, global_position.z)
 	global_position.y = maxf(floor_y + 0.3, global_position.y - delta * 0.25)
 	if _mat:

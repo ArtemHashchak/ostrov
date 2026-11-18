@@ -17,8 +17,9 @@ extends RefCounted
 ##   min_quality   — с какого пресета показывать (0 низкое … 3 ультра)
 ##   vat           — путь к .res с запечённой анимацией (anim = "vat")
 ##   forward       — ось «вперёд» модели: "-z" (по умолчанию, как в Godot) или "+z"/"+x"/"-x"
-## Встроенные виды ниже; свои добавляются в res://assets/sea_species.json
-## (массив таких же словарей) — код менять не нужно. Вид с тем же id заменяет встроенный.
+## Встроенные виды ниже; свои добавляются в res://assets/sea_species.json или в
+## res://assets/<пак>/sea_species*.json (массив таких же словарей) — код менять не нужно.
+## Вид с тем же id заменяет встроенный.
 
 const USER_FILE := "res://assets/sea_species.json"
 
@@ -63,14 +64,30 @@ static func reload() -> void:
 	_by_id.clear()
 	for d in BUILTIN:
 		_add(d.duplicate(true))
-	if FileAccess.file_exists(USER_FILE):
-		var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(USER_FILE))
+	for path in user_files():
+		var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 		if data is Array:
 			for d: Variant in data:
 				if d is Dictionary and (d as Dictionary).has("id"):
 					_add(_normalize(d as Dictionary))
 		else:
-			push_warning("SeaSpecies: %s — ожидался массив видов" % USER_FILE)
+			push_warning("SeaSpecies: %s — ожидался массив видов" % path)
+
+## Файлы видов: assets/sea_species.json и assets/<пак>/sea_species*.json.
+static func user_files() -> PackedStringArray:
+	var out := PackedStringArray()
+	if FileAccess.file_exists(USER_FILE):
+		out.append(USER_FILE)
+	var dir := DirAccess.open("res://assets")
+	if dir:
+		for sub in dir.get_directories():
+			var d2 := DirAccess.open("res://assets/" + sub)
+			if d2 == null:
+				continue
+			for f in d2.get_files():
+				if f.begins_with("sea_species") and f.ends_with(".json"):
+					out.append("res://assets/%s/%s" % [sub, f])
+	return out
 
 static func _add(d: Dictionary) -> void:
 	var id := String(d.id)

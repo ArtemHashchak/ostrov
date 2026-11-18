@@ -8,6 +8,7 @@ render_mode cull_disabled, diffuse_burley, specular_schlick_ggx;
 //  * анимация тела: рыба (хвост), угорь (бегущая волна), скат (крылья), медуза (пульс), VAT;
 //  * пловцы рядом (push_pos из sea_push) — группа расступается.
 #include "res://shaders/sea_push.gdshaderinc"
+#include "res://shaders/vat.gdshaderinc"
 
 uniform int anim_mode = 0;          // 0 рыба, 1 угорь, 2 скат, 3 медуза, 4 статичная, 5 VAT
 uniform float body_len = 0.3;
@@ -23,12 +24,8 @@ uniform vec3 color_b : source_color = vec3(0.5);
 uniform bool use_vertex_color = true;
 uniform bool use_tex = false;
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap;
-// VAT: строка = кадр, столбец = номер вершины, RGB — позиция (в масштабе vat_scale от vat_min)
-uniform sampler2D vat_pos : filter_linear, repeat_enable;
-uniform float vat_frames = 1.0;
-uniform float vat_fps = 24.0;
-uniform vec3 vat_min = vec3(0.0);
-uniform vec3 vat_scale = vec3(1.0);
+uniform float model_scale = 1.0;    // приведение модели к длине вида (VAT)
+uniform float vat_speed = 1.0;      // скорость проигрывания VAT
 
 varying vec3 v_col;
 
@@ -53,9 +50,8 @@ void vertex() {
 	vec3 lv = VERTEX;
 	vec3 ln = NORMAL;
 	if (anim_mode == 5) {
-		float fr = mod(floor(TIME * vat_fps + cu.a * vat_frames), vat_frames);
-		vec2 uv = vec2((float(VERTEX_ID) + 0.5) / float(textureSize(vat_pos, 0).x), (fr + 0.5) / vat_frames);
-		lv = vat_min + textureLod(vat_pos, uv, 0.0).rgb * vat_scale;
+		lv = (VERTEX + vat_offset(float(VERTEX_ID), TIME * vat_speed + cu.a * vat_length)) * model_scale;
+		ln = NORMAL;
 	}
 	lv = axis_fix(lv);
 	ln = axis_fix(ln);

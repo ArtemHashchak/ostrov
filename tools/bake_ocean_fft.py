@@ -6,7 +6,7 @@
 поэтому последний кадр плавно переходит в первый). Результат — атлас кадров
 COLS×ROWS по N×N px (RGBA8):
   R, G — наклон dh/dx, dh/dz (0.5 = 0),  B — высота (0.5 = 0),  A — пена (якобиан).
-Масштабы пишутся в fft_meta.json, их читает Ocean.gd.
+Масштабы пишутся в fft_meta.json и fft_meta.gd (его читает Ocean.gd — экспортируется).
 
   python3 tools/bake_ocean_fft.py  ->  assets/ocean/fft_atlas.png, fft_meta.json
 """
@@ -71,4 +71,8 @@ Image.fromarray(atlas, "RGBA").save(os.path.join(out, "fft_atlas.png"), optimize
 meta = {"n": N, "tile_m": L, "frames": FRAMES, "cols": COLS, "rows": ROWS, "period_s": T,
 		"height_m": float(hmax), "slope": float(smax)}
 json.dump(meta, open(os.path.join(out, "fft_meta.json"), "w"), indent=1)
+# то же как скрипт-ресурс: попадает в экспорт (JSON без include_filter не экспортируется)
+with open(os.path.join(out, "fft_meta.gd"), "w") as f:
+	f.write("# Сгенерировано tools/bake_ocean_fft.py — не править руками.\n")
+	f.write("extends RefCounted\n\nconst META := " + json.dumps(meta) + "\n")
 print(meta)
