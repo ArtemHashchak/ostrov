@@ -8,6 +8,11 @@ const OCULUS := "res://assets/sounds/oculus_pack/"
 static var _cache: Dictionary = {}
 static var _tex: Dictionary = {}
 
+## Сброс кэшей (при выходе модуля из дерева — иначе ресурсы «утекают» при закрытии игры).
+static func clear_caches() -> void:
+	_cache.clear()
+	_tex.clear()
+
 static func stream(sound_name: String) -> AudioStream:
 	if _cache.has(sound_name):
 		return _cache[sound_name]
@@ -90,15 +95,6 @@ static func soft_tex(kind: String) -> Texture2D:
 	t.fill_to = Vector2(1.0, 0.5)
 	t.width = 64
 	t.height = 64
-	if kind == "smoke":
-		# «рваные» края клуба дыма
-		var nt := NoiseTexture2D.new()
-		nt.width = 64
-		nt.height = 64
-		var fn := FastNoiseLite.new()
-		fn.frequency = 0.06
-		nt.noise = fn
-		_tex["smoke_noise"] = nt
 	_tex[kind] = t
 	return t
 

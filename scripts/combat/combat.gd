@@ -125,6 +125,10 @@ func _physics_process(delta: float) -> void:
 
 func _exit_tree() -> void:
 	_has_clock = false
+	last_hits.clear()
+	_state.clear()
+	CombatFx.clear_caches()
+	CombatModels.clear_caches()
 
 static func state(ch: Object) -> Dictionary:
 	var k := ch.get_instance_id() if ch else 0

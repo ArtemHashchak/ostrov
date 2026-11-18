@@ -9,6 +9,9 @@ extends RefCounted
 
 static var _mats: Dictionary = {}
 
+static func clear_caches() -> void:
+	_mats.clear()
+
 ## Вызывается из HeldModels.build для неизвестных ему id. true — модель построена.
 static func build_into(root: Node3D, id: StringName) -> bool:
 	match id:
