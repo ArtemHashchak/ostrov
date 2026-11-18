@@ -30,7 +30,9 @@ func _ready() -> void:
 		var mi := MeshInstance3D.new()
 		mi.mesh = BuildMats.cylinder(LOG_R, LOG_L - 0.08 * (i % 3), 10)
 		mi.material_override = BuildMats.mat(&"log")
-		mi.transform = Transform3D(Basis.from_euler(Vector3(i * 0.9, 0, PI * 0.5)), slot_pos(i) + Vector3(0.04 * sin(i * 2.0), 0, 0))
+		# бревно вдоль X, чуть провёрнуто вокруг своей оси — кора не повторяется
+		var bas := Basis(Vector3.FORWARD, PI * 0.5) * Basis(Vector3.UP, i * 0.9)
+		mi.transform = Transform3D(bas, slot_pos(i) + Vector3(0.04 * sin(i * 2.0), 0, 0))
 		mi.visible = false
 		add_child(mi)
 		_log_nodes.append(mi)

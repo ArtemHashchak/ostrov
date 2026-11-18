@@ -120,3 +120,26 @@ func finish(b: Blueprint) -> void:
 ## Точка на земле.
 func ground(x: float, z: float) -> Vector3:
 	return Vector3(x, BuildEnv.height_at(x, z), z)
+
+## Свободное от деревьев/камней место рядом с (x, z): шар R на высоте 2.6 м
+## над землёй ничего не задевает. Возвращает точку на земле.
+func clear_spot(x: float, z: float, r: float = 3.0) -> Vector3:
+	var space := p.get_world_3d().direct_space_state
+	var sh := SphereShape3D.new()
+	sh.radius = r
+	var q := PhysicsShapeQueryParameters3D.new()
+	q.shape = sh
+	q.exclude = [p.get_rid()]
+	for ring in 12:
+		var n := maxi(1, ring * 6)
+		for k in n:
+			var a := TAU * k / float(n)
+			var cx := x + cos(a) * ring * 3.0
+			var cz := z + sin(a) * ring * 3.0
+			var g := ground(cx, cz)
+			if g.y < BuildEnv.water_level() + 0.6:
+				continue
+			q.transform = Transform3D(Basis(), g + Vector3.UP * 2.6)
+			if space.intersect_shape(q, 1).is_empty():
+				return g
+	return ground(x, z)

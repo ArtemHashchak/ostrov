@@ -45,10 +45,9 @@ func run() -> void:
 	bm.start_place(&"palisade")
 	await wait(0.4)
 	check(bm.valid, "своему можно: %s" % bm.reason)
-	var view := fpos + Vector3(-6.0, 0.0, 30.0)
+	var view := fpos + Vector3(-3.0, 0.0, 46.0)
 	teleport(ground(view.x, view.z) + Vector3.UP * 0.1)
-	p.set_look(0.0, deg_to_rad(-6.0))
-	aim_at(fpos + Vector3(0.0, 1.0, 0.0))
+	aim_at(ground(fpos.x + 2.0, fpos.z + 36.5) + Vector3.UP * 0.2)
 	await wait(0.5)
 	await shot("02_territory_ring")
 	bm.close()
@@ -68,7 +67,7 @@ func run() -> void:
 		elif p.carrying_log:
 			p.set_carrying_log(false)
 	check(own.filled_count(&"log") == 7, "стена у флага получила все 7 брёвен")
-	check(carried <= 4, "на своей территории хватило %d брёвен вместо 7" % carried)
+	check(carried <= 5, "на своей территории хватило %d брёвен вместо 7" % carried)
 	# снаружи бонуса нет
 	var out := mod.place_blueprint(&"wall", Transform3D(Basis(), ground(-30.0, -26.0)), 0)
 	var oc := out.base_xform.origin

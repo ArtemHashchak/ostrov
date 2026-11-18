@@ -9,7 +9,7 @@ func _init() -> void:
 func run() -> void:
 	if not await setup_build():
 		return
-	var base := ground(8.0, -6.0)
+	var base := clear_spot(8.0, -6.0)
 	# --- сундук ---
 	var chest := mod.place_blueprint(&"chest", Transform3D(Basis(Vector3.UP, 0.3), base), 0) as BuildChest
 	check(chest != null, "сундук поставлен (класс BuildChest)")
@@ -63,7 +63,7 @@ func run() -> void:
 	chest.storage.add(&"rope", 5)
 	var before_pickups := get_tree().get_nodes_in_group(&"pickups").size()
 	var stored := chest.storage.total()
-	check(stored >= 15, "в сундуке %d предметов" % stored)
+	check(stored == 8, "в сундуке %d предметов (3 камня + 5 верёвок)" % stored)
 	chest.apply_damage(9999.0, enemy, &"explosion")
 	await wait(0.4)
 	var pk := get_tree().get_nodes_in_group(&"pickups")
@@ -77,7 +77,7 @@ func run() -> void:
 	check(spilled >= stored, "в мешке все вещи сундука (%d/%d)" % [spilled, stored])
 
 	# --- поленница ---
-	var lh := mod.place_blueprint(&"log_holder", Transform3D(Basis(Vector3.UP, -0.2), ground(2.0, -10.0)), 0) as BuildLogHolder
+	var lh := mod.place_blueprint(&"log_holder", Transform3D(Basis(Vector3.UP, -0.2), clear_spot(-2.0, -16.0)), 0) as BuildLogHolder
 	finish(lh)
 	check(lh != null and lh.is_complete(), "поленница достроена: %s" % BuildDefs.cost_text(&"log_holder"))
 	var lstand := lh.global_position + Vector3(0.0, 0.0, 1.9)
@@ -95,7 +95,7 @@ func run() -> void:
 	await wait_frames(3)
 	check(p.carrying_log and lh.logs == 2, "E — взять бревно на плечо")
 	# взятое бревно годится для стройки
-	var wall := mod.place_blueprint(&"wall", Transform3D(Basis(), ground(-3.0, -12.0)), 0)
+	var wall := mod.place_blueprint(&"wall", Transform3D(Basis(), clear_spot(lh.global_position.x - 6.0, lh.global_position.z + 4.0, 2.5)), 0)
 	var wn := wall.base_xform.origin + Vector3(0, 0, 2.2)
 	teleport(Vector3(wn.x, BuildEnv.height_at(wn.x, wn.z) + 0.1, wn.z))
 	aim_at(wall.base_xform.origin + Vector3.UP * 0.4)
@@ -115,7 +115,7 @@ func run() -> void:
 	check(get_tree().get_nodes_in_group(&"log").size() >= logs_before + 10, "сломанная поленница: 10 брёвен раскатились")
 
 	# --- верстак ---
-	var wb := mod.place_blueprint(&"workbench", Transform3D(Basis(Vector3.UP, 0.5), ground(12.0, -12.0)), 0)
+	var wb := mod.place_blueprint(&"workbench", Transform3D(Basis(Vector3.UP, 0.5), clear_spot(14.0, -14.0)), 0)
 	check(not wb.is_in_group(&"workbench"), "недостроенный верстак — не станция")
 	finish(wb)
 	check(wb.is_complete() and wb.is_in_group(&"workbench"), "верстак достроен и стал станцией: %s" % BuildDefs.cost_text(&"workbench"))
