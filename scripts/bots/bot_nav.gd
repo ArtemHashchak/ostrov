@@ -118,7 +118,7 @@ static func _root_of(b: Blueprint) -> Blueprint:
 	var cur := b
 	for i in 200:
 		var par: Variant = cur.anchor.get("parent")
-		if String(cur.anchor.get("type", "")) != "raft" or par == null or not is_instance_valid(par):
+		if String(cur.anchor.get("type", "")) != "raft" or not is_instance_valid(par):
 			return cur
 		cur = par as Blueprint
 	return cur
@@ -162,16 +162,19 @@ func refresh_links(tree: SceneTree) -> void:
 						pts.append(d.base_now() * Vector3(0, 0, -1.0))
 					pts.append(ground(ahead + (ahead - start).normalized() * 1.5))
 					links.append({"a": ia, "b": ib, "team": root.team, "points": pts, "decks": path.duplicate(), "root": root})
-			for c: Blueprint in b.raft_children:
-				if is_instance_valid(c) and not c.is_drifting() and not path.has(c):
+			for cv in b.raft_children:
+				if not is_instance_valid(cv):
+					continue
+				var c := cv as Blueprint
+				if c and not c.is_drifting() and not path.has(c):
 					var np := path.duplicate()
 					np.append(c)
 					stack.append([c, np])
 		chains[rid] = {"root": root, "tip": tip, "team": root.team, "a": ia, "len": tip_len}
 
 static func _all_complete(path: Array) -> bool:
-	for d: Blueprint in path:
-		if not is_instance_valid(d) or not d.is_complete():
+	for d in path:
+		if not is_instance_valid(d) or not (d as Blueprint).is_complete():
 			return false
 	return true
 
@@ -184,7 +187,7 @@ func chain_points(root: Blueprint, tip: Blueprint) -> Array[Vector3]:
 		if cur == root:
 			break
 		var par: Variant = cur.anchor.get("parent")
-		if par == null or not is_instance_valid(par):
+		if not is_instance_valid(par):
 			break
 		cur = par as Blueprint
 	var pts: Array[Vector3] = [ground(root.base_now() * Vector3(0, 0, 2.4))]

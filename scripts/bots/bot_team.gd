@@ -71,7 +71,7 @@ func _bm() -> BuildModule:
 
 ## Текущая недостроенная постройка команды (или новая по плану). null — строить нечего.
 func current_build() -> Blueprint:
-	if active and is_instance_valid(active) and not active.is_complete() and not active.is_queued_for_deletion():
+	if is_instance_valid(active) and not active.is_complete() and not active.is_queued_for_deletion():
 		return active
 	active = null
 	var bm := _bm()
@@ -210,13 +210,14 @@ func _choose_bridge() -> void:
 func _next_section() -> Blueprint:
 	var bm := _bm()
 	var dir: Vector3 = bridge.dir
-	var tip: Blueprint = bridge.tip
-	if tip != null and not is_instance_valid(tip):
+	var tipv: Variant = bridge.tip
+	if tipv != null and (not is_instance_valid(tipv) or (tipv as Blueprint).is_drifting()):
 		# секцию сожгли — начинаем заново
 		bridge.root = null
 		bridge.tip = null
 		bridge.sections = 0
-		tip = null
+		tipv = null
+	var tip: Blueprint = tipv as Blueprint
 	if tip != null and not tip.is_complete():
 		return tip
 	if tip == null:
@@ -296,7 +297,7 @@ func enemy_bridge_to_home() -> Blueprint:
 	var hr := float(home.get("radius", 100.0))
 	for k in nav.chains:
 		var ch: Dictionary = nav.chains[k]
-		if int(ch.team) == team or ch.tip == null or not is_instance_valid(ch.tip):
+		if int(ch.team) == team or not is_instance_valid(ch.tip):
 			continue
 		var tp: Vector3 = (ch.tip as Blueprint).global_position
 		if Vector2(tp.x, tp.z).distance_to(hc) < hr + 25.0:

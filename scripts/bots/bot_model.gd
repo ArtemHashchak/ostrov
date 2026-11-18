@@ -38,6 +38,7 @@ func setup(team_id: int, seed_v: int) -> BotModel:
 
 static func clear_cache() -> void:
 	_mat_cache.clear()
+	_mesh_cache.clear()
 	_scene = null
 
 func _ready() -> void:
@@ -81,26 +82,62 @@ func _mat(key: String, c: Color, rough: float) -> StandardMaterial3D:
 	_mat_cache[key] = m
 	return m
 
-## Поверхности модели: 0 — тело (кожа), 1 — «одежда» (цвет команды), 2 — суставы/обувь.
+## Одежда «раскрашивается» по позе покоя: рубаха цвета команды, шорты, кожа,
+## волосы и обувь — цвет вершин (меш кэшируется на команду и тон кожи).
+static var _mesh_cache: Dictionary = {}
+
 func _apply_materials(inst: Node) -> void:
-	var cloth := Game.team_color(team).darkened(0.25)
 	for mi in inst.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
 		m.visibility_range_end = HIDE_FAR
 		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-		for s in m.mesh.get_surface_count():
-			var nm := ""
-			var sm := m.mesh.surface_get_material(s)
-			if sm:
-				nm = String(sm.resource_name).to_lower()
-			var mat: Material
-			if nm.contains("azul"):
-				mat = _mat("cloth%d" % team, cloth, 0.92)
-			elif nm.contains("negro"):
-				mat = _mat("dark", Color(0.16, 0.13, 0.1), 0.95)
-			else:
-				mat = _mat("skin%s" % skin.to_html(false), skin, 0.62)
-			m.set_surface_override_material(s, mat)
+		var key := "%d|%s" % [team, skin.to_html(false)]
+		if not _mesh_cache.has(key):
+			_mesh_cache[key] = _dress(m.mesh as ArrayMesh, Game.team_color(team), skin)
+		var dm: ArrayMesh = _mesh_cache[key]
+		if dm == null:
+			continue
+		m.mesh = dm
+		for s in dm.get_surface_count():
+			m.set_surface_override_material(s, null)
+
+static func _dress(src: ArrayMesh, team_c: Color, skin_c: Color) -> ArrayMesh:
+	if src == null:
+		return null
+	var shirt := team_c.darkened(0.15)
+	var shorts := Color(0.33, 0.29, 0.22)
+	var hair := Color(0.1, 0.07, 0.05)
+	var sandal := Color(0.24, 0.17, 0.11)
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.roughness = 0.75
+	var out := ArrayMesh.new()
+	for s in src.get_surface_count():
+		var arr := src.surface_get_arrays(s)
+		var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var cols := PackedColorArray()
+		cols.resize(verts.size())
+		for i in verts.size():
+			var v := verts[i]
+			var ax := absf(v.x)
+			var c := skin_c
+			if v.y < 0.09:
+				c = sandal
+			elif v.y > 1.70 and ax < 0.13 and v.z < 0.07:
+				c = hair
+			elif v.y > 1.70 and ax < 0.11:
+				c = hair
+			elif v.y > 0.98 and v.y < 1.50 and ax < 0.36:
+				c = shirt
+			elif v.y > 0.55 and v.y <= 1.02:
+				c = shorts
+			cols[i] = c
+		arr[Mesh.ARRAY_COLOR] = cols
+		var fmt := src.surface_get_format(s)
+		var flags := fmt & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS
+		out.add_surface_from_arrays(src.surface_get_primitive_type(s), arr, [], {}, flags)
+		out.surface_set_material(s, mat)
+	return out
 
 func play(a: StringName, speed: float = 1.0, blend: float = 0.18) -> void:
 	if anim == null or not anim.has_animation(a):

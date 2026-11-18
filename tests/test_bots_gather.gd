@@ -38,17 +38,19 @@ func run() -> void:
 	var player := scene.get(&"player") as Node3D
 	if player:
 		player.set_physics_process(false)
+	get_tree().root.content_scale_factor = 1.0
+	get_tree().root.size = Vector2i(640, 360)
+	Engine.time_scale = 3.0
 	var t0 := Game.match_time
 	var shot_i := 0
-	var last_status := ""
+	var next_log := 0.0
 	while Game.match_time - t0 < 900.0:
 		await wait(2.0)
 		_follow()
-		var st := "%s | logs=%d felled=%d delivered=%d carry=%d hp=%d" % [bot.brain.status, int(bot.brain.stats.logs),
-			int(bot.brain.stats.felled), int(bot.brain.stats.delivered), bot.logs_carried, int(bot.health)]
-		if st != last_status:
-			print("[bots] t=%d %s" % [int(Game.match_time - t0), st])
-			last_status = st
+		if Game.match_time - t0 >= next_log:
+			next_log += 10.0
+			print("[bots] t=%d %s | %s | logs=%d felled=%d delivered=%d carry=%d hp=%d" % [int(Game.match_time - t0), bot.brain.status,
+				bot.brain.debug(), int(bot.brain.stats.logs), int(bot.brain.stats.felled), int(bot.brain.stats.delivered), bot.logs_carried, int(bot.health)])
 		if shot_i == 0 and String(bot.brain.task.get("phase", "")) == "chop":
 			shot_i = 1
 			await shot("chop")
@@ -57,6 +59,7 @@ func run() -> void:
 			await shot("carry")
 		if int(bot.brain.stats.delivered) >= 4:
 			break
+	Engine.time_scale = 1.0
 	var bm := BuildModule.instance()
 	var bps := bm.blueprints(1)
 	check(not bps.is_empty(), "бот поставил чертёж базы (%d)" % bps.size())

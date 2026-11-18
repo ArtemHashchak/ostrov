@@ -20,6 +20,9 @@ const BOT_RECIPES := {
 
 var bot: Bot
 var team: BotTeam
+## &"auto" — обычный бот; &"raid" — только набеги (цель raid_team или ближайшая); &"build" — только стройка.
+var mode: StringName = &"auto"
+var raid_team: int = -1
 var task: Dictionary = {}
 var enemy: Node3D = null
 var clock: float = 0.0
@@ -48,7 +51,7 @@ func act(delta: float) -> void:
 	clock += delta
 	_swing_cd -= delta * Bots.speed
 	_throw_cd -= delta
-	if enemy and is_instance_valid(enemy) and task.get("type", "") == "fight":
+	if is_instance_valid(enemy) and task.get("type", "") == "fight":
 		bot.aim_target = _chest(enemy)
 
 # ============================================================ выбор задачи
@@ -105,7 +108,9 @@ func _set_task(t: Dictionary) -> void:
 
 func _end_task() -> void:
 	if task.has("res"):
-		team.release(task.res as Object)
+		var r: Variant = task.res
+		if is_instance_valid(r):
+			team.release(r as Object)
 	task = {}
 	bot.aiming = false
 	if bot.is_inside_tree():
@@ -117,10 +122,30 @@ func _done() -> void:
 func _fail(why: String) -> void:
 	for k in ["node", "target", "bp", "tree", "trunk"]:
 		var n: Variant = task.get(k)
-		if n is Object and is_instance_valid(n):
+		if is_instance_valid(n) and n is Object:
 			_black[(n as Object).get_instance_id()] = clock + 90.0
 	status = "%s: %s" % [task.get("type", ""), why]
+	_black["task_" + String(task.get("type", ""))] = clock + 20.0
 	_end_task()
+
+## Строка состояния для отладки/тестов.
+func debug() -> String:
+	var g: Variant = task.get("goal")
+	var gd := -1.0
+	if g is Vector3:
+		gd = (g as Vector3).distance_to(bot.global_position)
+	return "%s/%s goal=%.1f path=%d stuck=%d pos=%s" % [task.get("type", "-"), task.get("phase", ""), gd,
+		bot.path.size(), bot.stuck, str(bot.global_position.snapped(Vector3.ONE * 0.1))]
+
+## Узел из задачи (null, если удалён).
+func _tn(key: String) -> Object:
+	var v: Variant = task.get(key)
+	if v == null or not is_instance_valid(v):
+		return null
+	return v as Object
+
+func _recent_fail(tt: String) -> bool:
+	return float(_black.get("task_" + tt, -1.0)) > clock
 
 func _banned(o: Object) -> bool:
 	return o == null or float(_black.get(o.get_instance_id(), -1.0)) > clock
@@ -148,10 +173,12 @@ func _scan() -> void:
 		best = c
 		bd = d
 	# кто напал (в т.ч. зверь) — отвечаем
-	if best == null and bot.last_attacker and is_instance_valid(bot.last_attacker) and Game.match_time - bot.last_attacked_t < 8.0:
+	if best == null and is_instance_valid(bot.last_attacker) and Game.match_time - bot.last_attacked_t < 8.0:
 		var la := bot.last_attacker as Node3D
 		if la and Game.is_alive(la) and la.global_position.distance_to(bot.global_position) < aggro * 1.5:
 			best = la
+	if not is_instance_valid(enemy):
+		enemy = null
 	if best != enemy:
 		if best and enemy == null:
 			_react = bot.cfg("reaction")
@@ -195,7 +222,7 @@ func _urgent() -> Dictionary:
 	var tt := String(task.get("type", ""))
 	if bot.swimming and tt != "flee" and (_threat() > 0.3 or bot.health < 40.0) and not (tt in ["goto", "raid"] and _threat() < 0.5):
 		return {"type": "flee"}
-	if enemy and is_instance_valid(enemy):
+	if is_instance_valid(enemy):
 		if tt == "fight" or tt == "retreat":
 			return {}
 		if bot.health < 25.0 and _enemy_hp(enemy) > bot.health * 1.5:
@@ -243,6 +270,8 @@ func _job() -> Dictionary:
 	var bp := team.current_build()
 	if bp:
 		var needs := bp.needs_left()
+		if needs.has(&"log") and not _recent_fail("logs"):
+			return {"type": "logs"}
 		for t: StringName in [&"stick", &"rope", &"stone"]:
 			if needs.has(t):
 				if bot.inv_count(t) > 0:
@@ -271,14 +300,16 @@ func _site_needing(t: StringName) -> Blueprint:
 
 ## Набег: когда база готова (или прошло время) и до врага можно дойти.
 func _raid_job() -> Dictionary:
+	if mode == &"build":
+		return {}
 	var late := Game.match_time > 1500.0
-	var ready := team.base_done or late or not team.flag_alive()
+	var ready := team.base_done or late or not team.flag_alive() or mode == &"raid"
 	if not ready:
 		return {}
 	var many := team.living_bots().size() > 1
-	if many and bot.index == 0 and team.flag_alive() and not late:
+	if many and bot.index == 0 and team.flag_alive() and not late and mode != &"raid":
 		return {}   # первый бот остаётся строителем, пока команда больше одного
-	var tt := team.choose_target()
+	var tt := raid_team if raid_team >= 0 and raid_team < Game.teams.size() and Game.teams[raid_team].flag_alive else team.choose_target()
 	if tt < 0:
 		return {}
 	var goal := Game.teams[tt].flag_pos
@@ -354,7 +385,7 @@ func _do_logs() -> void:
 		return
 	match ph:
 		"pick":
-			var l := task.get("node") as FloraLog
+			var l := _tn("node") as FloraLog
 			if l == null or not is_instance_valid(l) or l.carrier != null:
 				task.phase = "find"
 				return
@@ -370,7 +401,7 @@ func _do_logs() -> void:
 				task.phase = "find"
 				task.t0 = clock
 		"chop":
-			var t := task.get("tree") as ChoppableTree
+			var t := _tn("tree") as ChoppableTree
 			if t == null or not is_instance_valid(t):
 				task.phase = "find"
 				return
@@ -395,7 +426,7 @@ func _do_logs() -> void:
 		"wait_fall":
 			if clock < float(task.wait):
 				return
-			var tr3 := task.get("trunk") as FallenTrunk
+			var tr3 := _tn("trunk") as FallenTrunk
 			if tr3 == null or not is_instance_valid(tr3):
 				tr3 = _trunk_near(bot.global_position, 20.0)
 			if tr3 == null:
@@ -404,7 +435,7 @@ func _do_logs() -> void:
 			task.trunk = tr3
 			task.phase = "cut"
 		"cut":
-			var tr4 := task.get("trunk") as FallenTrunk
+			var tr4 := _tn("trunk") as FallenTrunk
 			if tr4 == null or not is_instance_valid(tr4) or tr4.logs_left() <= 0:
 				task.phase = "find"
 				return
@@ -488,26 +519,30 @@ func _find_tree() -> ChoppableTree:
 		return null
 	var base := team.flag_pos()
 	var around := bot.global_position if bot.global_position.distance_to(base) > 90.0 else base
+	var wl := bot.water_level()
 	for r in [45.0, 90.0, 160.0]:
-		var best: ChoppableTree = null
-		var bd := INF
-		for t in _flora.trees_near(around, r):
-			if t.felled or _banned(t) or not team.reserve(t, bot):
+		# записи без создания узлов; узел дерева «будим» только у выбранного
+		var tries := 0
+		for e in _flora.nodes_near(around, float(r), &"tree"):
+			var pos: Vector3 = e.position
+			if pos.y < wl + 0.3:
 				continue
-			team.release(t)
-			if t.global_position.y < bot.water_level() + 0.3 or not _same_side(t.global_position):
+			var n0: Variant = e.get("node")
+			if n0 != null and (_banned(n0 as Object) or not team.reserve(n0 as Object, bot)):
 				continue
-			var d := t.global_position.distance_to(bot.global_position)
-			if d < bd:
-				bd = d
-				best = t
-		if best:
-			team.reserve(best, bot)
-			return best
+			if not _same_side(pos):
+				continue
+			tries += 1
+			if tries > 6:
+				break
+			var t := _flora.materialize(e) as ChoppableTree
+			if t == null or t.felled or _banned(t) or not team.reserve(t, bot):
+				continue
+			return t
 	return null
 
 func _do_deliver() -> void:
-	var bp := task.get("bp") as Blueprint
+	var bp := _tn("bp") as Blueprint
 	if bp == null or not is_instance_valid(bp) or bp.is_complete() or not bp.needs_left().has(&"log"):
 		bp = _site_needing(&"log")
 		if bp == null:
@@ -526,7 +561,7 @@ func _do_deliver() -> void:
 # ============================================================ материалы
 
 func _do_fill() -> void:
-	var bp := task.get("bp") as Blueprint
+	var bp := _tn("bp") as Blueprint
 	var it: StringName = task.item
 	if bp == null or not is_instance_valid(bp) or bp.is_complete():
 		_done()
@@ -558,7 +593,7 @@ func _do_collect() -> void:
 	if have > have0 or (item == &"rope" and bot.inv_count(&"rope") > 0):
 		_done()
 		return
-	var node := task.get("node") as Node3D
+	var node := _tn("node") as Node3D
 	if node == null or not is_instance_valid(node):
 		node = _find_source(ITEM_KINDS.get(item, item))
 		if node == null:
@@ -577,10 +612,17 @@ func _find_source(kind: StringName) -> Node3D:
 	if _flora == null:
 		return null
 	for r in [50.0, 110.0, 180.0]:
-		for e in _flora.nodes_near(bot.global_position, r, kind):
+		var tries := 0
+		for e in _flora.nodes_near(bot.global_position, float(r), kind):
 			var pos: Vector3 = e.position
 			if pos.y < bot.water_level() - 0.3 or not _same_side(pos):
 				continue
+			var n0: Variant = e.get("node")
+			if n0 != null and _banned(n0 as Object):
+				continue
+			tries += 1
+			if tries > 6:
+				break
 			var n := _flora.materialize(e) as Node3D
 			if n == null or _banned(n):
 				continue
@@ -701,7 +743,7 @@ func _do_drink() -> void:
 		if bot.thirst > 60.0:
 			_done()
 		return
-	var node := task.get("node") as Node3D
+	var node := _tn("node") as Node3D
 	if node == null or not is_instance_valid(node):
 		var sv2 := Survival.instance()
 		if sv2:
@@ -744,7 +786,7 @@ func _do_eat() -> void:
 			bot.inv_remove(f, 1)
 			bot.hunger = minf(100.0, bot.hunger + 20.0)
 		return
-	var node := task.get("node") as Node3D
+	var node := _tn("node") as Node3D
 	if node == null or not is_instance_valid(node):
 		var sv2 := Survival.instance()
 		if sv2:
@@ -776,7 +818,7 @@ func _do_herb() -> void:
 	if bot.poison <= 0.0 or bot.poison_time <= 0.0:
 		_done()
 		return
-	var node := task.get("node") as Node3D
+	var node := _tn("node") as Node3D
 	if node == null or not is_instance_valid(node):
 		var sv := Survival.instance()
 		if sv:
@@ -809,14 +851,14 @@ func _weapon_for(dist: float) -> StringName:
 	return w
 
 func _do_fight() -> void:
-	var e := task.get("target") as Node3D
+	var e := _tn("target") as Node3D
 	if e == null or not is_instance_valid(e) or not Game.is_alive(e):
 		if e and is_instance_valid(e) and not Game.is_alive(e) and (e is Bot or e.is_in_group(&"player")):
 			stats.kills = int(stats.kills) + 1
 		enemy = null
 		_done()
 		return
-	if enemy != e and enemy != null:
+	if is_instance_valid(enemy) and enemy != e:
 		task.target = enemy
 		e = enemy
 	if clock - _seen_t > 6.0 or e.global_position.distance_to(bot.global_position) > bot.cfg("aggro") * 1.8:
@@ -946,7 +988,7 @@ func _do_raid() -> void:
 			Combat.throw_item(bot, bomb, eye + dir * 0.4, dir, 1.0)
 			return
 	# стена мешает — ломаем
-	var wall := task.get("wall") as Blueprint
+	var wall := _tn("wall") as Blueprint
 	if wall and is_instance_valid(wall) and not wall.is_queued_for_deletion() and wall.filled_count() > 0:
 		if _go(wall.global_position, 1.9):
 			_melee_struct(wall, wall.global_position + Vector3.UP * 1.0)
@@ -1027,7 +1069,7 @@ func _do_defend() -> void:
 			_done()
 
 func _do_cut_bridge() -> void:
-	var deck := task.get("target") as Blueprint
+	var deck := _tn("target") as Blueprint
 	if deck == null or not is_instance_valid(deck) or deck.is_queued_for_deletion() or deck.is_drifting() or deck.burning:
 		_done()
 		return
