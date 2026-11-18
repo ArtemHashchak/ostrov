@@ -100,7 +100,7 @@ func run() -> void:
 	check(sw.health <= 0.0, "пловец погиб (здоровье %.0f) за %.1f с" % [sw.health, t])
 	if sw.first_bite_t > 0.0 and sw.death_t > 0.0:
 		var kill := sw.death_t - sw.first_bite_t
-		check(kill > 5.0 and kill < 20.0, "от первого укуса до гибели %.1f с (цель ~10 с)" % kill)
+		check(kill >= 8.0 and kill <= 12.0, "стая убивает пловца за %.1f с от первого укуса (цель 8–12 с)" % kill)
 	check(not shot_fin or true, "снимок плавника: %s" % shot_fin)
 
 	# под водой: камера ниже поверхности, смотрим на ближайшую акулу

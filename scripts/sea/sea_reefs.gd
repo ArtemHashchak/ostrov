@@ -148,7 +148,9 @@ func _add(t: StringName, p: Vector3) -> void:
 	var tc: Color = tints[_rng.randi() % tints.size()]
 	tc = tc.lightened(_rng.randf_range(-0.08, 0.1))
 	tc.a = _rng.randf()
-	(_cells[key]["col"] as PackedColorArray).append(tc)
+	var cols: PackedColorArray = _cells[key]["col"]
+	cols.append(tc)
+	_cells[key]["col"] = cols
 
 func _mesh(t: StringName, lod: int) -> Mesh:
 	match t:

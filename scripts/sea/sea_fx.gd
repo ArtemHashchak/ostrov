@@ -15,7 +15,7 @@ var _caus: MeshInstance3D
 var _caus_mat: ShaderMaterial
 var _grid_c := Vector3(INF, 0, INF)
 var _rays: Array[MeshInstance3D] = []
-var _ray_mat: StandardMaterial3D
+var _ray_shader_mat: ShaderMaterial
 var _bubble_t: Dictionary = {}
 var _bubble_mesh: QuadMesh
 var _rng := RandomNumberGenerator.new()
@@ -31,33 +31,33 @@ func _ready() -> void:
 	_caus.material_override = _caus_mat
 	_caus.top_level = true
 	add_child(_caus)
-	# лучи: вертикальные полосы с мягким градиентом, всегда лицом к камере по Y
-	var g := Gradient.new()
-	g.set_color(0, Color(1, 1, 1, 0.0))
-	g.set_color(1, Color(1, 1, 1, 0.0))
-	g.add_point(0.2, Color(1, 1, 1, 0.9))
-	g.add_point(0.55, Color(1, 1, 1, 0.35))
-	var gt := GradientTexture2D.new()
-	gt.gradient = g
-	gt.fill_from = Vector2(0.5, 0.0)
-	gt.fill_to = Vector2(0.5, 1.0)
-	gt.width = 8
-	gt.height = 64
-	_ray_mat = StandardMaterial3D.new()
-	_ray_mat.albedo_texture = gt
-	_ray_mat.albedo_color = Color(0.7, 0.95, 0.9, 0.16)
-	_ray_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_ray_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	_ray_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_ray_mat.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
-	_ray_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_ray_mat.no_depth_test = false
+	# лучи: мягкие вертикальные полосы, всегда лицом к камере по Y
+	var rsh := Shader.new()
+	rsh.code = """shader_type spatial;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled;
+uniform float strength = 0.12;
+void vertex() {
+	// поворот к камере вокруг Y
+	vec3 cam = (inverse(MODEL_MATRIX) * vec4(CAMERA_POSITION_WORLD, 1.0)).xyz;
+	vec2 d = normalize(cam.xz + vec2(0.0001));
+	VERTEX = vec3(VERTEX.x * d.y, VERTEX.y, -VERTEX.x * d.x);
+}
+void fragment() {
+	float x = abs(UV.x - 0.5) * 2.0;
+	float side = pow(1.0 - clamp(x, 0.0, 1.0), 2.2);
+	float v = smoothstep(0.0, 0.12, UV.y) * (1.0 - smoothstep(0.35, 1.0, UV.y));
+	float flick = 0.75 + 0.25 * sin(TIME * 0.8 + NODE_POSITION_WORLD.x);
+	ALBEDO = vec3(0.65, 0.95, 0.9) * side * v * strength * flick;
+}"""
+	_ray_shader_mat = ShaderMaterial.new()
+	_ray_shader_mat.shader = rsh
 	for i in 7:
 		var mi := MeshInstance3D.new()
 		var q := QuadMesh.new()
 		q.size = Vector2(_rng.randf_range(0.8, 2.2), 12.0)
 		mi.mesh = q
-		mi.material_override = _ray_mat
+		mi.material_override = _ray_shader_mat
+		mi.extra_cull_margin = 3.0
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mi.top_level = true
 		mi.visible = false
@@ -101,8 +101,7 @@ func _process(delta: float) -> void:
 			var d := 4.0 + float(i % 3) * 3.5
 			var h := 12.0
 			r.global_position = Vector3(cp.x + cos(a) * d, wy - h * 0.5 + 0.2, cp.z + sin(a) * d)
-			r.rotation = Vector3(0.0, 0.0, 0.18 * sin(i * 1.7))
-	_ray_mat.albedo_color.a = 0.12 + 0.04 * sin(_t * 0.7)
+			r.rotation = Vector3.ZERO
 	# пузыри у ныряльщиков
 	for n in get_tree().get_nodes_in_group(&"characters"):
 		var ch := n as Node3D

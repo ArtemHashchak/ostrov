@@ -261,7 +261,7 @@ func tick(delta: float, full: bool) -> void:
 				var dh := Vector2(tp.x - head.x, tp.z - head.z).length()
 				if dh < 0.7 + length * 0.18 and absf(tp.y - head.y) < 1.6 + _leap:
 					if sea.try_bite(self, target):
-						_enter(State.RETREAT, _fz(0.9, 1.5))
+						_enter(State.RETREAT, _fz(1.0, 1.7))
 					else:
 						_enter(State.STALK, _fz(0.5, 1.0))
 				elif _state_t <= 0.0:
