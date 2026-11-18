@@ -9,7 +9,7 @@ var _elim: Array[int] = []
 
 func _init() -> void:
 	scene_path = "res://scenes/world/match.tscn"
-	timeout_sec = 1450.0
+	timeout_sec = 2300.0
 	Game.pending_config = {"mode": "ffa", "minutes": 60, "bots_enemy": 0, "bots_ally": 0, "auto_flags": true}
 
 func _enemy(team: int, nm: String, pos: Vector3) -> Node3D:
