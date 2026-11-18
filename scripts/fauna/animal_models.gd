@@ -317,8 +317,8 @@ static func _boar() -> Node3D:
 	var leg := cached("boar_leg", func() -> ArrayMesh:
 		var st := begin()
 		tube(st, Vector3(0, 0.08, 0), Vector3(0, -0.22, 0.02), 0.085, 0.055, 9, Color(0.65, 0, 0, 0))
-		tube(st, Vector3(0, -0.22, 0.02), Vector3(0, -0.42, -0.01), 0.05, 0.033, 8, Color(0.35, 0, 0, 0))
-		tube(st, Vector3(0, -0.42, -0.01), Vector3(0, -0.48, -0.04), 0.034, 0.03, 7, Color(0.0, 0.0, 0, 0), true) # копыто
+		tube(st, Vector3(0, -0.22, 0.02), Vector3(0, -0.42, -0.01), 0.05, 0.033, 8, Color(0.85, 0, 0, 0))
+		tube(st, Vector3(0, -0.42, -0.01), Vector3(0, -0.48, -0.04), 0.034, 0.03, 7, Color(1.0, 0.0, 0, 0), true) # копыто (тёмное)
 		return commit(st))
 	for p in [[-0.12, 0.48, -0.22], [0.12, 0.48, -0.22], [-0.13, 0.48, 0.36], [0.13, 0.48, 0.36]]:
 		_add_leg(root, mat, leg, Vector3(p[0], p[1], p[2]), 1.0)
@@ -549,10 +549,11 @@ static func _lizard(species: StringName, L: float) -> Node3D:
 	var sc := L / 1.25
 	var leg := cached("lizard_leg_" + String(species), func() -> ArrayMesh:
 		var st := begin()
-		tube(st, Vector3(0, 0, 0), Vector3(0.07 * sc, 0.0, 0.0), 0.018 * sc, 0.014 * sc, 6, Color(0.7, 0, 0, 0))
-		tube(st, Vector3(0.07 * sc, 0.0, 0.0), Vector3(0.09 * sc, -0.075 * sc, -0.01), 0.014 * sc, 0.01 * sc, 6, Color(0.5, 0, 0, 0))
+		# ящеричная постановка: плечо в сторону, предплечье вниз-наружу, растопыренные пальцы
+		tube(st, Vector3(0, 0, 0), Vector3(0.1 * sc, 0.012 * sc, 0.0), 0.024 * sc, 0.017 * sc, 7, Color(0.75, 0, 0, 0))
+		tube(st, Vector3(0.1 * sc, 0.012 * sc, 0.0), Vector3(0.125 * sc, -0.07 * sc, -0.01), 0.017 * sc, 0.011 * sc, 6, Color(0.6, 0, 0, 0))
 		for k in 5:
-			tube(st, Vector3(0.09 * sc, -0.075 * sc, -0.01), Vector3(0.09 * sc + (k - 2) * 0.012 * sc, -0.08 * sc, -0.045 * sc), 0.004 * sc, 0.0015, 4, Color(0.4, 0, 0, 0))
+			tube(st, Vector3(0.125 * sc, -0.07 * sc, -0.01), Vector3(0.125 * sc + (k - 2) * 0.016 * sc, -0.076 * sc, -0.05 * sc + absf(k - 2.0) * 0.01 * sc), 0.0045 * sc, 0.0015, 4, Color(0.5, 0, 0, 0))
 		return commit(st))
 	for p in [[-0.04, -0.22], [0.04, -0.22], [-0.045, 0.04], [0.045, 0.04]]:
 		_add_leg(root, mat, leg, Vector3(p[0] * sc, 0.075 * sc, p[1] * L), signf(p[0]))
