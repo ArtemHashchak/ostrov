@@ -189,7 +189,13 @@ func _shot_kind(name: String, kind: StringName, offset: Vector3, look_h: float, 
 		print("[test] нет узла для кадра ", name)
 		return
 	var tp: Vector3 = pick.position
+	# камера — на суше: перебираем 8 направлений вокруг цели
 	var at := tp + Vector3(offset.x, 0, offset.z)
+	for a in 8:
+		var o := Vector3(offset.x, 0, offset.z).rotated(Vector3.UP, a * PI / 4.0)
+		if _hh(tp.x + o.x, tp.z + o.z) > 0.6:
+			at = tp + o
+			break
 	var gy := maxf(_hh(at.x, at.z), 1.0)
 	cam.global_position = Vector3(at.x, gy + offset.y, at.z)
 	cam.look_at(tp + Vector3(0, look_h, 0))

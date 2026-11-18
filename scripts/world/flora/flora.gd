@@ -28,9 +28,10 @@ const TREE_FAR := 650.0
 ## и упрощённый (LOD1) уровни делят одинаковые мелкие чанки — иначе у камеры вместо деревьев
 ## остаются «болванки». LOD2 — тот же меш, что LOD1, крупными чанками для дальних деревьев;
 ## перекрытие LOD1/LOD2 безвредно (одинаковая геометрия), поэтому диапазоны с запасом.
-const TCHUNK := 48.0
+const TCHUNK := 64.0           # LOD0 (полные меши вариантов)
+const MID_CHUNK := 96.0        # LOD1 (упрощённый меш варианта 0)
 const FAR_CHUNK := 144.0
-const LOD1_END := 400.0
+const LOD1_END := 300.0
 const LOD2_BEGIN := 250.0
 const CCHUNK := 192.0          # чанк коллизий стволов
 const PROMOTE_R := 26.0
@@ -40,7 +41,7 @@ const FERN_RANGE := 70.0
 const BUSH_RANGE := 150.0
 const CHUNK := 32.0             # чанк травы/папоротника
 const DECOR_STREAM := 80.0
-const BUSH_CHUNK := 96.0
+const BUSH_CHUNK := 128.0
 const NODE_STREAM := 85.0
 const ROCK_STREAM := 125.0
 const CELL := 4.0               # шаг сетки рассадки
@@ -415,7 +416,8 @@ func _build_trees() -> void:
 		rec["g"] = gk
 		rec["mi"] = (g["xf"] as Array).size()
 		(g["xf"] as Array).append(_xf(rec))
-		var fk := "%s|%d|%d" % [rec["kind"], ck.x, ck.y]
+		var mck := Vector2i(int(floor(p.x / MID_CHUNK)), int(floor(p.z / MID_CHUNK)))
+		var fk := "%s|%d|%d" % [rec["kind"], mck.x, mck.y]
 		if not _fgroups.has(fk):
 			_fgroups[fk] = {"v": FloraLib.variant(rec["kind"], 0), "xf": []}
 		rec["gf"] = fk
