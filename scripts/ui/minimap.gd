@@ -149,8 +149,12 @@ func _draw() -> void:
 			var nm := String(I.get("name", ""))
 			if nm != "":
 				var mp := world_to_map(c.x, c.y, vr)
-				draw_string_outline(f, mp + Vector2(-40, 4), nm, HORIZONTAL_ALIGNMENT_CENTER, 80, 11, 3, Color(0, 0, 0, 0.7))
-				draw_string(f, mp + Vector2(-40, 4), nm, HORIZONTAL_ALIGNMENT_CENTER, 80, 11, Color(1, 0.97, 0.9, 0.85))
+				var tcol := Color(1, 0.97, 0.9, 0.85)
+				var it := int(I.get("team", -1))
+				if it >= 0 and it < Game.teams.size():
+					tcol = Game.team_color(it).lightened(0.35)
+				draw_string_outline(f, mp + Vector2(-90, 4), nm, HORIZONTAL_ALIGNMENT_CENTER, 180, 11, 3, Color(0, 0, 0, 0.7))
+				draw_string(f, mp + Vector2(-90, 4), nm, HORIZONTAL_ALIGNMENT_CENTER, 180, 11, tcol)
 	# Мосты.
 	for b in _bridges:
 		draw_rect(Rect2(world_to_map(b.x, b.z, vr) - Vector2(2, 2), Vector2(4, 4)), Color(0.55, 0.38, 0.2))

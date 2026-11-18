@@ -184,16 +184,16 @@ func _build_big_map() -> void:
 	big_map.anchor_bottom = 0.5
 	big_map.offset_left = -300
 	big_map.offset_right = 300
-	big_map.offset_top = -300
-	big_map.offset_bottom = 300
+	big_map.offset_top = -305
+	big_map.offset_bottom = 295
 	_big_holder.add_child(big_map)
 	var hint := UITheme.label("Карта · %s — закрыть" % UITheme.key_name(&"map"), 13, UITheme.TEXT_DIM)
 	hint.anchor_left = 0.5
 	hint.anchor_right = 0.5
 	hint.anchor_top = 0.5
 	hint.anchor_bottom = 0.5
-	hint.offset_left = -300
-	hint.offset_top = 306
+	hint.offset_left = -292
+	hint.offset_top = 272
 	_big_holder.add_child(hint)
 
 func is_big_map_open() -> bool:
