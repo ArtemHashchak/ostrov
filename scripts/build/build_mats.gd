@@ -17,6 +17,17 @@ static func mat(id: StringName) -> Material:
 			m = _pbr("bark_brown_02", Vector3(1.0, 3.0, 1.0), Color(1.35, 1.2, 1.0))
 		&"pole":
 			m = _pbr("rough_wood", Vector3(1.0, 3.0, 1.0), Color(1, 1, 1))
+		&"hewn":
+			# тёсаное дерево (заострённые концы кольев)
+			m = _pbr("rough_wood", Vector3(0.6, 0.6, 1.0), Color(1.25, 1.12, 0.92))
+		&"territory":
+			var tm := StandardMaterial3D.new()
+			tm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			tm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			tm.cull_mode = BaseMaterial3D.CULL_DISABLED
+			tm.vertex_color_use_as_albedo = true
+			tm.albedo_color = Color(1, 1, 1, 1)
+			m = tm
 		&"rope":
 			m = _pbr("Rope001", Vector3(6.0, 1.0, 1.0), Color(1, 1, 1))
 		&"stone":
@@ -96,6 +107,40 @@ static func cylinder(radius: float, length: float, sides: int = 10) -> CylinderM
 	c.rings = 1
 	_meshes[key] = c
 	return c
+
+## Конус (ось Y, вершина вверху).
+static func cone(radius: float, height: float, sides: int = 10) -> CylinderMesh:
+	var key := "k%.3f_%.3f_%d" % [radius, height, sides]
+	if _meshes.has(key):
+		return _meshes[key]
+	var c := CylinderMesh.new()
+	c.top_radius = 0.0
+	c.bottom_radius = radius
+	c.height = height
+	c.radial_segments = sides
+	c.rings = 1
+	_meshes[key] = c
+	return c
+
+## Бревно-предмет (для поленницы): цилиндр с корой.
+static func log_item_mesh(radius: float, length: float) -> CylinderMesh:
+	var key := "li%.3f_%.3f" % [radius, length]
+	if _meshes.has(key):
+		return _meshes[key]
+	var c := CylinderMesh.new()
+	c.top_radius = radius * 0.94
+	c.bottom_radius = radius
+	c.height = length
+	c.radial_segments = 10
+	c.rings = 1
+	c.material = mat(&"log")
+	_meshes[key] = c
+	return c
+
+static func clear_cache() -> void:
+	_mats.clear()
+	_meshes.clear()
+	_dot = null
 
 static func torus(inner: float, outer: float) -> TorusMesh:
 	var key := "t%.3f_%.3f" % [inner, outer]

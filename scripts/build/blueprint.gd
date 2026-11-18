@@ -12,6 +12,8 @@ signal destroyed(bp: Blueprint)
 
 const BURN_DPS := 9.0
 const BURN_SPREAD_AFTER := 4.0
+const RAFT_SPREAD_AFTER := 11.0   # по мосту огонь ползёт медленно — есть время отрубить секцию
+const TERRITORY_BONUS := 0.5      # на своей территории каждая 2-я деталь укладывается «бесплатно»
 const CHAR_AFTER := 5.0
 const DRIFT_SPEED := 0.75
 const RAFT_FLOAT := 0.02
@@ -51,6 +53,14 @@ var _area: Area3D = null
 var _parts_root: Node3D = null
 var _ghost_mat: StringName = &"ghost"
 var _dead: bool = false
+var _char_set: Dictionary = {}      # индексы деталей, обугленных огнём
+var _bonus: float = 0.0
+
+# створка (ворота, крышка)
+var leaf_open: bool = false
+var _leaf_t: float = 0.0
+var _leaf_root: Node3D = null
+var _leaf_shape: CollisionShape3D = null
 
 func setup(id: StringName, owner_team: int, context: Dictionary = {}, is_preview: bool = false) -> Blueprint:
 	def_id = id
@@ -94,13 +104,23 @@ func _build_parts() -> void:
 			s.queue_free()
 	_nodes.clear()
 	_shapes.clear()
+	var lf := BuildDefs.leaf(def_id)
+	if not lf.is_empty() and _leaf_root == null:
+		_leaf_root = Node3D.new()
+		_leaf_root.name = "Leaf"
+		_leaf_root.position = lf.pivot
+		_parts_root.add_child(_leaf_root)
 	var keep: Array[bool] = filled.duplicate()
 	parts = BuildDefs.parts(def_id, ctx)
 	filled.resize(parts.size())
 	for i in parts.size():
 		filled[i] = keep[i] if i < keep.size() else false
 		var mi := _make_part_mesh(parts[i])
-		_parts_root.add_child(mi)
+		if _leaf_root and bool(parts[i].get("leaf", false)):
+			mi.position -= _leaf_root.position
+			_leaf_root.add_child(mi)
+		else:
+			_parts_root.add_child(mi)
 		_nodes.append(mi)
 		_shapes.append(null)
 		_apply_look(i)
@@ -133,20 +153,36 @@ func _make_part_mesh(p: Dictionary) -> MeshInstance3D:
 	mi.transform = _part_xform(p)
 	if t == &"stone":
 		mi.scale = Vector3(1.0, 0.7, 0.85)
+	if bool(p.get("sharp", false)) and (t == &"log" or t == &"stick"):
+		# заострённый конец: светлый тёсаный конус
+		var tip := MeshInstance3D.new()
+		var h := r * 2.4
+		tip.mesh = BuildMats.cone(r * 0.93, h, 10 if t == &"log" else 6)
+		tip.position = Vector3(0, length * 0.5 + h * 0.5, 0)
+		tip.name = "Tip"
+		mi.add_child(tip)
 	return mi
 
 func _apply_look(i: int) -> void:
 	var mi := _nodes[i]
+	var tip := mi.get_node_or_null(^"Tip") as MeshInstance3D
 	if preview or not filled[i]:
 		mi.material_override = BuildMats.mat(_ghost_mat)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if tip:
+			tip.material_override = mi.material_override
+			tip.cast_shadow = mi.cast_shadow
 	else:
 		var t: StringName = parts[i].t
 		var m := t
-		if _charred and (t == &"log" or t == &"stick"):
+		var burnt := _char_set.has(i) and (t == &"log" or t == &"stick")
+		if burnt:
 			m = &"charred"
 		mi.material_override = BuildMats.mat(m)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		if tip:
+			tip.material_override = BuildMats.mat(&"charred" if burnt else &"hewn")
+			tip.cast_shadow = mi.cast_shadow
 
 func set_preview_valid(ok: bool) -> void:
 	var want: StringName = &"ghost_ok" if ok else &"ghost_bad"
@@ -190,9 +226,9 @@ func _update_extra_shapes() -> void:
 		return
 	var want := false
 	match def_id:
-		&"stairs", &"roof":
+		&"stairs", &"roof", &"watchtower", &"foundation", &"chest", &"workbench":
 			want = complete
-		&"raft":
+		&"raft", &"raft_gate", &"raft_pile":
 			want = filled_count(&"log") >= 3
 	if want == (not _extra_shapes.is_empty()):
 		return
@@ -214,7 +250,18 @@ func _update_extra_shapes() -> void:
 			for side in [-1.0, 1.0]:
 				var a2: float = atan2(ridge, eave) * side
 				_add_box(Vector3(3.4, 0.25, L2), Transform3D(Basis(Vector3.RIGHT, a2), Vector3(0, ridge * 0.5 + BuildDefs.R, side * eave * 0.5)))
-		&"raft":
+		&"watchtower":
+			var H := BuildDefs.TOWER_H
+			_add_box(Vector3(2.7, 1.15, 0.1), Transform3D(Basis(), Vector3(0, H + 0.57, -1.3)))
+			for sx in [-1.3, 1.3]:
+				_add_box(Vector3(0.1, 1.15, 2.7), Transform3D(Basis(), Vector3(sx, H + 0.57, 0)))
+		&"foundation":
+			_add_box(Vector3(3.0, BuildDefs.FOUND_H + 0.3, 3.0), Transform3D(Basis(), Vector3(0, (BuildDefs.FOUND_H - 0.3) * 0.5, 0)))
+		&"chest":
+			_add_box(Vector3(1.22, 0.74, 0.68), Transform3D(Basis(), Vector3(0, 0.37, 0)))
+		&"workbench":
+			_add_box(Vector3(2.0, 0.95, 0.72), Transform3D(Basis(), Vector3(0, 0.475, 0)))
+		&"raft", &"raft_gate", &"raft_pile":
 			# сходни-скосы на торцах: можно зайти с пляжа и с соседней секции
 			for sz in [-1.0, 1.0]:
 				var w := BuildDefs.RAFT_W * 0.5
@@ -305,10 +352,23 @@ func total_count(t: StringName) -> int:
 func is_complete() -> bool:
 	return complete
 
+## Постройка достроена (в т.ч. после ремонта). Наследники расширяют.
+func _on_completed() -> void:
+	if def_id == &"workbench":
+		add_to_group(&"workbench")
+	_update_leaf_shape()
+
+## Постройка перестала быть целой (сняли деталь).
+func _on_broken() -> void:
+	if def_id == &"workbench":
+		remove_from_group(&"workbench")
+	_update_leaf_shape()
+
 func fill_part(i: int, _by: Node = null) -> void:
 	if i < 0 or i >= parts.size() or filled[i]:
 		return
 	filled[i] = true
+	_char_set.erase(i)
 	hp += float(BuildDefs.HP_PER.get(parts[i].t, 10.0))
 	_apply_look(i)
 	_add_shape(i)
@@ -321,6 +381,7 @@ func fill_part(i: int, _by: Node = null) -> void:
 	if not complete and needs_left().is_empty():
 		complete = true
 		_update_extra_shapes()
+		_on_completed()
 		completed.emit(self)
 		if Events.has_signal(&"structure_completed"):
 			Events.structure_completed.emit(self, def_id)
@@ -345,11 +406,32 @@ func accept_log(player: Node) -> bool:
 	if i < 0:
 		return false
 	var obj: Node = player.get(&"carried_object") as Node
-	player.call(&"set_carrying_log", false)
-	if obj and is_instance_valid(obj):
-		obj.queue_free()
+	if obj and is_instance_valid(obj) and obj.has_method(&"consume_one"):
+		obj.call(&"consume_one", player)   # со стопки на плече снимается одно бревно
+	else:
+		player.call(&"set_carrying_log", false)
+		if obj and is_instance_valid(obj):
+			obj.queue_free()
 	fill_part(i, player)
+	_territory_bonus(&"log", player)
 	return true
+
+## На своей территории (у флага) стройка идёт быстрее: каждая вторая деталь — даром.
+func _territory_bonus(t: StringName, by: Node) -> void:
+	if by == null or complete:
+		return
+	var mod := BuildModule.instance()
+	if mod == null or mod.territory_of(global_position) != team or team < 0:
+		return
+	var bt: Variant = by.get(&"team")
+	if bt == null or int(bt) != team:
+		return
+	_bonus += TERRITORY_BONUS
+	if _bonus >= 1.0:
+		_bonus -= 1.0
+		var j := next_needed(t)
+		if j >= 0:
+			fill_part(j, by)
 
 func get_interact_text(player: Node) -> String:
 	if complete:
@@ -384,6 +466,7 @@ func interact(player: Node) -> void:
 	for t: StringName in [&"stick", &"stone", &"rope"]:
 		if next_needed(t) >= 0 and BuildEnv.inv_count(player, t) > 0 and BuildEnv.inv_remove(player, t, 1):
 			fill_part(next_needed(t), player)
+			_territory_bonus(t, player)
 			return
 	var left := needs_left()
 	var bits: PackedStringArray = []
@@ -411,6 +494,9 @@ func apply_damage(amount: float, source: Node, kind: StringName) -> void:
 		&"melee": mul = 0.5
 		&"bullet": mul = 0.25
 		&"fire": mul = 1.0
+	if kind == &"fire":
+		_fire_damage(amount)
+		return
 	hp -= amount * mul
 	# снимаем верхние детали, пока их прочность больше оставшейся
 	var sum := _filled_hp()
@@ -425,6 +511,29 @@ func apply_damage(amount: float, source: Node, kind: StringName) -> void:
 		sum -= phv
 	if filled_count() == 0 or hp <= 0.0:
 		destroy(source)
+
+## Огонь съедает только дерево и верёвку; камень (очаг, фундамент) не горит.
+var _fire_acc: float = 0.0
+func _fire_damage(amount: float) -> void:
+	_fire_acc += amount
+	while filled_count() > 0:
+		var i := _top_wood()
+		if i < 0:
+			break
+		var phv := float(BuildDefs.HP_PER.get(parts[i].t, 10.0))
+		if _fire_acc < phv:
+			break
+		_fire_acc -= phv
+		hp -= phv
+		_unfill(i, false)
+	if filled_count() == 0:
+		destroy(self)
+
+func _top_wood() -> int:
+	for i in range(parts.size() - 1, -1, -1):
+		if filled[i] and parts[i].t != &"stone":
+			return i
+	return -1
 
 func _filled_hp() -> float:
 	var s := 0.0
@@ -441,7 +550,11 @@ func _top_filled() -> int:
 
 func _unfill(i: int, debris: bool) -> void:
 	filled[i] = false
+	_char_set.erase(i)
+	var was := complete
 	complete = false
+	if was:
+		_on_broken()
 	_remove_shape(i)
 	_apply_look(i)
 	if debris and (parts[i].t == &"log"):
@@ -612,8 +725,10 @@ func _process_fire(delta: float) -> void:
 	if not _charred and _burn_t > CHAR_AFTER:
 		_charred = true
 		for i in _nodes.size():
+			if filled[i]:
+				_char_set[i] = true
 			_apply_look(i)
-	if _burn_t > BURN_SPREAD_AFTER:
+	if _burn_t > (RAFT_SPREAD_AFTER if is_raft() else BURN_SPREAD_AFTER):
 		for nb in _fire_neighbours():
 			if not _spread_done.has(nb.get_instance_id()):
 				_spread_done[nb.get_instance_id()] = true
@@ -630,8 +745,12 @@ func _fire_neighbours() -> Array[Blueprint]:
 			if par and is_instance_valid(par):
 				out.append(par)
 		for c in raft_children:
-			if is_instance_valid(c):
+			if is_instance_valid(c) and not out.has(c):
 				out.append(c)
+		for n in get_tree().get_nodes_in_group(&"raft_deck"):
+			var rb := n as Blueprint
+			if rb and rb != self and not out.has(rb) and rb.global_position.distance_to(global_position) < 3.4:
+				out.append(rb)
 	else:
 		for n in get_tree().get_nodes_in_group(&"buildable"):
 			var b := n as Blueprint
@@ -640,6 +759,9 @@ func _fire_neighbours() -> Array[Blueprint]:
 	return out
 
 # --- мост-плот ---
+
+func is_pile() -> bool:
+	return def_id == &"raft_pile"
 
 func base_now() -> Transform3D:
 	if anchor.get("type") == &"raft":
@@ -651,6 +773,15 @@ func base_now() -> Transform3D:
 ## Порвать связь: секция (со своими «детьми») уплывает по течению.
 func detach(msg: String = "") -> void:
 	if not is_raft() or anchor.get("type") == &"drift":
+		return
+	if is_pile():
+		# секция на сваях стоит сама — не уплывает
+		if anchor.get("type") == &"raft":
+			base_xform = base_now()
+			var pp: Blueprint = anchor.get("parent") as Blueprint
+			if pp and is_instance_valid(pp):
+				pp.raft_children.erase(self)
+		anchor = {"type": &"pile"}
 		return
 	base_xform = base_now()
 	if anchor.get("type") == &"raft":
@@ -675,6 +806,8 @@ func deck_height() -> float:
 	return global_position.y + BuildDefs.R - BuildEnv.water_level()
 
 func _physics_process(delta: float) -> void:
+	if _leaf_root:
+		_process_leaf(delta)
 	if burning:
 		_process_fire(delta)
 	if is_raft() and not preview and is_inside_tree():
@@ -695,6 +828,13 @@ func _float(delta: float) -> void:
 			destroy(null)
 			return
 	var b := base_now()
+	if is_pile():
+		# сваи держат настил: без качки, только прилив
+		var py := BuildEnv.water_level() + RAFT_FLOAT + 0.06
+		var pb := Transform3D(b.basis, Vector3(b.origin.x, py, b.origin.z))
+		if not global_transform.is_equal_approx(pb):
+			global_transform = pb
+		return
 	var o := b.origin
 	var fz := b.basis.z.normalized()
 	var fx := b.basis.x.normalized()
@@ -714,3 +854,45 @@ func _float(delta: float) -> void:
 	var roll := atan2(hr - hl, 1.8)
 	var bas := b.basis.orthonormalized() * Basis.from_euler(Vector3(pitch, 0.0, roll))
 	global_transform = Transform3D(bas, Vector3(o.x, y, o.z))
+
+# --- створка (ворота, крышка сундука) ---
+
+func set_leaf_open(on: bool) -> void:
+	if leaf_open == on:
+		return
+	leaf_open = on
+	_update_leaf_shape()
+
+func _process_leaf(delta: float) -> void:
+	var target := 1.0 if leaf_open else 0.0
+	if is_equal_approx(_leaf_t, target):
+		return
+	_leaf_t = move_toward(_leaf_t, target, delta / 0.6)
+	var lf := BuildDefs.leaf(def_id)
+	var e := smoothstep(0.0, 1.0, _leaf_t)
+	_leaf_root.basis = Basis(lf.axis, float(lf.angle) * e)
+
+## Коллизия закрытой створки: есть, пока створка цела, достроена и закрыта.
+func _update_leaf_shape() -> void:
+	if preview or not is_inside_tree():
+		return
+	var lf := BuildDefs.leaf(def_id)
+	if not lf.has("box_size"):
+		return
+	var want := complete and not leaf_open and _leaf_filled()
+	if want and _leaf_shape == null:
+		var bx := BoxShape3D.new()
+		bx.size = lf.box_size
+		_leaf_shape = CollisionShape3D.new()
+		_leaf_shape.shape = bx
+		_leaf_shape.position = lf.box_pos
+		add_child(_leaf_shape)
+	elif not want and _leaf_shape:
+		_leaf_shape.queue_free()
+		_leaf_shape = null
+
+func _leaf_filled() -> bool:
+	for i in parts.size():
+		if bool(parts[i].get("leaf", false)) and not filled[i]:
+			return false
+	return true

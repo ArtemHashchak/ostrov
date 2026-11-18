@@ -22,6 +22,7 @@ var _panel: PanelContainer
 var _list: VBoxContainer
 var _hint: Label
 var _player: Node3D
+var _rings: Array[Node3D] = []
 
 func _ready() -> void:
 	_player = get_parent() as Node3D
@@ -104,6 +105,31 @@ func close() -> void:
 	_panel.visible = false
 	_set_hint("")
 	_free_ghost()
+	_free_rings()
+
+## Рамки территорий флагов (видны только в режиме постройки).
+func _show_rings() -> void:
+	_free_rings()
+	var mod := BuildModule.instance()
+	if mod == null:
+		return
+	var root := _player.get_parent() if _player.get_parent() else get_tree().current_scene
+	for t: Dictionary in mod.territories():
+		if Vector2(t.pos.x - _player.global_position.x, t.pos.z - _player.global_position.z).length() > 160.0:
+			continue
+		var ring := TerritoryRing.make(int(t.team), t.pos, float(t.radius))
+		root.add_child(ring)
+		_rings.append(ring)
+
+func _free_rings() -> void:
+	for r in _rings:
+		if is_instance_valid(r):
+			r.queue_free()
+	_rings.clear()
+
+func _exit_tree() -> void:
+	_free_ghost()
+	_free_rings()
 
 func start_place(id: StringName) -> void:
 	_panel.visible = false
@@ -118,6 +144,7 @@ func start_place(id: StringName) -> void:
 	_ghost_key = ""
 	var root := _player.get_parent() if _player.get_parent() else get_tree().current_scene
 	root.add_child(ghost)
+	_show_rings()
 
 func _free_ghost() -> void:
 	if ghost and is_instance_valid(ghost):
@@ -302,6 +329,9 @@ func _place_structure(mod: BuildModule, from: Vector3, dir: Vector3, yaw: float)
 			if int(round(yaw_off / (PI / 4.0))) % 2 == 1:
 				place_xform.basis = place_xform.basis * Basis(Vector3.UP, PI)
 		valid = true
+		if mod.territory_blocks(player_team(), place_xform.origin):
+			valid = false
+			reason = "Чужая территория — у чужого флага строить нельзя"
 		if current == &"platform":
 			_ghost_rebuild(mod.platform_ctx(place_xform), str(place_xform.origin.snapped(Vector3.ONE * 0.1), place_xform.basis.get_euler().y))
 		return
@@ -314,12 +344,12 @@ func _place_structure(mod: BuildModule, from: Vector3, dir: Vector3, yaw: float)
 		y = BuildEnv.height_at(p.x, p.z) if hit.collider is StaticBody3D else p.y
 		y = minf(y, p.y)
 	place_xform = Transform3D(Basis(Vector3.UP, yaw), Vector3(p.x, y, p.z))
-	if current == &"platform":
+	if current == &"platform" or current == &"watchtower":
 		# настил ровно; сваи до земли
 		_ghost_rebuild(mod.platform_ctx(place_xform), str(place_xform.origin.snapped(Vector3.ONE * 0.1), snappedf(place_xform.basis.get_euler().y, 0.05)))
 	elif current == &"stairs":
 		_ghost_rebuild({}, "stairs_ground")
-	reason = mod.check_ground(current, place_xform)
+	reason = mod.check_ground(current, place_xform, player_team())
 	valid = reason == ""
 
 func _place_raft(mod: BuildModule, from: Vector3, dir: Vector3, yaw: float) -> void:
@@ -334,10 +364,24 @@ func _place_raft(mod: BuildModule, from: Vector3, dir: Vector3, yaw: float) -> v
 		place_xform = s.xform
 		place_anchor = {"type": &"raft", "parent": s.parent, "offset": s.offset}
 		valid = true
-		return
-	var r := mod.shore_raft(p, yaw)
-	place_xform = r.xform
-	valid = bool(r.ok)
-	reason = String(r.reason)
-	if valid:
-		place_anchor = {"type": &"shore"}
+	else:
+		var r := mod.shore_raft(p, yaw)
+		if current == &"raft_pile" and not bool(r.ok):
+			r = mod.pile_raft(p, yaw)   # сваи держат секцию и посреди пролива
+		place_xform = r.xform
+		valid = bool(r.ok)
+		reason = String(r.reason)
+		if valid:
+			place_anchor = {"type": &"shore"}
+	if current == &"raft_pile":
+		var depth := BuildEnv.water_level() - BuildEnv.height_at(place_xform.origin.x, place_xform.origin.z)
+		if valid and depth > BuildModule.PILE_MAX_DEPTH:
+			valid = false
+			reason = "Слишком глубоко для свай (до %d м)" % int(BuildModule.PILE_MAX_DEPTH)
+		place_ctx = mod.platform_ctx(place_xform)
+		_ghost_rebuild(place_ctx, str(place_xform.origin.snapped(Vector3.ONE * 0.25), snappedf(place_xform.basis.get_euler().y, 0.05)))
+	else:
+		place_ctx = {}
+	if valid and mod.territory_blocks(player_team(), place_xform.origin):
+		valid = false
+		reason = "Чужая территория — у чужого флага строить нельзя"
