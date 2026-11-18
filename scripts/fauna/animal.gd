@@ -100,6 +100,12 @@ var _model: Node3D
 var _mat: ShaderMaterial
 var _legs: Array = []
 var _wings: Array = []
+## Контроллер анимации вида (общий интерфейс для всех видов, необязателен).
+## Модель кладёт его в meta "anim" (Object). Методы (все необязательны):
+##   setup(animal), animate(animal, dt), animate_dead(animal, dt), on_event(animal, ev: StringName)
+## События: attack (удар/укус в момент нанесения), hurt, die, eat, threat.
+## Если есть animate — встроенная процедурная анимация для вида не выполняется.
+var anim_ctrl: Object = null
 var _hitbox: Area3D
 var _rng := RandomNumberGenerator.new()
 var _dead_t: float = 0.0
@@ -129,6 +135,9 @@ func _ready() -> void:
 	_mat = _model.get_meta(&"mat")
 	_legs = _model.get_meta(&"legs")
 	_wings = _model.get_meta(&"wings")
+	anim_ctrl = _model.get_meta(&"anim", null)
+	if anim_ctrl and anim_ctrl.has_method(&"setup"):
+		anim_ctrl.call(&"setup", self)
 	if _mat:
 		_mat.set_shader_parameter(&"bend_phase", _rng.randf() * TAU)
 	_model.scale = Vector3.ONE * growth
@@ -180,6 +189,7 @@ func apply_damage(amount: float, source: Node = null, _kind: StringName = &"mele
 		return
 	health -= amount
 	_hurt_flash = 0.25
+	anim_event(&"hurt")
 	_sound(cfg.get("hurt", &"bite"), 2.0)
 	if health <= 0.0:
 		die(source)
@@ -191,6 +201,7 @@ func die(killer: Node = null) -> void:
 	if dead:
 		return
 	dead = true
+	anim_event(&"die")
 	state = &"dead"
 	state_t = 0.0
 	speed = 0.0
@@ -760,6 +771,7 @@ func _react_to_attack(src: Node3D) -> void:
 
 func _bite(t: Node3D) -> void:
 	_attack_cd = float(cfg["cd"])
+	anim_event(&"attack")
 	var dmg := float(cfg["dmg"]) * (0.5 + 0.5 * growth)
 	if dmg <= 0.0:
 		return
@@ -785,6 +797,11 @@ func _sound(kind: Variant, db: float) -> void:
 	if kind == null or lod > 1:
 		return
 	FaunaSfx.play(self, kind as StringName, db, 5.0 if growth > 0.7 else 3.0, 1.0 / maxf(growth, 0.6))
+
+## Событие для контроллера анимации (см. anim_ctrl).
+func anim_event(ev: StringName) -> void:
+	if anim_ctrl and anim_ctrl.has_method(&"on_event"):
+		anim_ctrl.call(&"on_event", self, ev)
 
 func _set_state(s: StringName) -> void:
 	state = s
@@ -967,6 +984,8 @@ func _snap_ground(dt: float) -> void:
 
 func _tick_dead(dt: float) -> void:
 	_dead_t += dt
+	if anim_ctrl and anim_ctrl.has_method(&"animate_dead"):
+		anim_ctrl.call(&"animate_dead", self, dt)
 	if cfg.get("fly", false):
 		var g := Fauna.ground_y_at(self, global_position.x, global_position.z)
 		global_position.y = move_toward(global_position.y, g + 0.05, dt * 9.0)
@@ -988,6 +1007,11 @@ func _tick_dead(dt: float) -> void:
 # ============================== анимация ==============================
 
 func _animate(dt: float) -> void:
+	if anim_ctrl and anim_ctrl.has_method(&"animate"):
+		anim_ctrl.call(&"animate", self, dt)
+		if _mat:
+			_mat.set_shader_parameter(&"wetness", (0.9 if _in_water() else float(AnimalModels.LOOK[species].get("wet", 0.0))))
+		return
 	var sp_norm := clampf(speed / maxf(float(cfg["walk"]), 0.1), 0.0, 4.0)
 	var ph := _anim_t * (4.0 + speed * 3.0)
 	var n := _legs.size()
