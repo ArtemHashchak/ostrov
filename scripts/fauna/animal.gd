@@ -110,6 +110,8 @@ var _hitbox: Area3D
 var _rng := RandomNumberGenerator.new()
 var _dead_t: float = 0.0
 var _nest_done: bool = false
+## Состояние анимации этого зверя для контроллера (anim_ctrl), если тому нужно хранить его на звере.
+var anim_state: Dictionary = {}
 
 static func create(sp: StringName, pos: Vector3, fauna_node: Node = null) -> Animal:
 	var a := Animal.new()
@@ -686,6 +688,8 @@ func _tick_bird(dt: float) -> void:
 	if night_bird:
 		visible = night or (fauna and fauna.force_night_birds)
 		if not visible:
+			# днём летучие мыши висят вниз головой под кроной дерева (если нашлось)
+			visible = _day_roost()
 			return
 	elif species == &"parrot" and night and state == &"fly":
 		# ночью попугаи садятся на деревья
@@ -745,6 +749,26 @@ func _tick_bird(dt: float) -> void:
 	if _sound_cd <= 0.0 and _rng.randf() < dt * 0.05:
 		_sound(cfg["sound"], -4.0)
 		_sound_cd = 4.0
+
+## Дневная ночёвка летучей мыши: общая для стаи точка под кроной дерева. false — негде висеть.
+func _day_roost() -> bool:
+	var rp: Variant = flock.get("roost", null)
+	if rp == null and fauna and fauna.has_method(&"_find_perch") and not flock.has("roost_tried"):
+		flock["roost_tried"] = true
+		var p: Vector3 = fauna.call(&"_find_perch", &"parrot", home, home_r)
+		if p != Vector3.INF:
+			flock["roost"] = p
+			rp = p
+	if not rp is Vector3:
+		return false
+	var off := Vector3(flock_offset.x * 0.16, -0.55 - absf(flock_offset.y) * 0.08, flock_offset.z * 0.16)
+	global_position = (rp as Vector3) + off
+	state = &"roost"
+	speed = 0.0
+	alt = global_position.y - Fauna.ground_y_at(self, global_position.x, global_position.z)
+	_model.rotation.z = 0.0
+	rotation.y = heading
+	return true
 
 # ============================== помощники ==============================
 

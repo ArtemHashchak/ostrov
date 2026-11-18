@@ -246,6 +246,9 @@ static func cached(key: String, maker: Callable) -> ArrayMesh:
 # ============================ сборка видов ============================
 
 static func build(species: StringName) -> Node3D:
+	var rig := FaunaAnim.build_model(species)
+	if rig != null:
+		return rig
 	match species:
 		&"boar": return _boar()
 		&"crab": return _crab()
