@@ -303,7 +303,7 @@ func _job() -> Dictionary:
 
 # ============================================================ посылки спонсоров (SUPPLY)
 
-## Ящик спонсоров рядом (≤150 м, достижим): не каждый бот бежит — примерно половина,
+## Ящик спонсоров рядом (≤190 м, достижим): не каждый бот бежит — примерно половина,
 ## ближние (≤60 м) — всегда.
 func _supply_job() -> Dictionary:
 	if _recent_fail("supply"):
@@ -313,7 +313,7 @@ func _supply_job() -> Dictionary:
 		if c == null or not c.is_available() or _banned(c):
 			continue
 		var d := c.global_position.distance_to(bot.global_position)
-		if d > 150.0:
+		if d > 190.0:
 			continue
 		if d > 60.0 and (c.number + bot.index + bot.team) % 2 == 1:
 			continue

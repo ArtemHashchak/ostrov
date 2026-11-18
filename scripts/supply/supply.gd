@@ -204,6 +204,8 @@ func launch(info: Dictionary, plane: bool = true) -> Node:
 	crate.landed.connect(_on_landed)
 	crate.opened.connect(_on_opened)
 	var host: Node = get_parent() if get_parent() else self
+	print("[supply] сброс №%d (%s) t=%d: %s, остров «%s»" % [drops, SupplyModels.TIER_NAMES[clampi(tier, 0, 2)], int(Game.match_time),
+		str(target.snapped(Vector3.ONE)), String(info.get("island", ""))])
 	var announce := info.duplicate()
 	announce.tier = tier
 	if not plane:
@@ -262,6 +264,7 @@ func _on_landed(c: SupplyCrate) -> void:
 
 func _on_opened(c: SupplyCrate, by: Node) -> void:
 	crate_opened.emit(c, by)
+	print("[supply] ящик №%d открыл(а) %s t=%d" % [c.number, Game.display_name(by), int(Game.match_time)])
 	if not by.is_in_group(&"player"):
 		var p := get_tree().get_first_node_in_group(&"player") as Node3D
 		if p and p.global_position.distance_to(c.global_position) < 260.0:

@@ -33,6 +33,7 @@ var _tick := 0.0
 var _heat := 0.0
 var _heat_target: Node = null
 var _zoom := 0.0
+var _hands_hidden := false
 var _no_fuel_t := 0.0
 var _ui: CanvasLayer
 var _label: Label
@@ -110,8 +111,11 @@ func _process(delta: float) -> void:
 		p.fov_zoom = maxf(p.fov_zoom, ZOOM * smoothstep(0.0, 1.0, _zoom))
 	if _scope:
 		_scope.visible = _zoom > 0.6
-	if p.hands and p.alive:
-		p.hands.visible = _zoom <= 0.6
+	# в бинокль руки убираем (только на смене состояния — видимость рук трогают и другие)
+	var hid := _zoom > 0.6 and p.alive
+	if p.hands and hid != _hands_hidden:
+		_hands_hidden = hid
+		p.hands.visible = not hid
 	match held:
 		&"gas_torch":
 			_torch_process(delta, atk)

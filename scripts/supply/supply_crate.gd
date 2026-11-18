@@ -91,7 +91,7 @@ func _physics_process(delta: float) -> void:
 	if _smoke and is_instance_valid(_smoke) and _smoke_can:
 		for c in _smoke.get_children():
 			if c is CPUParticles3D:
-				(c as CPUParticles3D).global_position = _smoke_can.global_position + Vector3.UP * (0.2 if c.name == "Base" else 4.0)
+				(c as CPUParticles3D).global_position = _smoke_can.global_position + (c.get_meta(&"off", Vector3.ZERO) as Vector3)
 	if state == State.OPENED and _state_t > DESPAWN_AFTER_OPEN:
 		queue_free()
 	elif state != State.FALLING and state != State.OPENED and _state_t > SMOKE_MAX and _smoke:
@@ -140,7 +140,7 @@ func _land(water: bool) -> void:
 		var sp := _smoke_can.global_position
 		_smoke_can.global_position.y = BuildEnv.height_at(sp.x, sp.z)
 	SupplyModels.smoke_can(_smoke_can, tier)
-	_smoke = SupplyFx.smoke_column(_smoke_can, color())
+	_smoke = SupplyFx.smoke_column(_smoke_can, color(), wind)
 	landed.emit(self)
 
 ## Купол оседает и ложится рядом по ветру, через 40 с исчезает.
