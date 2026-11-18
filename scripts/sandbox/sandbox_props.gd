@@ -75,7 +75,7 @@ static func signpost(parent: Node, x: float, z: float, title: String, sub: Strin
 	cs.position = Vector3(0, 1.4, 0)
 	root.add_child(cs)
 	var t := label(root, Vector3(x, g + 3.05, z), title, 96, Color(1.0, 0.88, 0.6))
-	t.pixel_size = 0.006
+	t.pixel_size = 0.0042
 	if sub != "":
 		var s := label(root, Vector3(x, g + 3.0, z), sub, 40, SIGN_COLOR)
 		s.vertical_alignment = VERTICAL_ALIGNMENT_TOP

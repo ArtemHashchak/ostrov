@@ -172,12 +172,12 @@ func _hub(root: Node3D) -> void:
 		var d := c.normalized()
 		var p := d * 7.0
 		P.tag(root, p.x, p.y, "%s  →  %d м" % [dirs[id], int(c.length())], 1.3, 40.0)
-	_stand(&"hub", "Центр", 0.0, -9.0, 0.0, 0.0, 2.2)
+	_stand(&"hub", "Центр", 0.0, -7.0, 0.0, 0.0, 2.6)
 
 # ------------------------------------------------------------ растения
 
 func _flora(root: Node3D) -> void:
-	P.signpost(root, -62.0, -45.0, "РАСТЕНИЯ И РЕСУРСЫ", "Рубите, собирайте, копайте — мир не восстанавливается")
+	P.signpost(root, -71.0, -44.0, "РАСТЕНИЯ И РЕСУРСЫ", "Рубите, собирайте, копайте — мир не восстанавливается")
 	for e: Dictionary in flora_layout():
 		var q: Vector2 = e.pos
 		var nm: String = FLORA_NAMES.get(e.kind, String(e.kind))
@@ -193,7 +193,7 @@ func _flora(root: Node3D) -> void:
 # ------------------------------------------------------------ животные
 
 func _fauna(root: Node3D) -> void:
-	P.signpost(root, 59.0, -38.0, "ЖИВОТНЫЕ", "Все виды в загонах · еду можно дать с руки (E)")
+	P.signpost(root, 47.0, -37.0, "ЖИВОТНЫЕ", "Все виды в загонах · еду можно дать с руки (E)")
 	var fa := Fauna.instance()
 	var slots: Array[Vector2] = []
 	for row in 3:
@@ -227,7 +227,7 @@ func _fauna(root: Node3D) -> void:
 			foods.append(id)
 	_lay(&"fauna", root, t, foods, 3)
 	P.tag(root, 71.0, -42.0, "Корм для приручения", 1.5, 30.0)
-	_stand(&"fauna", "Животные", 59.0, -35.0, 59.0, -62.0, 1.0)
+	_stand(&"fauna", "Животные", 60.0, -39.0, 60.0, -62.0, 0.5)
 
 ## Приручённый кабан у таблички (нужен игрок).
 func tame_demo() -> void:
@@ -282,7 +282,7 @@ const KIND_NAMES := {&"resource": "Ресурсы", &"tool": "Инструмен
 	&"build": "Стройка", &"misc": "Разное", &"ammo": "Боеприпасы", &"medicine": "Лечение"}
 
 func _items(root: Node3D) -> void:
-	P.signpost(root, 0.0, 11.0, "ПРЕДМЕТЫ", "Все предметы игры — подходите и берите (E)")
+	P.signpost(root, -9.0, 11.0, "ПРЕДМЕТЫ", "Все предметы игры — подходите и берите (E)")
 	var ids := all_items().filter(func(id: StringName) -> bool: return Items.get_item(id).kind != &"weapon")
 	var per := 8
 	var tables := ceili(ids.size() / float(per))
@@ -364,7 +364,7 @@ func _float_number(pos: Vector3, amount: float) -> void:
 # ------------------------------------------------------------ стройка
 
 func _build(root: Node3D) -> void:
-	P.signpost(root, -56.0, 4.0, "СТРОЙКА", "Все постройки: готовые и чертежи · B — меню стройки")
+	P.signpost(root, -56.0, -5.0, "СТРОЙКА", "Все постройки: готовые и чертежи · B — меню стройки")
 	var bm := _bm()
 	if bm == null:
 		return
@@ -507,7 +507,7 @@ func _chain(zone: StringName, first: Transform3D, n: int, gate_at: int) -> void:
 # ------------------------------------------------------------ выживание
 
 func _survival(root: Node3D) -> void:
-	P.signpost(root, -46.0, 60.0, "ВЫЖИВАНИЕ", "Вода, костёр, копчение, огород, травы")
+	P.signpost(root, -38.0, 65.0, "ВЫЖИВАНИЕ", "Вода, костёр, копчение, огород, травы")
 	var sv := Survival.instance()
 	if sv == null:
 		return
@@ -579,7 +579,7 @@ func _beach(root: Node3D) -> void:
 		P.tag(root, q.x, q.y, names.get(kinds[i], ""), 1.4, 25.0)
 		mid += q
 	mid /= kinds.size()
-	var inland := mid - Vector2.from_angle(a0) * 9.0
+	var inland := mid - Vector2.from_angle(a0) * 9.0 + Vector2.from_angle(a0 + PI * 0.5) * 6.0
 	P.signpost(root, inland.x, inland.y, "МУСОРНЫЙ ПЛЯЖ", "Обломки после штормов: ящики, бочки, сети, металл")
 	var stand := mid - Vector2.from_angle(a0) * 13.0
 	_point(&"beach", "Мусорный пляж", Vector3(stand.x, P.ground(stand.x, stand.y) + 0.2, stand.y), Vector3(mid.x, P.ground(mid.x, mid.y) + 0.5, mid.y))
@@ -608,9 +608,15 @@ func _sea(root: Node3D) -> void:
 	var dir := Vector3(cos(a), 0, sin(a))
 	var start := Vector3(shore.x, 0.0, shore.y) - dir * 3.0
 	var deck := 1.35
-	P.pier(root, start, dir, 44.0, deck)
+	var length := 30.0
+	while length < 90.0:
+		var e := start + dir * length
+		if P.ground(e.x, e.z) < -7.0:
+			break
+		length += 2.0
+	P.pier(root, start, dir, length, deck)
 	P.signpost(root, start.x - dir.z * 3.0, start.z + dir.x * 3.0, "МОРЕ", "Пирс над глубиной · акулы, рыбы, скаты, медузы")
-	var end := start + dir * 43.0
+	var end := start + dir * (length - 1.0)
 	P.label(root, Vector3(end.x, deck + 1.6, end.z), "Глубина ≈ %d м · не плавайте с кровью!" % int(maxf(0.0, -P.ground(end.x, end.z))),
 			30, P.SIGN_COLOR, 40.0)
 	var sea := get_tree().get_first_node_in_group(&"sea") as Sea
@@ -631,7 +637,8 @@ func _reef(root: Node3D) -> void:
 	var a := (Vector2.ZERO - c).angle()
 	var q := c + Vector2.from_angle(a) * world.arch._coast_r(at, a) * 0.78
 	var g := P.ground(q.x, q.y)
-	P.signpost(root, q.x, q.y, "РИФ", "Атолл с кораллами · ныряйте (Ctrl), следите за воздухом")
+	var qs := q + Vector2.from_angle(a + PI * 0.5) * 4.0
+	P.signpost(root, qs.x, qs.y, "РИФ", "Атолл с кораллами · ныряйте (Ctrl), следите за воздухом")
 	var out := Vector2.from_angle(a)
 	var look := q + out * 30.0
 	_point(&"reef", "Коралловый риф", Vector3(q.x, g + 0.2, q.y) - Vector3(out.x, 0, out.y) * 3.0, Vector3(look.x, -1.5, look.y))
@@ -654,7 +661,7 @@ func _reef(root: Node3D) -> void:
 func _bots(root: Node3D) -> void:
 	var c: Vector2 = ZONES[&"bots"].c
 	P.ring_marks(root, c.x, c.y, 16.0)
-	P.signpost(root, c.x - 14.0, c.y - 14.0, "АРЕНА БОТОВ", "Меню полигона (F1): создать бота любой команды и сложности")
+	P.signpost(root, c.x - 22.0, c.y - 9.0, "АРЕНА БОТОВ", "Меню полигона (F1): создать бота любой команды и сложности")
 	_stand(&"bots", "Арена ботов", c.x - 18.0, c.y - 18.0, c.x, c.y, 1.0)
 
 func arena_center() -> Vector3:

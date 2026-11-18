@@ -186,6 +186,8 @@ func _start_hunt(cam: Camera3D) -> Dictionary:
 	return {"target": target, "predators": preds, "nodes": nodes, "phase": 0, "fish": -1, "prey": null, "pack": pack, "dash_t": 0.0}
 
 func _step_hunt(s: Dictionary, delta: float) -> bool:
+	if not _alive(s, [&"target"]):
+		return false
 	var target: ReefSchool = s.target
 	var preds: Array = s.predators
 	if not is_instance_valid(target) or preds.is_empty():
@@ -258,6 +260,8 @@ func _start_shark(cam: Camera3D) -> Dictionary:
 	return {"target": target, "predators": [sh], "nodes": [sh], "phase": 0, "fish": -1, "body": body, "swim": 0.0, "dash_t": 0.0}
 
 func _step_shark(s: Dictionary, delta: float) -> bool:
+	if not _alive(s, [&"target"]) or (s.predators as Array).is_empty() or not is_instance_valid((s.predators as Array)[0]):
+		return false
 	var target: ReefSchool = s.target
 	var sh: Node3D = s.predators[0]
 	if not is_instance_valid(target) or not is_instance_valid(sh):
@@ -386,6 +390,8 @@ func _bolt(s: Dictionary) -> void:
 	im.surface_end()
 
 func _step_ray(s: Dictionary, delta: float) -> bool:
+	if not _alive(s, [&"fish", &"ray"]):
+		return false
 	var fish: Node3D = s.fish
 	var ray: Node3D = s.ray
 	var light: OmniLight3D = s.light
@@ -480,6 +486,8 @@ func _gull_wings(s: Dictionary, flap: float) -> void:
 		(w.material_override as ShaderMaterial).set_shader_parameter(&"flap", flap)
 
 func _step_gull(s: Dictionary, delta: float) -> bool:
+	if not _alive(s, [&"target", &"gull"]):
+		return false
 	var target: ReefSchool = s.target
 	var g: Node3D = s.gull
 	if not is_instance_valid(target) or not is_instance_valid(g):
@@ -537,4 +545,13 @@ func _step_gull(s: Dictionary, delta: float) -> bool:
 			_gull_wings(s, sin(float(s.flap) * 10.0) * 0.9)
 			if float(s.leave_t) > 8.0:
 				return false
+	return true
+
+## Узлы сценки ещё живы (до типизированного присваивания — иначе ошибка
+## «previously freed instance», если косяк/хищник удалён раньше сценки).
+static func _alive(s: Dictionary, keys: Array) -> bool:
+	for k in keys:
+		var v: Variant = s.get(k)
+		if typeof(v) == TYPE_NIL or (typeof(v) == TYPE_OBJECT and not is_instance_valid(v)):
+			return false
 	return true
