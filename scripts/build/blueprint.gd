@@ -806,6 +806,11 @@ func deck_height() -> float:
 	return global_position.y + BuildDefs.R - BuildEnv.water_level()
 
 func _physics_process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_physics(delta)
+	PerfStats.end(&"build", __pt)
+
+func _perf_physics(delta: float) -> void:
 	if _leaf_root:
 		_process_leaf(delta)
 	if burning:

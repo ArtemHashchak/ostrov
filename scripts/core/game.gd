@@ -151,6 +151,11 @@ static func display_name(ch: Node) -> String:
 	return String(ch.name)
 
 func _process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_process(delta)
+	PerfStats.end(&"game", __pt)
+
+func _perf_process(delta: float) -> void:
 	if state != State.PLAYING:
 		return
 	match_time += delta

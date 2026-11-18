@@ -205,6 +205,11 @@ func toggle_big_map() -> void:
 # ------------------------------------------------------------------ обновление
 
 func _process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_process(delta)
+	PerfStats.end(&"ui", __pt)
+
+func _perf_process(delta: float) -> void:
 	if player == null or not is_instance_valid(player):
 		player = get_tree().get_first_node_in_group(&"player") as Node3D
 		minimap.player = player

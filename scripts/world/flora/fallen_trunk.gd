@@ -142,6 +142,11 @@ func start_fall(away: Vector3) -> void:
 	linear_velocity = away * 0.25
 
 func _physics_process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_physics(delta)
+	PerfStats.end(&"flora_trees", __pt)
+
+func _perf_physics(delta: float) -> void:
 	if settled:
 		return
 	_t += delta

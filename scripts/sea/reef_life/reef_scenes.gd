@@ -38,6 +38,11 @@ func _cam() -> Camera3D:
 	return get_viewport().get_camera_3d()
 
 func _process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_process(delta)
+	PerfStats.end(&"reef", __pt)
+
+func _perf_process(delta: float) -> void:
 	for i in range(_active.size() - 1, -1, -1):
 		var s: Dictionary = _active[i]
 		s.t = float(s.t) + delta

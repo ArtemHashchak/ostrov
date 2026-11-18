@@ -103,6 +103,11 @@ func _pick_tier(prog: float, first: bool) -> int:
 	return 0
 
 func _process(_delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_process(_delta)
+	PerfStats.end(&"supply", __pt)
+
+func _perf_process(_delta: float) -> void:
 	if not Game.is_playing():
 		return
 	if next_drop.is_empty():

@@ -495,6 +495,11 @@ static func freshness(ch: Node, slot: int) -> float:
 # ======================================================== тик
 
 func _process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_process(delta)
+	PerfStats.end(&"survival", __pt)
+
+func _perf_process(delta: float) -> void:
 	var dt := delta * speed
 	_acc += dt
 	_facc += dt

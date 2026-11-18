@@ -110,6 +110,11 @@ func count_of(k: SeaCreature.Kind) -> int:
 	return n
 
 func _physics_process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_physics(delta)
+	PerfStats.end(&"sea_life", __pt)
+
+func _perf_physics(delta: float) -> void:
 	if sea == null:
 		return
 	_time += delta

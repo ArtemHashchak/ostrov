@@ -1,6 +1,7 @@
 class_name SettingsPanel
 extends PanelContainer
-## Настройки: чувствительность, поле зрения, инверсия Y, громкость, тени,
+## Настройки: графика (пресет, разрешение 3D, интерфейс, кадры, окно),
+## чувствительность, поле зрения, инверсия Y, громкость,
 ## переназначение клавиш. Всё пишет в Settings и сохраняет.
 
 signal closed
@@ -34,12 +35,35 @@ func _ready() -> void:
 	grid.columns = 3
 	grid.add_theme_constant_override(&"h_separation", 16)
 	grid.add_theme_constant_override(&"v_separation", 8)
-	v.add_child(grid)
+	var cols := HBoxContainer.new()
+	cols.add_theme_constant_override(&"separation", 28)
+	v.add_child(cols)
+	cols.add_child(grid)
+	var right := VBoxContainer.new()
+	right.add_theme_constant_override(&"separation", 8)
+	cols.add_child(right)
 	_slider(grid, "Качество графики", 0.0, 3.0, 1.0, float(Settings.graphics_quality),
 		func(x: float) -> void:
 			Settings.graphics_quality = int(x)
+			DynamicResolution.reset()
 			Settings.apply_graphics(),
-		func(x: float) -> String: return ["низкое", "среднее", "высокое", "ультра"][int(x)])
+		func(x: float) -> String: return GraphicsQuality.NAMES[int(x)])
+	_slider(grid, "Разрешение 3D", 0.0, 1.0, 0.05, Settings.render_scale,
+		func(x: float) -> void:
+			Settings.render_scale = 0.0 if x < 0.4 else x
+			DynamicResolution.reset()
+			Settings.apply_graphics(),
+		func(x: float) -> String: return "авто" if x < 0.4 else "%d%%" % int(round(x * 100.0)))
+	_slider(grid, "Масштаб интерфейса", 0.75, 1.5, 0.05, Settings.ui_scale,
+		func(x: float) -> void:
+			Settings.ui_scale = x
+			Settings.apply_window(),
+		func(x: float) -> String: return "%d%%" % int(round(x * 100.0)))
+	_slider(grid, "Лимит кадров", 0.0, 4.0, 1.0, float([0, 30, 60, 120, 144].find(Settings.fps_cap) if Settings.fps_cap in [0, 30, 60, 120, 144] else 0),
+		func(x: float) -> void:
+			Settings.fps_cap = [0, 30, 60, 120, 144][int(x)]
+			Engine.max_fps = Settings.fps_cap,
+		func(x: float) -> String: return ["нет", "30", "60", "120", "144"][int(x)])
 	_slider(grid, "Чувствительность мыши", 0.0005, 0.006, 0.0001, Settings.mouse_sensitivity,
 		func(x: float) -> void: Settings.mouse_sensitivity = x,
 		func(x: float) -> String: return "%.1f" % (x / 0.0022))
@@ -51,22 +75,34 @@ func _ready() -> void:
 			Settings.master_volume = x
 			AudioServer.set_bus_volume_db(0, linear_to_db(maxf(x, 0.0001))),
 		func(x: float) -> String: return "%d%%" % int(x * 100.0))
-	_slider(grid, "Тени (0–2)", 0.0, 2.0, 1.0, float(Settings.shadows_quality),
-		func(x: float) -> void: Settings.shadows_quality = int(x),
-		func(x: float) -> String: return ["выкл", "низко", "высоко"][int(x)])
-	grid.add_child(UITheme.label("Инверсия по Y", 14))
-	var cb := CheckBox.new()
-	cb.button_pressed = Settings.invert_y
-	cb.toggled.connect(func(on: bool) -> void: Settings.invert_y = on)
-	grid.add_child(cb)
-	grid.add_child(Control.new())
+	_check(grid, "Динамическое разрешение", Settings.dynamic_resolution, func(on: bool) -> void:
+		Settings.dynamic_resolution = on
+		DynamicResolution.reset()
+		Settings.apply_graphics())
+	_check(grid, "Вертикальная синхронизация", Settings.vsync, func(on: bool) -> void:
+		Settings.vsync = on
+		Settings.apply_window())
+	_check(grid, "Полный экран (F11)", Settings.fullscreen, func(on: bool) -> void:
+		Settings.fullscreen = on
+		Settings.apply_window())
+	_check(grid, "Счётчик FPS (F3)", Settings.show_perf, func(on: bool) -> void:
+		Settings.show_perf = on
+		PerfOverlay.ensure(get_tree().root))
+	_check(grid, "Инверсия по Y", Settings.invert_y, func(on: bool) -> void: Settings.invert_y = on)
+	var bench := Button.new()
+	bench.text = "Тест производительности"
+	bench.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	bench.pressed.connect(func() -> void:
+		Settings.save_settings()
+		Benchmark.start(get_tree()))
+	v.add_child(bench)
 
-	v.add_child(UITheme.label("Клавиши — нажми, затем новую клавишу", 12, UITheme.TEXT_DIM))
+	right.add_child(UITheme.label("Клавиши — нажми, затем новую клавишу", 12, UITheme.TEXT_DIM))
 	var kg := GridContainer.new()
-	kg.columns = 4
+	kg.columns = 2
 	kg.add_theme_constant_override(&"h_separation", 14)
 	kg.add_theme_constant_override(&"v_separation", 4)
-	v.add_child(kg)
+	right.add_child(kg)
 	for a in REBINDABLE:
 		var l := UITheme.label(ACTION_NAMES.get(a, String(a)), 14)
 		l.custom_minimum_size = Vector2(110, 0)
@@ -102,6 +138,14 @@ func _slider(parent: Control, title_text: String, mn: float, mx: float, step: fl
 	s.value_changed.connect(func(x: float) -> void:
 		on_change.call(x)
 		vl.text = fmt.call(x))
+
+func _check(parent: Control, title_text: String, val: bool, on_toggle: Callable) -> void:
+	parent.add_child(UITheme.label(title_text, 14))
+	var cb := CheckBox.new()
+	cb.button_pressed = val
+	cb.toggled.connect(on_toggle)
+	parent.add_child(cb)
+	parent.add_child(Control.new())
 
 func _start_rebind(a: StringName) -> void:
 	_waiting = a

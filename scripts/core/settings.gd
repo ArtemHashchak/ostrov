@@ -14,6 +14,23 @@ var shadows_quality: int = 2 # 0 выкл, 1 низко, 2 высоко
 var graphics_quality: int = 2
 ## Обучение пройдено (TUTORIAL).
 var tutorial_done: bool = false
+## Масштаб 3D: 0 — авто по пресету и разрешению, иначе 0.25..1.0.
+var render_scale: float = 0.0
+## Динамическое разрешение: снижать масштаб 3D, когда кадр не успевает.
+var dynamic_resolution: bool = false
+## Вертикальная синхронизация и ограничение кадров (0 — без ограничения).
+var vsync: bool = true
+var fps_cap: int = 0
+## Масштаб интерфейса поверх растяжения canvas_items (0.75..1.5).
+var ui_scale: float = 1.0
+var fullscreen: bool = false
+## Оверлей производительности (F3).
+var show_perf: bool = false
+## Пресет графики уже подобран автоматически при первом запуске.
+var graphics_detected: bool = false
+
+## Изменились настройки графики — окружение/солнце/модули перенастраиваются.
+signal graphics_changed
 
 ## Действия → события по умолчанию. Клавиши — physical keycode.
 const DEFAULT_KEYS: Dictionary = {
@@ -63,8 +80,17 @@ const DEFAULT_PAD_AXES: Dictionary = {
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_input_map()
+	AutoLOD.connect_tree(get_tree())
 	load_settings()
 	apply_graphics.call_deferred()
+	PerfOverlay.ensure.call_deferred(get_tree().root)
+	var args := OS.get_cmdline_user_args()
+	if "--benchmark" in args or "--benchmark-quit" in args:
+		_start_benchmark.call_deferred("--benchmark-quit" in args)
+
+func _start_benchmark(quit: bool) -> void:
+	await get_tree().process_frame
+	Benchmark.start(get_tree(), quit)
 
 func _build_input_map() -> void:
 	var all_actions: Array = []
@@ -111,6 +137,14 @@ func save_settings() -> void:
 	cfg.set_value("video", "fov", fov)
 	cfg.set_value("video", "shadows_quality", shadows_quality)
 	cfg.set_value("video", "graphics_quality", graphics_quality)
+	cfg.set_value("video", "render_scale", render_scale)
+	cfg.set_value("video", "dynamic_resolution", dynamic_resolution)
+	cfg.set_value("video", "vsync", vsync)
+	cfg.set_value("video", "fps_cap", fps_cap)
+	cfg.set_value("video", "ui_scale", ui_scale)
+	cfg.set_value("video", "fullscreen", fullscreen)
+	cfg.set_value("video", "show_perf", show_perf)
+	cfg.set_value("video", "graphics_detected", graphics_detected)
 	cfg.set_value("meta", "keys_version", KEYS_VERSION)
 	cfg.set_value("audio", "master_volume", master_volume)
 	cfg.set_value("progress", "tutorial_done", tutorial_done)
@@ -131,6 +165,14 @@ func load_settings() -> void:
 	fov = cfg.get_value("video", "fov", fov)
 	shadows_quality = cfg.get_value("video", "shadows_quality", shadows_quality)
 	graphics_quality = cfg.get_value("video", "graphics_quality", graphics_quality)
+	render_scale = float(cfg.get_value("video", "render_scale", render_scale))
+	dynamic_resolution = bool(cfg.get_value("video", "dynamic_resolution", dynamic_resolution))
+	vsync = bool(cfg.get_value("video", "vsync", vsync))
+	fps_cap = int(cfg.get_value("video", "fps_cap", fps_cap))
+	ui_scale = float(cfg.get_value("video", "ui_scale", ui_scale))
+	fullscreen = bool(cfg.get_value("video", "fullscreen", fullscreen))
+	show_perf = bool(cfg.get_value("video", "show_perf", show_perf))
+	graphics_detected = bool(cfg.get_value("video", "graphics_detected", graphics_detected))
 	var old_keys := int(cfg.get_value("meta", "keys_version", 1)) < KEYS_VERSION
 	master_volume = cfg.get_value("audio", "master_volume", master_volume)
 	tutorial_done = bool(cfg.get_value("progress", "tutorial_done", tutorial_done))
@@ -152,18 +194,70 @@ func load_settings() -> void:
 
 const KEYS_VERSION := 2
 
-## Применить качество графики к корневому окну (масштаб 3D, сглаживание, тени).
+## Применить качество графики: масштаб 3D/апскейлер/сглаживание/тени
+## (GraphicsQuality), синхронизация и лимит кадров, окно, масштаб интерфейса.
+## Окружение и солнце перенастраивают модули по сигналу graphics_changed.
 func apply_graphics() -> void:
-	var vp := get_tree().root if get_tree() else null
-	if vp == null:
+	var tree := get_tree()
+	if tree == null:
 		return
-	var q := clampi(graphics_quality, 0, 3)
-	vp.scaling_3d_scale = [0.67, 0.8, 1.0, 1.0][q]
-	vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X][q]
-	if not is_compatibility_renderer():
-		vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if q >= 1 else Viewport.SCREEN_SPACE_AA_DISABLED
-	vp.positional_shadow_atlas_size = [1024, 2048, 4096, 8192][q]
-	RenderingServer.directional_shadow_atlas_set_size([1024, 2048, 4096, 8192][q], true)
+	if not graphics_detected and not _is_test_run():
+		graphics_quality = GraphicsQuality.detect_default()
+		graphics_detected = true
+		save_settings()
+	graphics_quality = clampi(graphics_quality, 0, 3)
+	var vp := tree.root
+	GraphicsQuality.apply_viewport(vp)
+	apply_window()
+	Engine.max_fps = fps_cap
+	AutoLOD.rescale(tree)
+	graphics_changed.emit()
+
+## Окно: полноэкранный режим, вертикальная синхронизация, масштаб интерфейса.
+## Масштаб 3D от интерфейса не зависит (canvas_items: 3D — в полном разрешении
+## окна × scaling_3d_scale).
+func apply_window() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	var win := tree.root
+	win.content_scale_factor = clampf(ui_scale, 0.75, 1.5)
+	if _is_test_run() or DisplayServer.get_name() == "headless":
+		return
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if vsync else DisplayServer.VSYNC_DISABLED)
+	var want := DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
+	var cur := DisplayServer.window_get_mode()
+	var is_full := cur == DisplayServer.WINDOW_MODE_FULLSCREEN or cur == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
+	if fullscreen != is_full:
+		DisplayServer.window_set_mode(want)
+
+func toggle_fullscreen() -> void:
+	fullscreen = not fullscreen
+	apply_window()
+	save_settings()
+
+## Запущены автотесты (tests/runner.tscn): не трогаем окно и пресет.
+func _is_test_run() -> bool:
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--test="):
+			return true
+	return false
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and (event as InputEventKey).pressed and not (event as InputEventKey).echo:
+		var k := event as InputEventKey
+		if k.physical_keycode == KEY_F11 or (k.physical_keycode == KEY_ENTER and k.alt_pressed):
+			toggle_fullscreen()
+			get_viewport().set_input_as_handled()
+		elif k.physical_keycode == KEY_F3:
+			show_perf = not show_perf
+			PerfOverlay.ensure(get_tree().root)
+			save_settings()
+			get_viewport().set_input_as_handled()
+
+func _process(delta: float) -> void:
+	if dynamic_resolution:
+		DynamicResolution.tick(get_tree().root, delta)
 
 ## true, если работаем в упрощённом рендере (наши тесты под xvfb, слабые ПК).
 func is_compatibility_renderer() -> bool:

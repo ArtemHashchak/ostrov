@@ -137,6 +137,11 @@ func scare(from: Vector3, strength: float = 1.0) -> void:
 	_scare_t = 2.5
 
 func _physics_process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_physics(delta)
+	PerfStats.end(&"fish", __pt)
+
+func _perf_physics(delta: float) -> void:
 	var cam := get_viewport().get_camera_3d()
 	if cam and cam.global_position.distance_to(_pos) > lod_distance:
 		visible = false

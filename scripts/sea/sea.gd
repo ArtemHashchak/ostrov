@@ -768,6 +768,11 @@ func _blood_cloud(pos: Vector3, strength: float) -> void:
 
 # ---------------- цикл ----------------
 func _physics_process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_physics(delta)
+	PerfStats.end(&"sea", __pt)
+
+func _perf_physics(delta: float) -> void:
 	_time += delta
 	var cam := get_viewport().get_camera_3d()
 	var cam_p := cam.global_position if cam else Vector3.ZERO

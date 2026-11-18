@@ -78,6 +78,11 @@ func is_baked() -> bool:
 	return _tex != null
 
 func _process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_process(delta)
+	PerfStats.end(&"ui_map", __pt)
+
+func _perf_process(delta: float) -> void:
 	if _task < 0 and _tex == null and _img == null:
 		_start_bake()
 	elif _task >= 0 and WorkerThreadPool.is_task_completed(_task):

@@ -312,6 +312,11 @@ func apply_poison(ch: Node, dps: float, sec: float) -> void:
 # ============================== тик ==============================
 
 func _physics_process(dt: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_physics(dt)
+	PerfStats.end(&"fauna", __pt)
+
+func _perf_physics(dt: float) -> void:
 	clock += dt
 	_frame += 1
 	_tick_poison(dt)

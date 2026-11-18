@@ -226,6 +226,11 @@ func set_look(yaw: float, pitch: float) -> void:
 	_pitch = pitch
 
 func _physics_process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_physics(delta)
+	PerfStats.end(&"player", __pt)
+
+func _perf_physics(delta: float) -> void:
 	if get_tree().paused:
 		return
 	if not alive:

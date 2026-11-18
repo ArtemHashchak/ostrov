@@ -563,6 +563,11 @@ func _flush_crawlers() -> void:
 # =============================== жизнь ===============================
 
 func _process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_process(delta)
+	PerfStats.end(&"reef", __pt)
+
+func _perf_process(delta: float) -> void:
 	time += delta
 	if sea:
 		level = float(sea.call(&"water_y"))

@@ -311,6 +311,11 @@ func has_path() -> bool:
 	return not path.is_empty()
 
 func _physics_process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_physics(delta)
+	PerfStats.end(&"bots", __pt)
+
+func _perf_physics(delta: float) -> void:
 	if not alive:
 		_dead_process(delta)
 		if not is_on_floor():

@@ -99,6 +99,11 @@ func flag_spot(team: int) -> Vector3:
 	return best
 
 func _process(_delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_process(_delta)
+	PerfStats.end(&"game", __pt)
+
+func _perf_process(_delta: float) -> void:
 	if not Game.is_playing() or not Game.has_time_limit():
 		return
 	var left := Game.time_left()

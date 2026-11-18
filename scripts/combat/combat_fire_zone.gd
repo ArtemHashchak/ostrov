@@ -49,6 +49,11 @@ func _scorch() -> void:
 	add_child(d)
 
 func _process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_process(delta)
+	PerfStats.end(&"combat", __pt)
+
+func _perf_process(delta: float) -> void:
 	_t += delta
 	if _on_water:
 		var p := global_position

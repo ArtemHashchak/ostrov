@@ -204,6 +204,11 @@ func set_time_paused(p: bool) -> void:
 		sky.sky3d.game_time_enabled = not p
 
 func _process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_process(delta)
+	PerfStats.end(&"world", __pt)
+
+func _perf_process(delta: float) -> void:
 	time_s += delta
 	var level := water_level()
 	var cam := get_viewport().get_camera_3d()

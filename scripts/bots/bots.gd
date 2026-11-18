@@ -91,5 +91,10 @@ func spawn_bot(team: int, difficulty: StringName = &"normal", pos: Variant = nul
 	return b
 
 func _physics_process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_physics(delta)
+	PerfStats.end(&"bots_nav", __pt)
+
+func _perf_physics(delta: float) -> void:
 	if nav and enabled:
 		nav.update(delta, get_tree())

@@ -246,6 +246,11 @@ func _build_death() -> void:
 # ---------------- обновление ----------------
 
 func _process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_process(delta)
+	PerfStats.end(&"ui", __pt)
+
+func _perf_process(delta: float) -> void:
 	if player == null:
 		return
 	var p := player

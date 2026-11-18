@@ -50,23 +50,18 @@ static func _finish_environment(env: Environment) -> Environment:
 	if is_compat():
 		return env
 	# --- только Forward+ ---
-	env.sdfgi_enabled = true
-	env.sdfgi_use_occlusion = true
-	env.sdfgi_cascades = 4
-	env.ssao_enabled = true
+	# Какие эффекты включены — решает пресет (GraphicsQuality).
 	env.ssao_radius = 1.4
 	env.ssao_intensity = 2.0
-	env.ssil_enabled = true
-	env.glow_enabled = true
 	env.glow_intensity = 0.4
 	env.glow_bloom = 0.05
-	env.volumetric_fog_enabled = true
 	env.volumetric_fog_density = 0.008
 	env.volumetric_fog_albedo = Color(0.85, 0.9, 0.92)
 	env.volumetric_fog_anisotropy = 0.6
 	env.adjustment_enabled = true
 	env.adjustment_saturation = 1.08
 	env.adjustment_contrast = 1.05
+	GraphicsQuality.apply_environment(env)
 	return env
 
 static func make_sun() -> DirectionalLight3D:
@@ -76,9 +71,7 @@ static func make_sun() -> DirectionalLight3D:
 	sun.light_color = Color(1.0, 0.95, 0.86)
 	sun.light_energy = 1.25
 	sun.shadow_enabled = true
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
-	sun.directional_shadow_max_distance = 140.0
-	sun.shadow_blur = 1.2
+	GraphicsQuality.apply_sun(sun)
 	if not is_compat():
 		sun.light_volumetric_fog_energy = 1.0
 	return sun

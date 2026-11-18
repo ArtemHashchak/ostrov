@@ -243,6 +243,11 @@ func confirm() -> void:
 # ======================= призрак =======================
 
 func _process(_delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_process(_delta)
+	PerfStats.end(&"build", __pt)
+
+func _perf_process(_delta: float) -> void:
 	if state == State.PLACING:
 		_update_ghost()
 

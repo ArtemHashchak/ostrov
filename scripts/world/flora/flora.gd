@@ -148,6 +148,8 @@ func _ready() -> void:
 	add_to_group(&"flora")
 	_register_items()
 	set_process(false)
+	if not Settings.graphics_changed.is_connected(_on_graphics_changed):
+		Settings.graphics_changed.connect(_on_graphics_changed)
 	world = get_tree().get_first_node_in_group(&"world")
 	if world == null or not world.has_method(&"height_at"):
 		world = null
@@ -155,6 +157,21 @@ func _ready() -> void:
 	elif world.has_signal(&"world_ready") and world.get(&"is_ready") == false:
 		await world.world_ready
 	populate()
+
+## Дальность мелкой растительности × пресет графики (GraphicsQuality.detail).
+func _detail_range(gi: GeometryInstance3D, base: float) -> void:
+	gi.set_meta(&"detail_base", base)
+	gi.visibility_range_end = base * GraphicsQuality.detail()
+	gi.add_to_group(&"flora_detail")
+
+func _on_graphics_changed() -> void:
+	if not is_inside_tree():
+		return
+	var k := GraphicsQuality.detail()
+	for n in get_tree().get_nodes_in_group(&"flora_detail"):
+		var gi := n as GeometryInstance3D
+		if gi:
+			gi.visibility_range_end = float(gi.get_meta(&"detail_base", gi.visibility_range_end)) * k
 
 func _find_height_source() -> Node:
 	var n: Node = get_parent()
@@ -556,13 +573,18 @@ func _build_bushes() -> void:
 		var mmi := MultiMeshInstance3D.new()
 		mmi.name = "Bush_" + String(key).replace("|", "_")
 		mmi.multimesh = mm
-		mmi.visibility_range_end = BUSH_RANGE
+		_detail_range(mmi, BUSH_RANGE)
 		add_child(mmi)
 	stats["bush_mmi"] = _bush.size()
 
 # --------------------------------------------------------------- стриминг
 
 func _process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_process(delta)
+	PerfStats.end(&"flora", __pt)
+
+func _perf_process(delta: float) -> void:
 	_now += delta
 	_tick_t += delta
 	if _tick_t >= TICK:
@@ -570,21 +592,41 @@ func _process(delta: float) -> void:
 		_tick(false)
 
 func _actors() -> Array:
+	# Звери не будят деревья и не стримят узлы — в список не входят.
+	var seen := {}
 	var out: Array = []
-	for g in [&"player", &"characters", &"bots", &"animals"]:
+	for g in [&"player", &"characters", &"bots"]:
 		for n in get_tree().get_nodes_in_group(g):
-			if n is Node3D and not out.has(n):
+			if n is Node3D and not seen.has(n) and not (n as Node).is_in_group(&"animals"):
+				seen[n] = true
 				out.append(n)
 	return out
 
+var _last_scan: Array[Vector3] = []
+var _cull_t := 0.0
+
 func _tick(sync: bool) -> void:
 	var actors := _actors()
+	# Стрим узлов — только вокруг камеры и персонажей (игроки/боты). Звери
+	# (их сотни по всему архипелагу) центрами стрима не служат: иначе узлы
+	# поднимаются по всей карте, а проход по записям занимает десятки мс.
 	var centers: Array[Vector3] = []
 	for a in actors:
-		centers.append((a as Node3D).global_position)
+		if not (a as Node).is_in_group(&"animals"):
+			centers.append((a as Node3D).global_position)
 	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
 	if cam:
 		centers.append(cam.global_position)
+	# центр, сдвинувшийся меньше чем на 6 м с прошлого прохода, не сканируем заново
+	var scan: Array[Vector3] = []
+	for c in centers:
+		var moved := true
+		for q: Vector3 in _last_scan:
+			if q.distance_squared_to(c) < 36.0:
+				moved = false
+				break
+		if moved or sync:
+			scan.append(c)
 	# 1) деревья у персонажей просыпаются (камера не будит — вид одинаковый)
 	for a in actors:
 		if (a as Node).is_in_group(&"animals"):
@@ -611,7 +653,8 @@ func _tick(sync: bool) -> void:
 			_demote(rec)
 	# 3) узлы-ресурсы, валуны, палки
 	var spawned := 0
-	for c in centers:
+	var capped := false
+	for c in scan:
 		for rec in _recs_in(c, ROCK_STREAM):
 			if rec["t"] == T_TREE or int(rec["state"]) == 2 or rec["node"] != null:
 				continue
@@ -620,7 +663,15 @@ func _tick(sync: bool) -> void:
 				_spawn_node(rec)
 				spawned += 1
 				if not sync and spawned > 80:
+					capped = true
 					break
+	if not capped:
+		_last_scan = centers.duplicate()
+	_cull_t += TICK
+	if _cull_t < 1.0 and not sync:
+		_tick_decor(cam, sync, centers)
+		return
+	_cull_t = 0.0
 	for rec in _live.duplicate():
 		var n = rec["node"]
 		if n == null or not is_instance_valid(n):
@@ -642,7 +693,10 @@ func _tick(sync: bool) -> void:
 			(n as Node).queue_free()
 			rec["node"] = null
 			_live.erase(rec)
-	# 4) трава/папоротники вокруг камеры
+	_tick_decor(cam, sync, centers)
+
+## 4) трава/папоротники вокруг камеры
+func _tick_decor(cam: Camera3D, sync: bool, centers: Array[Vector3]) -> void:
 	if cam:
 		_stream_decor(cam.global_position, 1000 if sync else 3)
 	elif sync and not centers.is_empty():
@@ -793,7 +847,7 @@ func _gen_decor(k: Vector2i) -> Array:
 		var mmi := MultiMeshInstance3D.new()
 		mmi.name = "Decor_%s_%d_%d" % [type, k.x, k.y]
 		mmi.multimesh = mm
-		mmi.visibility_range_end = GRASS_RANGE if type == "grass" else FERN_RANGE
+		_detail_range(mmi, GRASS_RANGE if type == "grass" else FERN_RANGE)
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mmi)
 		out.append(mmi)

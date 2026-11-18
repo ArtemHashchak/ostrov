@@ -29,6 +29,7 @@ var _flash := 0.0
 var _thunder: AudioStreamPlayer
 var _underwater := false
 var _env: Environment
+var _cloud_t := 0.0
 
 func setup(start_hour: float = 8.5) -> void:
 	_rng.seed = 4242
@@ -40,14 +41,18 @@ func setup(start_hour: float = 8.5) -> void:
 	sky3d.tonemap_exposure = 0.85
 	# атмосферный туман Sky3D (экранный квад по глубине) в compat заливает кадр — только Forward+
 	sky3d.fog_enabled = not RenderProfile.is_compat()
+	# Положение солнца/луны и параметры неба — 4 раза в секунду (сутки идут
+	# 24 мин: солнце сдвигается на ~0.06°), облака — вручную ~10 раз в секунду.
+	# Каждое изменение материала неба заставляет пересчитывать отражения неба.
+	sky3d.update_interval = 0.25
+	if sky3d.sky:
+		sky3d.sky.process_method = SkyDome.MANUAL
 	_env = sky3d.environment
 	if _env:
 		_apply_render_profile(_env)
-	if sky3d.sun:
-		sky3d.sun.shadow_enabled = true
-		sky3d.sun.directional_shadow_max_distance = 150.0
-		sky3d.sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
-		sky3d.sun.shadow_blur = 1.2
+	_apply_quality()
+	if not Settings.graphics_changed.is_connected(_apply_quality):
+		Settings.graphics_changed.connect(_apply_quality)
 	_cur = (WEATHERS[&"clear"] as Dictionary).duplicate()
 	_from = _cur.duplicate()
 	_make_rain()
@@ -67,17 +72,23 @@ func _apply_render_profile(env: Environment) -> void:
 	env.fog_sky_affect = 0.15
 	if RenderProfile.is_compat():
 		return
-	env.sdfgi_enabled = true
-	env.sdfgi_use_occlusion = true
-	env.ssao_enabled = true
 	env.ssao_radius = 1.4
 	env.ssao_intensity = 2.0
-	env.ssil_enabled = true
-	env.glow_enabled = true
 	env.glow_intensity = 0.35
-	env.volumetric_fog_enabled = true
 	env.volumetric_fog_density = 0.006
 	env.volumetric_fog_anisotropy = 0.6
+	GraphicsQuality.apply_environment(env)
+
+## Пресет графики: эффекты окружения, тени солнца, туман Sky3D.
+func _apply_quality() -> void:
+	if sky3d == null:
+		return
+	if _env:
+		GraphicsQuality.apply_environment(_env)
+	if sky3d.sun:
+		GraphicsQuality.apply_sun(sky3d.sun)
+	if not RenderProfile.is_compat():
+		sky3d.fog_enabled = bool(GraphicsQuality.preset().get("sky_fog", true))
 
 func _find_sound(key: String) -> AudioStream:
 	for dir_path in ["res://assets/sounds/", "res://assets/sounds/cc0/", "res://assets/sounds/oculus/"]:
@@ -174,6 +185,10 @@ func update(dt: float, cam: Camera3D, water_surface_at_cam: float) -> void:
 		for k in target:
 			_cur[k] = lerpf(float(_from.get(k, target[k])), float(target[k]), _blend)
 	_apply(dt)
+	_cloud_t += dt
+	if _cloud_t >= 0.1 and sky3d and sky3d.sky:
+		sky3d.sky.process_tick(_cloud_t)
+		_cloud_t = 0.0
 	if cam:
 		_rain.global_position = cam.global_position + Vector3(0.0, 14.0, 0.0)
 		_update_underwater(cam.global_position.y < water_surface_at_cam - 0.05)

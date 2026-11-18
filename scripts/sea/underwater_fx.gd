@@ -32,6 +32,11 @@ void fragment() {
 	add_child(_rect)
 
 func _process(_delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_process(_delta)
+	PerfStats.end(&"sea_fx", __pt)
+
+func _perf_process(_delta: float) -> void:
 	var cam := get_viewport().get_camera_3d()
 	if cam == null or sea == null:
 		return

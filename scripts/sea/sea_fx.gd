@@ -72,6 +72,11 @@ func _wy() -> float:
 	return float(sea.call(&"water_y")) if sea else 0.0
 
 func _process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_process(delta)
+	PerfStats.end(&"sea_fx", __pt)
+
+func _perf_process(delta: float) -> void:
 	if sea == null:
 		return
 	_t += delta

@@ -95,6 +95,11 @@ func _trunk_full_mesh() -> Mesh:
 	return m
 
 func _process(delta: float) -> void:
+	var __pt := PerfStats.begin()
+	_perf_process(delta)
+	PerfStats.end(&"flora_trees", __pt)
+
+func _perf_process(delta: float) -> void:
 	if _shake_t > 0.0:
 		_shake_t -= delta
 		var s := sin(_shake_t * 40.0) * 0.012 * _shake_t
