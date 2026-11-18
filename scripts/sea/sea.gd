@@ -657,6 +657,7 @@ static func soft_material(col: Color, unshaded: bool = true) -> StandardMaterial
 	if unshaded:
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.disable_fog = true
 	return m
 
 func splash(pos: Vector3, size: float = 1.0) -> void:

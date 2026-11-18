@@ -1,10 +1,10 @@
 shader_type spatial;
-render_mode unshaded, blend_add, depth_draw_never, cull_back, shadows_disabled;
+render_mode unshaded, blend_add, depth_draw_never, cull_back, shadows_disabled, fog_disabled;
 // Каустика на дне: сетка-«покрывало» над рельефом дна вокруг камеры. Только под водой,
 // ярче на мелководье, гаснет к краям сетки.
 
 uniform float water_level = 0.0;
-uniform float strength = 0.35;
+uniform float strength = 0.22;
 uniform vec3 grid_center = vec3(0.0);
 uniform float grid_half = 28.0;
 uniform float sun = 1.0;

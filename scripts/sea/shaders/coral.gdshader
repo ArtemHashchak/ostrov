@@ -46,7 +46,7 @@ void fragment() {
 	if (dot(NORMAL, VIEW) < 0.0) {
 		NORMAL = -NORMAL;
 	}
-	vec3 col = COLOR.rgb * tint;
+	vec3 col = COLOR.rgb * tint * 1.2;
 	float depth = water_level - wpos.y;
 	float under = step(0.0, depth);
 	float k = caustic_strength * clamp(1.0 - depth / 11.0, 0.0, 1.0) * under;

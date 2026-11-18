@@ -191,6 +191,7 @@ func _mm(t: StringName, lod: int, xf: Array, col: PackedColorArray, mat: Materia
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_custom_data = true
+	mm.use_colors = true   # без цветов экземпляров COLOR в шейдере обнуляется (gl_compatibility)
 	mm.mesh = _mesh(t, lod)
 	var cnt := int(ceil(xf.size() / float(step_n)))
 	mm.instance_count = cnt
@@ -200,6 +201,7 @@ func _mm(t: StringName, lod: int, xf: Array, col: PackedColorArray, mat: Materia
 		var tr: Transform3D = xf[i]
 		mm.set_instance_transform(j, tr)
 		mm.set_instance_custom_data(j, col[i])
+		mm.set_instance_color(j, Color(1, 1, 1, 1))
 		center += tr.origin
 		j += 1
 	var mi := MultiMeshInstance3D.new()

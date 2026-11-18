@@ -34,7 +34,7 @@ func _ready() -> void:
 	# лучи: мягкие вертикальные полосы, всегда лицом к камере по Y
 	var rsh := Shader.new()
 	rsh.code = """shader_type spatial;
-render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 uniform float strength = 0.12;
 void vertex() {
 	// поворот к камере вокруг Y
