@@ -12,6 +12,9 @@ static var enabled: bool = false
 static var _acc: Dictionary = {}     # система → мкс в текущем кадре
 static var _avg: Dictionary = {}     # система → сглаженные мкс/кадр
 static var _frame: int = -1
+## Кадры, где системы вместе заняли > SPIKE_US: [кадр, {система: мкс}].
+static var spikes: Array = []
+const SPIKE_US := 25000
 
 static func begin() -> int:
 	return Time.get_ticks_usec() if enabled else 0
@@ -28,6 +31,11 @@ static func _roll() -> void:
 	if f == _frame:
 		return
 	_frame = f
+	var tot := 0
+	for k: StringName in _acc.keys():
+		tot += int(_acc[k])
+	if tot > SPIKE_US and spikes.size() < 64:
+		spikes.append([f, _acc.duplicate()])
 	for k: StringName in _avg.keys():
 		if not _acc.has(k):
 			_avg[k] = float(_avg[k]) * 0.95
@@ -47,6 +55,7 @@ static func systems_ms() -> Array:
 static func reset() -> void:
 	_acc.clear()
 	_avg.clear()
+	spikes.clear()
 
 ## Снимок счётчиков движка.
 static func snapshot() -> Dictionary:

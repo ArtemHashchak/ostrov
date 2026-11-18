@@ -89,8 +89,9 @@ static func apply_viewport(vp: Viewport) -> void:
 	if Settings.dynamic_resolution and DynamicResolution.current_scale > 0.0:
 		scale = DynamicResolution.current_scale
 	if is_compat():
+		# gl_compatibility — автотесты и запасной режим: прежняя простая схема
 		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
-		vp.scaling_3d_scale = scale
+		vp.scaling_3d_scale = Settings.render_scale if Settings.render_scale > 0.0 else [0.67, 0.8, 1.0, 1.0][q]
 		vp.msaa_3d = Viewport.MSAA_DISABLED if q < 2 else Viewport.MSAA_2X
 		vp.mesh_lod_threshold = float(p.lod_threshold)
 		return

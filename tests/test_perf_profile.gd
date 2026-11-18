@@ -115,7 +115,21 @@ func run() -> void:
 	_geometry_census()
 	# --- CPU по системам (PerfStats) за 6 с обычной игры
 	PerfStats.reset()
-	await wait(6.0)
+	var worst := 0.0
+	var t_end := Time.get_ticks_msec() + 8000
+	var long_frames := 0
+	while Time.get_ticks_msec() < t_end:
+		await get_tree().process_frame
+		var ms := (Performance.get_monitor(Performance.TIME_PROCESS) + Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)) * 1000.0
+		worst = maxf(worst, ms)
+		if ms > 50.0:
+			long_frames += 1
+	log_line("cpu worst frame %.1f ms, frames >50 ms: %d" % [worst, long_frames])
+	for sp: Array in PerfStats.spikes:
+		var parts: PackedStringArray = []
+		for k: StringName in (sp[1] as Dictionary):
+			parts.append("%s=%.1f" % [k, float(sp[1][k]) / 1000.0])
+		log_line("  spike frame %d: %s" % [sp[0], ", ".join(parts)])
 	var snapc := PerfStats.snapshot()
 	log_line("cpu: process %.2f ms, physics %.2f ms (последний кадр)" % [snapc.process_ms, snapc.physics_ms])
 	for row: Array in PerfStats.systems_ms():

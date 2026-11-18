@@ -14,8 +14,12 @@ mkdir -p "$ROOT/tests/logs" "$ROOT/tests/shots"
 if [ ! -f "$ROOT/.godot/global_script_class_cache.cfg" ] || [ -n "$(find "$ROOT/scripts" "$ROOT/tests" "$ROOT/scenes" -newer "$ROOT/.godot/global_script_class_cache.cfg" -name '*.gd' -o -newer "$ROOT/.godot/global_script_class_cache.cfg" -name '*.tscn' 2>/dev/null | head -1)" ]; then
   timeout 600 "$GODOT" --headless --path "$ROOT" --import >"$ROOT/tests/logs/_import.log" 2>&1 || true
 fi
-timeout "${TEST_TIMEOUT:-300}" xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path "$ROOT" \
-  --rendering-driver opengl3 --rendering-method gl_compatibility \
+# XVFB_SCREEN=2560x1440 — запуск в большом окне (проверка масштаба интерфейса).
+SCREEN="${XVFB_SCREEN:-1280x720}"
+RES_ARGS=()
+[ -n "${XVFB_SCREEN:-}" ] && RES_ARGS=(--resolution "$SCREEN")
+timeout "${TEST_TIMEOUT:-300}" xvfb-run -a -s "-screen 0 ${SCREEN}x24" "$GODOT" --path "$ROOT" \
+  --rendering-driver opengl3 --rendering-method gl_compatibility "${RES_ARGS[@]}" \
   res://tests/runner.tscn -- --test="res://${TEST#./}" >"$LOG" 2>&1
 CODE=$?
 # Ошибки движка/скриптов (аудио в контейнере нет — игнорируем).

@@ -201,7 +201,8 @@ func apply_graphics() -> void:
 	var tree := get_tree()
 	if tree == null:
 		return
-	if not graphics_detected and not _is_test_run():
+	if not graphics_detected and not _is_test_run() and DisplayServer.get_name() != "headless" \
+			and not GraphicsQuality.is_compat():
 		graphics_quality = GraphicsQuality.detect_default()
 		graphics_detected = true
 		save_settings()
