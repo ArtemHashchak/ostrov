@@ -54,6 +54,7 @@ func _enter_tree() -> void:
 func _exit_tree() -> void:
 	if _inst == self:
 		_inst = null
+		SurvivalModels.clear_cache()
 
 func _ready() -> void:
 	name = "Survival"
@@ -484,7 +485,12 @@ static func freshness(ch: Node, slot: int) -> float:
 	var s := i.get_slot(slot)
 	if s.is_empty() or float(data(StringName(s.id)).get("spoil", 0.0)) <= 0.0:
 		return -1.0
-	return clampf(float(s.get("fr", 1.0)), 0.0, 1.0)
+	var fr := float(s.get("fr", 1.0))
+	var n := int(s.n)
+	var fn := int(s.get("frn", n))
+	if n > fn and fn >= 0:
+		fr = (fr * fn + float(n - fn)) / float(n) # подложенные свежие куски — сразу
+	return clampf(fr, 0.0, 1.0)
 
 # ======================================================== тик
 

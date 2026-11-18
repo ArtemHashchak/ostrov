@@ -11,6 +11,12 @@ static var _mats: Dictionary = {}
 static var _meshes: Dictionary = {}
 static var _scenes: Dictionary = {}
 
+## Сбросить кэши материалов/мешей (при выходе — иначе движок пишет об утечках).
+static func clear_cache() -> void:
+	_mats.clear()
+	_meshes.clear()
+	_scenes.clear()
+
 # ============================================================ материалы
 
 static func pbr(set_name: String, uv: Vector3 = Vector3.ONE, tint: Color = Color.WHITE) -> StandardMaterial3D:
@@ -160,6 +166,20 @@ static func leaf(set_name: String = "Leaf001", tint: Color = Color.WHITE) -> Sta
 	m.alpha_scissor_threshold = 0.45
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	m.ao_enabled = false
+	_mats[key] = m
+	return m
+
+## Лист-полоса злаков (кукуруза): непрозрачный, двусторонний, с лёгким блеском.
+static func blade(c: Color) -> StandardMaterial3D:
+	var key := "blade|%s" % c
+	if _mats.has(key):
+		return _mats[key]
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c
+	m.roughness = 0.7
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.backlight_enabled = true
+	m.backlight = Color(0.12, 0.17, 0.05)
 	_mats[key] = m
 	return m
 
@@ -852,8 +872,8 @@ static func plant(kind: StringName, stage: int, wilt: float, seed_v: int) -> Nod
 	rng.seed = seed_v
 	match kind:
 		&"taro":
-			var c := obj("calathea_orbifolia_01", true)
-			if c and stage >= 2:
+			var c := obj("calathea_orbifolia_01", true) if stage >= 2 else null
+			if c:
 				var w := fit(c, 0.35 + 0.45 * g)
 				root.add_child(w)
 				if wilt > 0.3:
@@ -871,14 +891,15 @@ static func plant(kind: StringName, stage: int, wilt: float, seed_v: int) -> Nod
 					mesh_inst(root, lump(0.06, 400 + i, 0.8), color(Color(0.5, 0.38, 0.4)), Vector3(cos(a) * 0.12, 0.02, sin(a) * 0.12))
 		&"maize":
 			var h := 0.2 + 1.5 * g
-			stick(root, Vector3.ZERO, Vector3(0, h, 0), 0.012 + 0.012 * g).material_override = color(tint * Color(0.45, 0.62, 0.25), 0.7)
-			var n := 2 + stage * 2
+			stick(root, Vector3.ZERO, Vector3(0, h, 0), 0.016 + 0.016 * g).material_override = color(tint * Color(0.36, 0.5, 0.22), 0.7)
+			var n := 3 + stage * 2
+			var bm := blade(tint * Color(0.27, 0.42, 0.17))
 			for i in n:
-				var y := h * (0.15 + 0.8 * float(i) / n)
-				var a := float(i) * 2.4
-				var lf := mesh_inst(root, leaf_mesh(0.07, 0.25 + 0.35 * g, droop + 0.2), leaf("Leaf002", tint * Color(0.95, 1.05, 0.8)),
-					Vector3(0, y, 0))
-				lf.rotation = Vector3(-0.5 + wilt * 0.4, a, 0)
+				var y := h * (0.08 + 0.82 * float(i) / n)
+				var a := float(i) * 2.4 + rng.randf_range(-0.3, 0.3)
+				var ln := (0.22 + 0.5 * g) * (1.15 - 0.45 * float(i) / n) # нижние длиннее
+				var lf := mesh_inst(root, leaf_mesh(0.07 + 0.05 * g, ln, droop + 0.25), bm, Vector3(0, y, 0))
+				lf.rotation = Vector3(-0.95 + wilt * 0.6, a, 0)
 			if stage >= 3:
 				for k in 2:
 					var cob := mesh_inst(root, cyl(0.03, 0.04, 0.2, 8),

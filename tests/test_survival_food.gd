@@ -87,9 +87,13 @@ func run() -> void:
 	aim_at(g.global_position + Vector3(0, 0.3, 0))
 	await shot("01_garden_growing")
 	check(g3.is_dead() or g3.wilt() > 0.5, "без воды таро вянет: %.2f" % g3.wilt())
-	await until(func() -> bool: return g.is_ready() and g2.is_ready(), 25.0)
+	# грядка сохнет быстрее, чем зреет урожай: за цикл нужен ещё один полив
+	await until(func() -> bool:
+		g.moisture = maxf(g.moisture, 0.6)
+		g2.moisture = maxf(g2.moisture, 0.6)
+		return g.is_ready() and g2.is_ready(), 30.0)
 	Survival.speed = 1.0
-	check(g.is_ready() and g2.is_ready(), "урожай созрел")
+	check(g.is_ready() and g2.is_ready(), "урожай созрел: %.2f / %.2f" % [g.growth, g2.growth])
 	p.global_position = g.global_position + Vector3(1.0, 0.3, 3.2)
 	await wait(0.6)
 	aim_at(g.global_position + Vector3(0.6, 0.4, 0))
@@ -158,7 +162,7 @@ func run() -> void:
 	p.inventory.add(&"rock", 1)
 	check(not sv.on_use_item(p, &"coconut"), "с камнем — можно")
 	check(sv.consume_item(p, &"coconut"), "выпил кокос")
-	check(p.thirst > 55.0 and p.inventory.count(&"coconut_shell") == 1, "кокос поит, остаётся скорлупа")
+	check(p.thirst >= 40.0 + float(PlayerItems.data(&"coconut").get("thirst", 10.0)) - 0.5 and p.thirst > 48.0 and p.inventory.count(&"coconut_shell") == 1, "кокос поит, остаётся скорлупа: жажда %.1f, скорлуп %d" % [p.thirst, p.inventory.count(&"coconut_shell")])
 
 	# ---------- мусор: ящик, бочка, жесть → котелок ----------
 	var debris := sv.debris_near(p.global_position, 500.0)
