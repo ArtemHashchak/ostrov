@@ -192,6 +192,9 @@ func tick(delta: float, full: bool) -> void:
 	if _scan_t <= 0.0 and (state == State.PATROL or state == State.INVESTIGATE):
 		_scan_t = 0.45 + _rng.randf() * 0.25
 		var found: Dictionary = sea.find_prey(self)
+		# кормящаяся у приманки акула отвлекается только на добычу вплотную
+		if not found.is_empty() and bait_t > 0.0 and (found["node"] as Node3D).global_position.distance_to(global_position) > 8.0:
+			found = {}
 		if not found.is_empty():
 			target = found["node"]
 			target_kind = found["kind"]

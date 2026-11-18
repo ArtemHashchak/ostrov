@@ -74,7 +74,7 @@ func run() -> void:
 		if sea.depth_at(cand.x, cand.z) > 3.0:
 			bait_pos = cand
 			break
-	var bait_arr: Array[Dictionary] = [{"id": &"meat_raw", "n": 3}, {"id": &"fish_raw", "n": 2}]
+	var bait_arr: Array[Dictionary] = [{"id": &"meat_raw", "n": 5}]   # один выброшенный стек
 	var pk := ItemPickup.spawn(scene, Vector3(bait_pos.x, -0.6, bait_pos.z), bait_arr)
 	await wait(1.0)
 	check(not is_instance_valid(pk) or pk.is_queued_for_deletion(), "приманка ушла в воду и стала приманкой")
