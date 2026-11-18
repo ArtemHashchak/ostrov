@@ -99,25 +99,31 @@ func _glide_wing(w: Dictionary, t: float, dihedral: float) -> void:
 	(w["shoulder"] as Node3D).rotation = Vector3(0.0, -s * 0.05, s * (dihedral + sin(t * 2.7 + s) * 0.025))
 	(w["hand"] as Node3D).rotation = Vector3(0.0, s * 0.04, -s * 0.06 + sin(t * 3.1) * 0.02)
 
-## Сложенные крылья (fold 0..1 — смешивание с текущей позой).
+## Сложенные крылья (fold 0..1 — смешивание с текущей позой): крыло отведено назад в своей
+## плоскости, повёрнуто ребром вверх вдоль бока и укорочено (кисть под плечом, кончики над хвостом).
 func _fold(rig: Dictionary, fold: float, bat: bool, st: Dictionary, ruffle: float) -> void:
 	for w: Dictionary in rig["wings"]:
 		var s := float(w["side"])
 		var sh := w["shoulder"] as Node3D
 		var hd := w["hand"] as Node3D
-		var tsh: Vector3
-		var thd: Vector3
+		var tsh := Vector3(0.0, -s * 1.5, s * 1.35)
+		var thd := Vector3(0.0, s * 0.2, 0.0)
+		var span_k := 0.55
 		if bat:
-			tsh = Vector3(0.0, -s * 0.35, -s * 1.25)
-			thd = Vector3(0.0, -s * 0.2, -s * 1.9)
-		else:
-			tsh = Vector3(0.0, -s * 1.45, -s * 0.45)
-			thd = Vector3(0.0, s * 2.85, s * 0.08)
+			tsh = Vector3(0.0, -s * 1.45, s * 1.45)
+			thd = Vector3(0.0, s * 0.35, 0.0)
+			span_k = 0.6
 		if ruffle > 0.0:
-			tsh = tsh.lerp(Vector3(0.0, -s * 0.6, s * 0.5), ruffle)
-			thd = thd.lerp(Vector3(0.0, s * 0.8, 0.0), ruffle)
-		sh.rotation = sh.rotation.lerp(tsh, fold)
-		hd.rotation = hd.rotation.lerp(thd, fold)
+			# встряхнуть / расправить: крыло приоткрывается
+			tsh = tsh.lerp(Vector3(0.0, -s * 0.5, s * 0.6), ruffle)
+			span_k = lerpf(span_k, 1.0, ruffle)
+		var f := clampf(fold, 0.0, 1.0)
+		sh.rotation = sh.rotation.lerp(tsh, f)
+		hd.rotation = hd.rotation.lerp(thd, f)
+		sh.position = (w["pos0"] as Vector3).lerp(w["fold_pos"] as Vector3, f)
+		var k := lerpf(1.0, span_k, f)
+		sh.scale = Vector3(k, 1.0, lerpf(1.0, 0.7, f))
+		hd.scale = Vector3(lerpf(1.0, 0.6, f), 1.0, 1.0)
 
 func _bird(a: Animal, rig: Dictionary, st: Dictionary, dt: float, lod: int, mode: StringName) -> void:
 	var body: Node3D = rig["body"]

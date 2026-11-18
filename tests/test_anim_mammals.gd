@@ -132,7 +132,7 @@ func run() -> void:
 func _boar_tests() -> void:
 	var b := fauna.spawn(&"boar", Vector3(0, 0, 0), 30.0)
 	await wait(0.1)
-	check(b.anim_ctl != null, "у кабана свой контроллер анимации")
+	check(b.anim_ctrl != null, "у кабана свой контроллер анимации")
 	check(b._model.has_meta(&"rig"), "кабан: модель-риг")
 	check(b._model.get_node_or_null(^"Body") != null, "кабан: узел Body")
 	# шаг: вдоль оси X, камера сбоку
@@ -164,10 +164,12 @@ func _boar_tests() -> void:
 	b.target = null
 	# рыло в землю, потом лёг
 	b.global_position = Vector3(0, 0, 0)
+	b.heading = -PI * 0.5
+	b.rotation.y = b.heading
 	b.speed = 0.0
 	b._set_state(&"idle")
 	b._think_t = 999.0
-	_look(Vector3(-1.4, 0.8, 2.4), Vector3(-0.3, 0.35, 0))
+	_look(Vector3(0.2, 0.8, 2.6), Vector3(0.2, 0.35, 0))
 	await wait(2.0)
 	await shot("boar_rooting")
 	b.state_t = 7.5
@@ -177,7 +179,7 @@ func _boar_tests() -> void:
 	b._set_state(&"idle")
 	b.state_t = 0.0
 	await wait(0.6)
-	b._attack_cd = float(b.cfg["cd"])
+	b.anim_event(&"attack")
 	await wait(0.05)
 	check(float(b.anim_state.get("toss", 0.0)) > 0.0, "кабан: удар клыками запущен")
 	await _seq("boar_toss", 3, 0.08)
@@ -209,7 +211,7 @@ func _boar_tests() -> void:
 func _monkey_tests() -> void:
 	var m := fauna.spawn(&"monkey", Vector3(-4, 0, 0), 30.0)
 	await wait(0.1)
-	check(m.anim_ctl != null, "у обезьяны свой контроллер анимации")
+	check(m.anim_ctrl != null, "у обезьяны свой контроллер анимации")
 	m.heading = -PI * 0.5
 	m.move_to = Vector3(6, 0, 0)
 	m._set_state(&"wander")
@@ -249,10 +251,11 @@ func _monkey_tests() -> void:
 	m.speed = 0.0
 	m._set_state(&"perch")
 	m.anim_state["throw_cd"] = 99.0
-	_look(Vector3(-0.8, 2.2, 10.5), Vector3(-3.4, 1.9, 8.0), 55.0)
+	_look(Vector3(-0.2, 2.6, 12.0), Vector3(-3.4, 2.6, 8.0), 55.0)
 	await wait(1.0)
 	await shot("monkey_climb")
 	await wait(2.0)
+	_look(Vector3(-1.6, 4.6, 10.4), Vector3(-3.4, 3.8, 8.0), 50.0)
 	check(float(m.anim_state.get("climb", 0.0)) >= 0.99, "обезьяна забралась наверх")
 	await shot("monkey_on_tree")
 	dummy.global_position = Vector3(-3.4, 0, 14.0)
@@ -269,7 +272,7 @@ func _bird_tests() -> void:
 	var fl := fauna.spawn_flock(&"parrot", Vector3(0, 0, -6), 4, 8.0)
 	var g := fauna.spawn_flock(&"gull", Vector3(4, 0, -8), 3, 8.0)
 	await wait(0.2)
-	check(fl[0].anim_ctl != null, "у попугая свой контроллер анимации")
+	check(fl[0].anim_ctrl != null, "у попугая свой контроллер анимации")
 	var p: Animal = fl[0]
 	for i in 4:
 		_look(p.global_position + Vector3(0.3, 0.3, 2.0), p.global_position)
@@ -290,13 +293,18 @@ func _bird_tests() -> void:
 	var landed := false
 	for k in 40:
 		await wait(0.15)
-		if k == 6:
+		if k == 4:
+			_look(p.global_position + Vector3(0.6, 0.4, 1.8), p.global_position)
+			await wait(0.02)
 			await shot("parrot_landing")
+			_look(Vector3(1.5, 0.6, -2.6), Vector3(1.0, 0.1, -4.0))
 		if p.state == &"perch" and float(p.anim_state.get("fold", 0.0)) > 0.9:
 			landed = true
 			break
 	check(landed, "попугай сел и сложил крылья")
 	await wait(0.8)
+	_look(p.global_position + Vector3(0.45, 0.25, 0.55), p.global_position + Vector3(0, 0.05, 0))
+	await wait(0.05)
 	await shot("parrot_perched")
 	p.anim_state["preen_cd"] = 0.0
 	await wait(0.5)
@@ -321,6 +329,8 @@ func _bat_tests() -> void:
 	var top := Vector3(-4.0, 7.0, 8.0)
 	_look(top + Vector3(0.6, -0.9, 1.6), bt.global_position, 50.0)
 	await wait(0.5)
+	_look(bt.global_position + Vector3(0.35, 0.05, 0.6), bt.global_position, 50.0)
+	await wait(0.05)
 	await shot("bat_roost")
 	for a in bats:
 		a.queue_free()

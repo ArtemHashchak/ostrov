@@ -204,7 +204,7 @@ func _boar(a: Animal, rig: Dictionary, st: Dictionary, dt: float, lod: int) -> v
 		bob = sin(c * 4.0) * 0.008 * moving
 	var y := bob - rest * 0.3
 	if swim_k > 0.01:
-		y = lerpf(y, (wl - a.global_position.y) - 0.62 + sin(t * 2.0) * 0.02, swim_k)
+		y = lerpf(y, (wl - a.global_position.y) - 0.5 + sin(t * 2.0) * 0.02, swim_k)
 		pitch = lerpf(pitch, -0.08, swim_k)
 	# --- атака: бросок с ударом клыками вверх (событие attack в момент укуса)
 	var toss := maxf(0.0, float(st["toss"]) - dt)
@@ -235,7 +235,7 @@ func _boar(a: Animal, rig: Dictionary, st: Dictionary, dt: float, lod: int) -> v
 				if rooting:
 					var rt := fposmod(t + float(st["root_t"]), 5.0)
 					var nudge := maxf(0.0, sin(rt * 9.0)) * 0.08 if rt < 3.0 else 0.0
-					head_x = -0.5 + nudge
+					head_x = -0.68 + nudge
 				elif lod == 0:
 					_look_around(st, dt, 0.45, 0.15)
 					head_x = float(st["look_x"])
@@ -246,7 +246,7 @@ func _boar(a: Animal, rig: Dictionary, st: Dictionary, dt: float, lod: int) -> v
 		head_x = -0.45 + sin(t * 13.0) * 0.05
 		head_y = 0.0
 	if swim_k > 0.3:
-		head_x = lerpf(head_x, 0.32, swim_k)
+		head_x = lerpf(head_x, 0.5, swim_k)
 	# вздрог от удара
 	var hurt := a._hurt_flash / 0.25
 	head_x += hurt * 0.25
@@ -284,13 +284,14 @@ func _monkey(a: Animal, rig: Dictionary, st: Dictionary, dt: float, lod: int) ->
 	climb = move_toward(climb, 1.0 if perch else 0.0, dt / (2.2 if perch else 1.3))
 	st["climb"] = climb
 	var climbing := climb > 0.0 and climb < 1.0
+	var clinging := perch and climb >= 1.0   # наверху: держится за ствол
 	var base_lift := a.global_position.y - Fauna.ground_y_at(a, a.global_position.x, a.global_position.z)
 	if not perch and climb <= 0.0:
 		base_lift = 0.0
 	var vis_lift := climb * 3.5
 	# --- посадка: сидит в покое, на ветке, ест, «ждать»
 	var fed := a._now() - a.fed_t < 2.5
-	var want_sit := (state in [&"idle", &"stay"] and a.state_t > 0.8 and sp < 0.2) or (perch and climb >= 1.0) or fed
+	var want_sit := (state in [&"idle", &"stay"] and a.state_t > 0.8 and sp < 0.2) or fed
 	var sit := FaunaAnim.damp(float(st["rest"]), 1.0 if want_sit else 0.0, 4.0, dt)
 	st["rest"] = sit
 	# --- походка: шаг или прыжки
@@ -333,10 +334,12 @@ func _monkey(a: Animal, rig: Dictionary, st: Dictionary, dt: float, lod: int) ->
 			else:
 				hip.rotation.x = lerpf(hip.rotation.x, 1.35, sit)
 				knee.rotation.x = lerpf(knee.rotation.x, -2.0, sit)
-	# лазанье: тело вертикально у ствола, руки тянутся вверх по очереди
-	if climbing:
+	# лазанье: тело вертикально у ствола, руки тянутся вверх по очереди; наверху — держится, не двигаясь
+	if climbing or clinging:
 		var k := 1.0 - absf(climb * 2.0 - 1.0)
-		var ck := clampf(k * 3.0, 0.0, 1.0)
+		var ck := 1.0 if clinging else clampf(k * 3.0, 0.0, 1.0)
+		if clinging:
+			c = 0.6 + sin(t * 0.8) * 0.15
 		torso_x = lerpf(torso_x, 1.45, ck)
 		for i in 4:
 			var hip := legs[i] as Node3D
@@ -355,8 +358,8 @@ func _monkey(a: Animal, rig: Dictionary, st: Dictionary, dt: float, lod: int) ->
 	var elb_l := knees[0] as Node3D
 	if has_loot and not climbing:
 		var k2 := 1.0 if sit < 0.5 else 0.0
-		arm_r.rotation = Vector3(lerpf(1.1, 1.9, sit), 0.0, -0.25 * k2)
-		elb_r.rotation.x = -2.1 + (sin(t * 5.0) * 0.25 if sit > 0.5 else 0.0)
+		arm_r.rotation = Vector3(lerpf(1.9, 2.0, sit), 0.0, -0.3 * k2)
+		elb_r.rotation.x = -2.45 + (sin(t * 5.0) * 0.25 if sit > 0.5 else 0.0)
 	# почёсывание в покое (сидя)
 	var scratch := float(st["scratch"])
 	var scd := float(st["scratch_cd"]) - dt
@@ -399,7 +402,7 @@ func _monkey(a: Animal, rig: Dictionary, st: Dictionary, dt: float, lod: int) ->
 	neck.rotation = Vector3(float(st["head_x"]), float(st["head_y"]), 0.0)
 	hips.rotation = Vector3(torso_x, 0.0, 0.0)
 	var y := bob - sit * 0.24 + (vis_lift - base_lift)
-	if climbing:
+	if climbing or clinging:
 		y += 0.12
 	body.position = Vector3(0.0, y, hurt * 0.05)
 	body.rotation = Vector3(0.0, 0.0, hurt * 0.1)

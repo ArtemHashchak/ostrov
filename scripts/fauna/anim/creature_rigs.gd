@@ -288,6 +288,7 @@ static func bird(species: StringName) -> Node3D:
 				Vector3(0, -0.004, 0.035)], Color(1.0, 0, 0, 0))
 			return AnimalModels.commit(st))
 		var sh := AnimalModels._pivot(body, "Wing" + ("L" if sx < 0 else "R"), Vector3(sx * 0.035, 0.022, -0.03))
+		sh.rotation_order = EULER_ORDER_ZXY   # отвод в плоскости крыла (Y), затем поворот вокруг оси тела (Z)
 		var imi := AnimalModels.mesh_node(inner, wm, "Inner")
 		imi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_DOUBLE_SIDED
 		sh.add_child(imi)
@@ -295,7 +296,8 @@ static func bird(species: StringName) -> Node3D:
 		var omi := AnimalModels.mesh_node(outer, tip_m if tip_m else wm, "Outer")
 		omi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_DOUBLE_SIDED
 		hand.add_child(omi)
-		wings.append({"shoulder": sh, "hand": hand, "side": sx})
+		wings.append({"shoulder": sh, "hand": hand, "side": sx, "pos0": sh.position,
+			"fold_pos": Vector3(sx * 0.062, -0.004, -0.04)})
 	rig["wings"] = wings
 	rig["span"] = span
 	root.set_meta(&"length", L)
@@ -343,10 +345,12 @@ static func bat() -> Node3D:
 				AnimalModels.tube(st, Vector3(0, 0.018, -0.04), tip, 0.003, 0.0015, 4, Color(0.9, 0, 0, 0))
 			return AnimalModels.commit(st))
 		var sh := AnimalModels._pivot(body, "Wing" + ("L" if sx < 0 else "R"), Vector3(sx * 0.02, 0.0, -0.005))
+		sh.rotation_order = EULER_ORDER_ZXY
 		sh.add_child(AnimalModels.mesh_node(inner, wm, "Inner"))
 		var hand := AnimalModels._pivot(sh, "Hand", Vector3(sx * 0.1, 0, 0))
 		hand.add_child(AnimalModels.mesh_node(outer, wm, "Outer"))
-		wings.append({"shoulder": sh, "hand": hand, "side": sx})
+		wings.append({"shoulder": sh, "hand": hand, "side": sx, "pos0": sh.position,
+			"fold_pos": Vector3(sx * 0.026, 0.0, -0.005)})
 	rig["wings"] = wings
 	# задние лапки (ими висит)
 	var feet: Array = []
