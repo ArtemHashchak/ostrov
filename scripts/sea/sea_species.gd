@@ -31,11 +31,11 @@ const BUILTIN: Array[Dictionary] = [
 	{"id": "surgeonfish", "name": "Рыба-хирург", "category": "small", "biome": ["reef"],
 		"depth": [1.0, 10.0], "school": [6, 16], "groups": 3.0, "anim": "fish", "mesh": "",
 		"length": 0.26, "speed": 0.9, "roam": 6.0, "colors": [Color(0.2, 0.45, 0.95), Color(0.95, 0.85, 0.2)],
-		"min_quality": 0},
+		"min_quality": 3},   # на рифе и так 15 видов ReefLife — эти только на «ультра»
 	{"id": "parrotfish", "name": "Рыба-попугай", "category": "small", "biome": ["reef"],
 		"depth": [1.0, 12.0], "school": [1, 4], "groups": 2.0, "anim": "fish", "mesh": "",
 		"length": 0.45, "speed": 0.6, "roam": 7.0, "colors": [Color(0.25, 0.8, 0.6), Color(0.85, 0.35, 0.55)],
-		"min_quality": 1},
+		"min_quality": 3},
 	{"id": "barracuda", "name": "Барракуда", "category": "medium", "biome": ["lagoon", "reef", "deep"],
 		"depth": [3.0, 30.0], "school": [3, 9], "groups": 0.6, "anim": "fish", "mesh": "",
 		"length": 1.1, "speed": 1.4, "roam": 18.0, "colors": [Color(0.7, 0.74, 0.78)],
