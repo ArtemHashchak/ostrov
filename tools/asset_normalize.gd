@@ -258,6 +258,9 @@ func _decimate(src: Mesh, target: int, skel: Skeleton3D) -> ArrayMesh:
 		var mat := src.surface_get_material(s)
 		var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
 		var v: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		# свои (custom) каналы игре не нужны, а без их битов формата поверхность не создаётся
+		for ci in [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3]:
+			arrays[ci] = null
 		if idx.is_empty():
 			idx = _seq(v.size())
 			arrays[Mesh.ARRAY_INDEX] = idx

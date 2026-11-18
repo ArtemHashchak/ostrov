@@ -68,6 +68,7 @@ def main() -> int:
     for job, sp, spec in jobs:
         r = subprocess.run([GODOT, "--headless", "--path", tmp, "-s", "res://asset_normalize.gd", "--", sp],
                            capture_output=True, text=True, timeout=3600)
+        if r.returncode != 0 or os.environ.get("NORM_VERBOSE"): print(r.stdout[-3000:], r.stderr[-3000:])
         rep = {}
         if os.path.exists(spec["report"]):
             rep = json.load(open(spec["report"], encoding="utf-8"))
