@@ -3,3 +3,4 @@ tests/logs/
 tests/shots/
 *.tmp
 /build/
+__pycache__/
