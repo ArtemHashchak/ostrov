@@ -79,7 +79,7 @@ func flag_spot(team: int) -> Vector3:
 	var wl := float(w.call(&"water_level")) if w.has_method(&"water_level") else 0.0
 	var best := sp
 	var best_s := -INF
-	for ring in [5.0, 7.0, 9.0, 12.0]:
+	for ring: float in [5.0, 7.0, 9.0, 12.0]:
 		for k in 12:
 			var a := TAU * float(k) / 12.0
 			var x := sp.x + cos(a) * ring

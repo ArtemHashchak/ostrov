@@ -156,7 +156,8 @@ func apply_graphics() -> void:
 	var q := clampi(graphics_quality, 0, 3)
 	vp.scaling_3d_scale = [0.67, 0.8, 1.0, 1.0][q]
 	vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X][q]
-	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if q >= 1 else Viewport.SCREEN_SPACE_AA_DISABLED
+	if not is_compatibility_renderer():
+		vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if q >= 1 else Viewport.SCREEN_SPACE_AA_DISABLED
 	vp.positional_shadow_atlas_size = [1024, 2048, 4096, 8192][q]
 	RenderingServer.directional_shadow_atlas_set_size([1024, 2048, 4096, 8192][q], true)
 
