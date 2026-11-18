@@ -622,8 +622,8 @@ func animate(delta: float, speed01: float, sprinting: bool, tired: float, on_flo
 				var wind := _bump(p, 0.0, 0.36, 0.47)
 				var strike := _bump(p, 0.36, 0.5, 1.0)
 				var follow := _bump(p, 0.44, 0.58, 1.0)
-				base_r += Vector3(0.07, 0.12, 0.05) * wind + Vector3(-0.12, -0.06, -0.12) * strike + Vector3(-0.03, -0.06, 0.0) * follow
-				rr += Vector3(deg_to_rad(55.0), deg_to_rad(-8.0), deg_to_rad(-20.0)) * wind
+				base_r += Vector3(0.08, 0.1, 0.03) * wind + Vector3(-0.12, -0.06, -0.12) * strike + Vector3(-0.03, -0.06, 0.0) * follow
+				rr += Vector3(deg_to_rad(42.0), deg_to_rad(-14.0), deg_to_rad(-26.0)) * wind
 				rr += Vector3(deg_to_rad(-22.0), deg_to_rad(22.0), deg_to_rad(18.0)) * strike + Vector3(deg_to_rad(-12.0), 0.0, 0.0) * follow
 				base_l += Vector3(0.02, 0.04, 0.0) * wind
 			Swing.THRUST:

@@ -510,7 +510,7 @@ def vertex_attributes(v):
         red = np.maximum(red, np.exp(-np.sum((v - tip.origin - tip.fwd * L * 0.85) ** 2, 1) / (0.008 ** 2)) * 0.45)
     col = col * (1 - red[:, None] * 0.45) + redc * red[:, None] * 0.45
     # пятнистость и лёгкая грязь в складках
-    spot = vnoise(v, 260.0, 1.0) * 0.06 + vnoise(v, 90.0, 4.0) * 0.05
+    spot = vnoise(v, 260.0, 1.0) * 0.025 + vnoise(v, 90.0, 4.0) * 0.03
     col = col * (1.0 + spot[:, None])
     # тыльная сторона предплечья темнее (загар)
     s = v @ FORE_DIR
@@ -759,7 +759,10 @@ def preview(v, f, n, col):
             img[W - 1 - yi[upd], xi[upd]] = cl[m][upd]
         imgs.append(img)
     out = np.concatenate(imgs, 1)
-    Image.fromarray((out * 255).astype(np.uint8)).save(os.path.join(os.path.dirname(OUT), "_preview.png"))
+    import tempfile
+    path = os.path.join(tempfile.gettempdir(), "fp_hands_preview.png")
+    Image.fromarray((out * 255).astype(np.uint8)).save(path)
+    print("превью:", path)
 
 
 if __name__ == "__main__":

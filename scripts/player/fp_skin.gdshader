@@ -56,9 +56,9 @@ void fragment() {
 	vec3 c = COLOR.rgb * tint;
 	// пятнистость, веснушки на тыле, грязь на ладонях и кончиках
 	float blot = vnoise(rp * 120.0) * 0.5 + vnoise(rp * 420.0) * 0.5;
-	c *= 0.93 + 0.14 * blot;
-	float freckle = smoothstep(0.78, 0.9, vnoise(rp * 900.0)) * clamp(dorsal, 0.0, 1.0);
-	c = mix(c, c * vec3(0.78, 0.66, 0.6), freckle * 0.5);
+	c *= 0.96 + 0.07 * blot;
+	float freckle = smoothstep(0.82, 0.95, vnoise(rp * 900.0)) * clamp(dorsal, 0.0, 1.0);
+	c = mix(c, c * vec3(0.84, 0.74, 0.68), freckle * 0.3);
 	float grime = smoothstep(0.45, 0.8, vnoise(rp * 180.0 + 3.0)) * dirt * clamp(0.6 - dorsal, 0.0, 1.0);
 	c = mix(c, c * vec3(0.62, 0.55, 0.48), grime);
 	// грязь под краем ногтя
