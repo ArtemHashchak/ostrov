@@ -85,9 +85,11 @@ func run() -> void:
 	Input.action_press(&"move_forward")
 	Input.action_press(&"sprint")
 	tt = 0.0
-	while _sid() == &"sprint" and tt < 6.0:
+	while _sid() == &"sprint" and tt < 12.0:
 		await wait(0.3)
 		tt += 0.3
+		if fmod(tt, 3.0) < 0.3:   # упёрлись — разворот
+			p.call(&"set_look", randf() * TAU, 0.0)
 	Input.action_release(&"sprint")
 	Input.action_release(&"move_forward")
 	await _leave(&"sprint", 2.0)

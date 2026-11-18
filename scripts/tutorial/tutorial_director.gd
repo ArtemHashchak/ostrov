@@ -598,7 +598,7 @@ func _check(id: StringName, delta: float) -> bool:
 			return _cnt >= 2
 		&"sprint":
 			var body2 := p as CharacterBody3D
-			if bool(p.get(&"sprinting")) and body2 and Vector2(body2.velocity.x, body2.velocity.z).length() > 3.0:
+			if bool(p.get(&"sprinting")) and body2 and Vector2(body2.velocity.x, body2.velocity.z).length() > 1.5:
 				_acc += delta
 			ui.set_progress("Бег: %.1f / 2 с" % minf(_acc, 2.0))
 			return _acc >= 2.0
