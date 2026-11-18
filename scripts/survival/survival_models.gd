@@ -1075,10 +1075,20 @@ static func held_shell(fill: float) -> Node3D:
 	sm.rings = 6
 	var shell := pbr("palm_bark", Vector3(1, 1, 1), Color(0.75, 0.55, 0.38))
 	mesh_inst(root, sm, shell, Vector3(0, 0.07, -0.03), Vector3(PI, 0, 0))
-	mesh_inst(root, cyl(0.072, 0.072, 0.008, 14), color(Color(0.95, 0.93, 0.88), 0.7), Vector3(0, 0.068, -0.03))
+	# белый край мякоти — кольцо, а не диск (иначе вода не видна)
+	var rim := TorusMesh.new()
+	rim.inner_radius = 0.062
+	rim.outer_radius = 0.075
+	rim.rings = 16
+	rim.ring_segments = 6
+	mesh_inst(root, rim, color(Color(0.95, 0.93, 0.88), 0.7), Vector3(0, 0.07, -0.03))
 	if fill > 0.0:
-		var c := Color(0.55, 0.45, 0.18, 0.85) if fill > 1.5 else Color(0.25, 0.4, 0.45, 0.8)
-		mesh_inst(root, cyl(0.065, 0.065, 0.006, 14), color(c, 0.05), Vector3(0, 0.064, -0.03))
+		var c := Color(0.5, 0.38, 0.12) if fill > 1.5 else Color(0.18, 0.36, 0.42)
+		var wm := color(c, 0.05)
+		wm.metallic_specular = 0.9
+		mesh_inst(root, cyl(0.063, 0.063, 0.004, 16), wm, Vector3(0, 0.067, -0.03))
+	else:
+		mesh_inst(root, cyl(0.063, 0.063, 0.004, 16), color(Color(0.86, 0.82, 0.74), 0.8), Vector3(0, 0.06, -0.03))
 	return root
 
 static func held_pot() -> Node3D:
