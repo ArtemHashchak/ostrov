@@ -17,7 +17,11 @@ func _ready() -> void:
 	add_to_group(&"sv_wild")
 	max_hp = 10.0
 	hp = max_hp
-	model = SurvivalModels.wild_plant(kind, int(get_instance_id() % 997))
+	# 6 вариантов на вид, каждый слит в 1–3 меша и общий для всех копий (см. StaticBatch)
+	var v := int(get_instance_id() % 6)
+	var k := kind
+	model = StaticBatch.cached("wild_%s_%d" % [kind, v], func() -> Node3D: return SurvivalModels.wild_plant(k, v * 131 + 7))
+	model.rotation.y = float(get_instance_id() % 628) * 0.01
 	add_child(model)
 	collision_layer = 1
 	add_shape(Vector3(0.7, 0.6, 0.7), Vector3.ZERO, true)

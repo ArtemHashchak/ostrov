@@ -55,6 +55,7 @@ func _exit_tree() -> void:
 	if _inst == self:
 		_inst = null
 		SurvivalModels.clear_cache()
+		StaticBatch.clear_cache()
 
 func _ready() -> void:
 	name = "Survival"

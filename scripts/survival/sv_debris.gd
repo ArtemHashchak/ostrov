@@ -31,7 +31,9 @@ func _ready() -> void:
 	remove_from_group(&"buildable")
 	var c: Dictionary = CFG.get(kind, CFG[&"crate"])
 	max_hp = float(c.hp)
-	model = SurvivalModels.debris(kind, seed_v)
+	var v := absi(seed_v) % 6
+	var k := kind
+	model = StaticBatch.cached("debris_%s_%d" % [kind, v], func() -> Node3D: return SurvivalModels.debris(k, v * 977 + 13))
 	add_child(model)
 	cannon = model.has_meta(&"cannon")
 	if cannon:
