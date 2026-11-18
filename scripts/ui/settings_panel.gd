@@ -7,12 +7,13 @@ signal closed
 
 const REBINDABLE: Array[StringName] = [
 	&"move_forward", &"move_back", &"move_left", &"move_right", &"jump", &"sprint",
-	&"crouch", &"interact", &"inventory", &"craft", &"drop",
+	&"crouch", &"interact", &"inventory", &"craft", &"drop", &"map",
 ]
 const ACTION_NAMES: Dictionary = {
 	&"move_forward": "Вперёд", &"move_back": "Назад", &"move_left": "Влево",
 	&"move_right": "Вправо", &"jump": "Прыжок", &"sprint": "Бег", &"crouch": "Присесть",
 	&"interact": "Действие", &"inventory": "Инвентарь", &"craft": "Крафт", &"drop": "Выбросить",
+	&"map": "Карта",
 }
 
 var _waiting: StringName = &""
@@ -34,6 +35,11 @@ func _ready() -> void:
 	grid.add_theme_constant_override(&"h_separation", 16)
 	grid.add_theme_constant_override(&"v_separation", 8)
 	v.add_child(grid)
+	_slider(grid, "Качество графики", 0.0, 3.0, 1.0, float(Settings.graphics_quality),
+		func(x: float) -> void:
+			Settings.graphics_quality = int(x)
+			Settings.apply_graphics(),
+		func(x: float) -> String: return ["низкое", "среднее", "высокое", "ультра"][int(x)])
 	_slider(grid, "Чувствительность мыши", 0.0005, 0.006, 0.0001, Settings.mouse_sensitivity,
 		func(x: float) -> void: Settings.mouse_sensitivity = x,
 		func(x: float) -> String: return "%.1f" % (x / 0.0022))

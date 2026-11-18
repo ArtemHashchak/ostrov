@@ -8,6 +8,7 @@ const MAIN_MENU := "res://scenes/ui/main_menu.tscn"
 var player: Node = null
 var _menu: VBoxContainer
 var settings: SettingsPanel
+var controls: ControlsHelp
 
 func _init() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -33,10 +34,11 @@ func _ready() -> void:
 	_menu.add_child(sp)
 	_menu.add_child(menu_button("Продолжить", resume))
 	_menu.add_child(menu_button("Настройки", show_settings))
+	_menu.add_child(menu_button("Управление", func() -> void:
+		_menu.visible = false
+		controls.visible = true))
 	_menu.add_child(menu_button("Главное меню", func() -> void:
-		get_tree().paused = false
-		if ResourceLoader.exists(MAIN_MENU):
-			get_tree().change_scene_to_file(MAIN_MENU)))
+		GameLauncher.to_menu(get_tree())))
 	_menu.add_child(menu_button("Выход", func() -> void: get_tree().quit()))
 	settings = SettingsPanel.new()
 	settings.visible = false
@@ -48,6 +50,16 @@ func _ready() -> void:
 	settings.grow_vertical = Control.GROW_DIRECTION_BOTH
 	settings.closed.connect(func() -> void: _menu.visible = true)
 	add_child(settings)
+	controls = ControlsHelp.new()
+	controls.visible = false
+	controls.anchor_left = 0.5
+	controls.anchor_right = 0.5
+	controls.anchor_top = 0.5
+	controls.anchor_bottom = 0.5
+	controls.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	controls.grow_vertical = Control.GROW_DIRECTION_BOTH
+	controls.closed.connect(func() -> void: _menu.visible = true)
+	add_child(controls)
 
 ## Кнопка-текст в стиле The Forest (без рамок, подсветка при наведении).
 static func menu_button(text: String, cb: Callable) -> Button:
@@ -69,6 +81,7 @@ func set_open(on: bool) -> void:
 	visible = on
 	_menu.visible = true
 	settings.visible = false
+	controls.visible = false
 
 func show_settings() -> void:
 	_menu.visible = false

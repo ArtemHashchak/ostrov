@@ -7,6 +7,8 @@ const FALLBACK := "res://scenes/test/test_island.tscn"
 
 var _menu: VBoxContainer
 var settings: SettingsPanel
+var lobby: LobbyPanel
+var controls: ControlsHelp
 var _cam: Camera3D
 var _t := 0.0
 
@@ -44,15 +46,18 @@ func _ready() -> void:
 	var sp := Control.new()
 	sp.custom_minimum_size = Vector2(0, 34)
 	_menu.add_child(sp)
-	var play := PauseMenu.menu_button("Играть", play_game)
+	var play := PauseMenu.menu_button("Играть", open_lobby)
 	_menu.add_child(play)
 	_menu.add_child(PauseMenu.menu_button("Настройки", func() -> void:
 		_menu.visible = false
 		settings.visible = true))
+	_menu.add_child(PauseMenu.menu_button("Управление", func() -> void:
+		_menu.visible = false
+		controls.visible = true))
 	_menu.add_child(PauseMenu.menu_button("Выход", func() -> void: get_tree().quit()))
 	play.grab_focus.call_deferred()
 
-	var ver := UITheme.label("v0.5 · Godot " + Engine.get_version_info().string, 11, UITheme.TEXT_DIM)
+	var ver := UITheme.label("v0.6 · Godot " + Engine.get_version_info().string, 11, UITheme.TEXT_DIM)
 	ver.anchor_left = 1.0
 	ver.anchor_right = 1.0
 	ver.anchor_top = 1.0
@@ -73,6 +78,30 @@ func _ready() -> void:
 	settings.grow_vertical = Control.GROW_DIRECTION_BOTH
 	settings.closed.connect(func() -> void: _menu.visible = true)
 	add_child(settings)
+	lobby = LobbyPanel.new()
+	_center(lobby)
+	lobby.closed.connect(func() -> void: _menu.visible = true)
+	add_child(lobby)
+	controls = ControlsHelp.new()
+	_center(controls)
+	controls.closed.connect(func() -> void: _menu.visible = true)
+	add_child(controls)
+	Game.end_session()
+
+func _center(c: Control) -> void:
+	c.visible = false
+	c.anchor_left = 0.5
+	c.anchor_right = 0.5
+	c.anchor_top = 0.5
+	c.anchor_bottom = 0.5
+	c.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	c.grow_vertical = Control.GROW_DIRECTION_BOTH
+
+func open_lobby() -> void:
+	_menu.visible = false
+	lobby.visible = true
+	if lobby.start_button:
+		lobby.start_button.grab_focus.call_deferred()
 
 func _build_background() -> void:
 	var vc := SubViewportContainer.new()
@@ -110,9 +139,9 @@ func _update_cam() -> void:
 	_cam.position = Vector3(cos(a) * 70.0, 14.0, sin(a) * 70.0)
 	_cam.look_at(Vector3(0, 3, 0))
 
+## Сразу в матч с последними настройками лобби.
 func play_game() -> void:
-	var path := MATCH if ResourceLoader.exists(MATCH) else FALLBACK
-	get_tree().change_scene_to_file(path)
+	GameLauncher.start(get_tree(), GameLauncher.load_lobby())
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"pause") and settings.visible:
