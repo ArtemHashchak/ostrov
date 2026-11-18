@@ -1,0 +1,151 @@
+[
+ {
+  "after_size": [
+   1.63209192395867,
+   1.3304858403224,
+   4.5
+  ],
+  "after_surfaces": 5,
+  "after_tris": 7118,
+  "animations": [
+   {
+    "length": 1.0,
+    "name": "bite"
+   },
+   {
+    "length": 1.0,
+    "name": "bite_2"
+   },
+   {
+    "length": 1.0,
+    "name": "hurt"
+   },
+   {
+    "length": 1.0,
+    "name": "die"
+   },
+   {
+    "length": 1.0,
+    "name": "eat"
+   },
+   {
+    "length": 1.0,
+    "name": "idle"
+   },
+   {
+    "length": 1.0,
+    "name": "swim"
+   },
+   {
+    "length": 1.0,
+    "name": "swim_fast"
+   },
+   {
+    "length": 1.0,
+    "name": "turn_left"
+   },
+   {
+    "length": 1.0,
+    "name": "turn_right"
+   }
+  ],
+  "before_size": [
+   11.5699090957642,
+   9.43182182312012,
+   31.9005260467529
+  ],
+  "before_surfaces": 5,
+  "before_tris": 23966,
+  "bones": 29,
+  "budget_tris": 10000,
+  "category": "animal_large",
+  "export_err": 0,
+  "glb_mb": 9.41,
+  "materials": [
+   "Grey",
+   "Gums",
+   "Teeth",
+   "Eyes"
+  ],
+  "name": "animal_shark_great_white",
+  "parts": [
+   {
+    "after": 6288,
+    "before": 12578,
+    "mesh": "GreatWhiteShark_Body",
+    "target": 8900
+   },
+   {
+    "after": 304,
+    "before": 1216,
+    "mesh": "GreatWhiteShark_Gums",
+    "target": 460
+   },
+   {
+    "after": 172,
+    "before": 1376,
+    "mesh": "GreatWhiteShark_LowerTeeth",
+    "target": 179
+   },
+   {
+    "after": 106,
+    "before": 860,
+    "mesh": "GreatWhiteShark_UpperTeeth",
+    "target": 114
+   },
+   {
+    "after": 248,
+    "before": 7936,
+    "mesh": "GreatWhiteShark_Eyes",
+    "target": 345
+   }
+  ],
+  "scale": 0.141063504514153,
+  "tex_max": 2048,
+  "tex_mb_uncompressed": 50.25,
+  "tex_mb_vram_est": 16.71,
+  "ok": true
+ },
+ {
+  "after_size": [
+   4.60845517917233,
+   10.0,
+   6.2739431869902
+  ],
+  "after_surfaces": 4,
+  "after_tris": 8691,
+  "animations": [],
+  "before_size": [
+   25.5198040008545,
+   55.376049041748,
+   34.742618560791
+  ],
+  "before_surfaces": 10,
+  "before_tris": 223564,
+  "bones": 0,
+  "budget_tris": 12000,
+  "category": "tree",
+  "export_err": 0,
+  "glb_mb": 1.96,
+  "materials": [
+   "Coconut",
+   "FrondStem",
+   "Leaflet",
+   "Bark"
+  ],
+  "name": "tree_palm_coconut_user",
+  "parts": [
+   {
+    "after": 8691,
+    "before": 223564,
+    "mesh": "CoconutPalm_PLA",
+    "target": 12000
+   }
+  ],
+  "scale": 0.180583486417765,
+  "tex_max": 2048,
+  "tex_mb_uncompressed": 3.25,
+  "tex_mb_vram_est": 1.08,
+  "ok": true
+ }
+]
