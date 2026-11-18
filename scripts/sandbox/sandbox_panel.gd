@@ -44,10 +44,10 @@ func _ready() -> void:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override(&"panel", UITheme.box(UITheme.PANEL, 8, UITheme.LINE, 1, 18))
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-	panel.offset_left = 40
-	panel.offset_right = -40
-	panel.offset_top = 30
-	panel.offset_bottom = -30
+	panel.offset_left = 16
+	panel.offset_right = -16
+	panel.offset_top = 16
+	panel.offset_bottom = -16
 	add_child(panel)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override(&"separation", 8)
@@ -65,7 +65,7 @@ func _ready() -> void:
 	close.pressed.connect(close_panel)
 	head.add_child(close)
 	var cols := HBoxContainer.new()
-	cols.add_theme_constant_override(&"separation", 18)
+	cols.add_theme_constant_override(&"separation", 12)
 	cols.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(cols)
 	cols.add_child(_travel_col())
@@ -110,7 +110,7 @@ func _scroll_col(title: String, width: float) -> VBoxContainer:
 var _travel: VBoxContainer
 
 func _travel_col() -> Control:
-	_travel = _scroll_col("Быстрое перемещение", 230)
+	_travel = _scroll_col("Быстрое перемещение", 196)
 	return _travel.get_meta(&"scroll")
 
 func _fill_travel() -> void:
@@ -118,14 +118,14 @@ func _fill_travel() -> void:
 		var b := Button.new()
 		b.text = String(zones.points[id].name)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.add_theme_font_size_override(&"font_size", 16)
+		b.add_theme_font_size_override(&"font_size", 15)
 		b.pressed.connect(go.bind(id))
 		_travel.add_child(b)
 
 func _tools_col() -> Control:
-	var col := _scroll_col("Режимы", 300)
+	var col := _scroll_col("Режимы", 262)
 	_fly_cb = _check(col, "Полёт сквозь стены (V)", func(on: bool) -> void: cheats.set_fly(on))
-	_god_cb = _check(col, "Бессмертие (сытость, вода, воздух)", func(on: bool) -> void: cheats.set_god(on))
+	_god_cb = _check(col, "Бессмертие", func(on: bool) -> void: cheats.set_god(on))
 	_inf_cb = _check(col, "Бесконечные предметы", func(on: bool) -> void: cheats.set_infinite(on))
 	col.add_child(_gap())
 	col.add_child(UITheme.label("Время и погода", 15, UITheme.ACCENT, true))
@@ -135,7 +135,7 @@ func _tools_col() -> Control:
 	_time.min_value = 0.0
 	_time.max_value = 24.0
 	_time.step = 0.25
-	_time.custom_minimum_size = Vector2(260, 22)
+	_time.custom_minimum_size = Vector2(230, 22)
 	_time.value_changed.connect(func(x: float) -> void:
 		if world:
 			world.set_time_of_day(x)
@@ -210,7 +210,7 @@ func _zone_name(id: StringName) -> String:
 
 func _items_col() -> Control:
 	var col := VBoxContainer.new()
-	col.custom_minimum_size = Vector2(280, 0)
+	col.custom_minimum_size = Vector2(230, 0)
 	col.add_theme_constant_override(&"separation", 4)
 	col.add_child(UITheme.label("Выдать предмет", 15, UITheme.ACCENT, true))
 	_search = LineEdit.new()

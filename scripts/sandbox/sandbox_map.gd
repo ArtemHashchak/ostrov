@@ -13,7 +13,7 @@ var _tex: ImageTexture
 var _bounds := Rect2()
 
 func _init() -> void:
-	custom_minimum_size = Vector2(360, 360)
+	custom_minimum_size = Vector2(300, 300)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
@@ -66,14 +66,29 @@ func _draw() -> void:
 	draw_rect(r, UITheme.LINE, false, 1.0)
 	var font := UITheme.font(true)
 	if zones:
+		var used: Array[Rect2] = []
 		for id: StringName in zones.order:
 			var pt: Dictionary = zones.points[id]
 			var p3: Vector3 = pt.pos
 			var sp := to_screen(Vector2(p3.x, p3.z))
 			draw_circle(sp, 5.0, UITheme.ACCENT)
 			draw_circle(sp, 5.0, Color(0, 0, 0, 0.6), false, 1.5)
-			draw_string_outline(font, sp + Vector2(8, 5), String(pt.name), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 4, Color(0, 0, 0, 0.8))
-			draw_string(font, sp + Vector2(8, 5), String(pt.name), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, UITheme.TEXT)
+			var txt := String(pt.name)
+			var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+			var rr := Rect2(sp + Vector2(7, -8), Vector2(w + 4, 15))
+			if sp.x + 7 + w > r.end.x:
+				rr.position.x = sp.x - 7 - w
+			var free := true
+			for u in used:
+				if u.intersects(rr):
+					free = false
+					break
+			if not free:
+				continue
+			used.append(rr)
+			var at := rr.position + Vector2(2, 12)
+			draw_string_outline(font, at, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 4, Color(0, 0, 0, 0.85))
+			draw_string(font, at, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UITheme.TEXT)
 	if player and is_instance_valid(player):
 		var pp := to_screen(Vector2(player.global_position.x, player.global_position.z))
 		var yaw: float = float(player.get(&"_yaw")) if player.get(&"_yaw") != null else 0.0

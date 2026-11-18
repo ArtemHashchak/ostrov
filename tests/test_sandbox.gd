@@ -60,6 +60,18 @@ func run() -> void:
 		check(d < 3.0, "перемещение «%s» (%.1f м от точки)" % [pt.name, d])
 		await shot("%02d_%s" % [i, id])
 		i += 1
+	# крупно: подписи читаются
+	for e in [["92_flora_row", Vector3(-74, 0, -47), Vector3(-74, 0.8, -55)],
+			["93_fauna_pens", Vector3(55, 0, -50), Vector3(55, 0.6, -63)],
+			["94_items_table", Vector3(-12, 0, 12.5), Vector3(-12, 0.9, 16)],
+			["95_build_house", Vector3(-90, 0, -4), Vector3(-92, 1.5, -15)]]:
+		var at: Vector3 = e[1]
+		at.y = SandboxProps.ground(at.x, at.z) + 0.2
+		var lk: Vector3 = e[2]
+		lk.y += SandboxProps.ground(lk.x, lk.z)
+		sb.cheats.teleport(at, lk)
+		await wait(1.5)
+		await shot(e[0])
 	# меню F1
 	sb.panel.go(&"bots")
 	await wait(1.0)

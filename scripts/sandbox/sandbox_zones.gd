@@ -260,8 +260,8 @@ func _lay(zone: StringName, _root: Node3D, table: StaticBody3D, ids: Array, n: i
 			pk.freeze = true
 			pk.freeze_mode = RigidBody3D.FREEZE_MODE_KINEMATIC
 			_own(zone, pk)
-			var l := P.label(pk, w + Vector3(0, 0.32, 0), Items.item_name(id), 22, P.SIGN_COLOR, 7.0)
-			l.pixel_size = 0.0035
+			var l := P.label(pk, w + Vector3(0, 0.3, 0), Items.item_name(id), 30, P.SIGN_COLOR, 10.0)
+			l.pixel_size = 0.0032
 
 static func all_items() -> Array[StringName]:
 	var arr: Array[StringName] = []
@@ -295,10 +295,6 @@ func _items(root: Node3D) -> void:
 		var t := P.table(root, x, z, 4.0)
 		var part := ids.slice(ti * per, mini(ids.size(), (ti + 1) * per))
 		_lay(&"items", root, t, part, 1)
-		var kinds := {}
-		for id: StringName in part:
-			kinds[KIND_NAMES.get(Items.get_item(id).kind, String(Items.get_item(id).kind))] = true
-		P.tag(root, x, z - 0.9, " · ".join(PackedStringArray(kinds.keys())), 1.45, 22.0)
 	_stand(&"items", "Предметы", 0.0, 9.0, 0.0, 22.0, 0.5)
 
 func _range(root: Node3D) -> void:
@@ -581,7 +577,7 @@ func _beach(root: Node3D) -> void:
 	mid /= kinds.size()
 	var inland := mid - Vector2.from_angle(a0) * 9.0 + Vector2.from_angle(a0 + PI * 0.5) * 6.0
 	P.signpost(root, inland.x, inland.y, "МУСОРНЫЙ ПЛЯЖ", "Обломки после штормов: ящики, бочки, сети, металл")
-	var stand := mid - Vector2.from_angle(a0) * 13.0
+	var stand := mid - Vector2.from_angle(a0) * 8.0
 	_point(&"beach", "Мусорный пляж", Vector3(stand.x, P.ground(stand.x, stand.y) + 0.2, stand.y), Vector3(mid.x, P.ground(mid.x, mid.y) + 0.5, mid.y))
 
 ## Сухой песок у берега под углом a (ищем от воды вглубь).

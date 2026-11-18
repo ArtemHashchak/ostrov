@@ -41,8 +41,8 @@ static func label(parent: Node, pos: Vector3, text: String, size: int = 40, colo
 	return l
 
 ## Подпись у предмета/постройки: на высоте h над землёй.
-static func tag(parent: Node, x: float, z: float, text: String, h: float = 1.6, range_end: float = 28.0) -> Label3D:
-	return label(parent, Vector3(x, ground(x, z) + h, z), text, 34, SIGN_COLOR, range_end)
+static func tag(parent: Node, x: float, z: float, text: String, h: float = 1.6, range_end: float = 36.0) -> Label3D:
+	return label(parent, Vector3(x, ground(x, z) + h, z), text, 44, SIGN_COLOR, maxf(range_end, 36.0))
 
 ## Табличка зоны: столб с доской и крупная надпись.
 static func signpost(parent: Node, x: float, z: float, title: String, sub: String = "") -> Node3D:
