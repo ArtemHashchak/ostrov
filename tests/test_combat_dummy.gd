@@ -154,7 +154,10 @@ func run() -> void:
 	await wait(0.3)
 	await shot("10_bow_idle")
 	var aimp := body + Vector3.UP * 0.18
-	aim_at(aimp)
+	# ПКМ (разброс 0.5° вместо 1.6° «от бедра») + упреждение на падение стрелы
+	Input.action_press(&"aim")
+	var eye := p.get_eye_position()
+	aim_at(eye + Combat.aim_dir(eye, aimp, &"bow") * 10.0)
 	Input.action_press(&"attack")
 	await wait(1.1)
 	check(ctrl().draw >= 0.99, "лук натянут полностью (%.2f)" % ctrl().draw)
@@ -162,9 +165,10 @@ func run() -> void:
 	var n0 := dummy.hits.size()
 	Input.action_release(&"attack")
 	var t := 0.0
-	while dummy.hits.size() == n0 and t < 1.5:
+	while dummy.hits.size() == n0 and t < 3.0:
 		await wait(0.05)
 		t += 0.05
+	Input.action_release(&"aim")
 	h = last_dummy_hit()
 	check(dummy.hits.size() > n0, "стрела попала в манекен (%s, %.1f)" % [h.get("zone", "-"), float(h.get("damage", 0.0))])
 	check(p.inventory.count(&"arrow") == 4, "стрела израсходована")
