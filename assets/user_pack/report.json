@@ -108,6 +108,358 @@
  },
  {
   "after_size": [
+   1.21875183820795,
+   1.06788248744297,
+   3.2
+  ],
+  "after_surfaces": 1,
+  "after_tris": 3690,
+  "animations": [],
+  "before_size": [
+   1.90429902076721,
+   1.66856575012207,
+   4.99999809265137
+  ],
+  "before_surfaces": 1,
+  "before_tris": 3690,
+  "bones": 0,
+  "budget_tris": 6000,
+  "category": "animal_large",
+  "export_err": 0,
+  "glb_mb": 0.97,
+  "materials": [
+   "mat_0-megalodon.jpg"
+  ],
+  "name": "shark_pack8",
+  "parts": [
+   {
+    "after": 3690,
+    "before": 3690,
+    "mesh": "Fish Model 8 Shark Mesh",
+    "target": 3690
+   }
+  ],
+  "scale": 0.640000244140718,
+  "tex_max": 2048,
+  "tex_mb_uncompressed": 6.0,
+  "tex_mb_vram_est": 2.0,
+  "ok": true
+ },
+ {
+  "after_size": [
+   0.894717772767285,
+   0.437028779434691,
+   0.9
+  ],
+  "after_surfaces": 3,
+  "after_tris": 2574,
+  "animations": [],
+  "before_size": [
+   0.0321506932377815,
+   0.015704145655036,
+   0.0323405042290688
+  ],
+  "before_surfaces": 3,
+  "before_tris": 2268742,
+  "bones": 0,
+  "budget_tris": 5000,
+  "category": "animal_medium",
+  "export_err": 0,
+  "glb_mb": 0.07,
+  "materials": [
+   "Octopus_006",
+   "PM3D_Sphere3D1",
+   "PM3D_Sphere3D1_1"
+  ],
+  "name": "octopus",
+  "parts": [
+   {
+    "after": 2386,
+    "before": 19098,
+    "mesh": "Octopus_006",
+    "target": 4698
+   },
+   {
+    "after": 34,
+    "before": 284,
+    "mesh": "PM3D_Sphere3D1",
+    "target": 48
+   },
+   {
+    "after": 154,
+    "before": 616,
+    "mesh": "PM3D_Sphere3D1_1",
+    "target": 262
+   }
+  ],
+  "scale": 27.8288796496577,
+  "tex_max": 1024,
+  "tex_mb_uncompressed": 0.0,
+  "tex_mb_vram_est": 0.0,
+  "ok": true,
+  "note": "сначала упрощено в Blender (decimate), затем нормализатор"
+ },
+ {
+  "after_size": [
+   0.836038128164776,
+   0.619249025595447,
+   0.9
+  ],
+  "after_surfaces": 1,
+  "after_tris": 2800,
+  "animations": [],
+  "before_size": [
+   0.543228149414062,
+   0.40236622095108,
+   0.58478832244873
+  ],
+  "before_surfaces": 1,
+  "before_tris": 49826,
+  "bones": 0,
+  "budget_tris": 3000,
+  "category": "animal_medium",
+  "export_err": 0,
+  "glb_mb": 0.4,
+  "materials": [
+   "mat0"
+  ],
+  "name": "squid_biolum",
+  "parts": [
+   {
+    "after": 2800,
+    "before": 2800,
+    "mesh": "obj1",
+    "target": 2800
+   }
+  ],
+  "scale": 1.53901841991536,
+  "tex_max": 1024,
+  "tex_mb_uncompressed": 0.0,
+  "tex_mb_vram_est": 0.0,
+  "ok": true,
+  "note": "сначала упрощено в Blender (decimate), затем нормализатор"
+ },
+ {
+  "after_size": [
+   0.188817500075826,
+   0.22,
+   0.184435768618214
+  ],
+  "after_surfaces": 7,
+  "after_tris": 1400,
+  "animations": [],
+  "before_size": [
+   0.192698463797569,
+   0.224521890282631,
+   0.188226670026779
+  ],
+  "before_surfaces": 7,
+  "before_tris": 64858,
+  "bones": 0,
+  "budget_tris": 1500,
+  "category": "fish_small",
+  "export_err": 0,
+  "glb_mb": 0.55,
+  "materials": [
+   "Material.004",
+   "Material.009",
+   "Material.013",
+   "Material.011",
+   "Material.001",
+   "Material.014",
+   "Material.018"
+  ],
+  "name": "fish_discus",
+  "parts": [
+   {
+    "after": 1400,
+    "before": 1400,
+    "mesh": "fish asset",
+    "target": 1400
+   }
+  ],
+  "scale": 0.979859913539216,
+  "tex_max": 512,
+  "tex_mb_uncompressed": 3.37,
+  "tex_mb_vram_est": 1.12,
+  "ok": true,
+  "note": "сначала упрощено в Blender (decimate), затем нормализатор"
+ },
+ {
+  "after_size": [
+   0.0881049770924838,
+   0.191488505397885,
+   0.45
+  ],
+  "after_surfaces": 1,
+  "after_tris": 922,
+  "animations": [
+   {
+    "length": 1.33,
+    "name": "Take 001"
+   }
+  ],
+  "before_size": [
+   0.0527152121067047,
+   0.114571928977966,
+   0.269245237112045
+  ],
+  "before_surfaces": 1,
+  "before_tris": 29552,
+  "bones": 19,
+  "budget_tris": 1500,
+  "category": "fish_small",
+  "export_err": 0,
+  "glb_mb": 0.67,
+  "materials": [
+   "aiStandardSurface"
+  ],
+  "name": "fish_redfish",
+  "parts": [
+   {
+    "after": 922,
+    "before": 29552,
+    "mesh": "fish_text_Group2",
+    "target": 1500
+   }
+  ],
+  "scale": 1.67133875728593,
+  "tex_max": 512,
+  "tex_mb_uncompressed": 3.0,
+  "tex_mb_vram_est": 1.0,
+  "ok": true
+ },
+ {
+  "after_size": [
+   0.162898975414604,
+   0.207595769406446,
+   0.3
+  ],
+  "after_surfaces": 9,
+  "after_tris": 1400,
+  "animations": [],
+  "before_size": [
+   2.11440801620483,
+   2.69456672668457,
+   3.89396190643311
+  ],
+  "before_surfaces": 9,
+  "before_tris": 5896,
+  "bones": 0,
+  "budget_tris": 1500,
+  "category": "fish_small",
+  "export_err": 0,
+  "glb_mb": 1.11,
+  "materials": [
+   "Material_07",
+   "Material",
+   "Material_03",
+   "Material_00",
+   "Material_02",
+   "Material_04",
+   "Material_01",
+   "Material_05",
+   "Material_06"
+  ],
+  "name": "fish_tropical_spotted",
+  "parts": [
+   {
+    "after": 1400,
+    "before": 1400,
+    "mesh": "obj",
+    "target": 1400
+   }
+  ],
+  "scale": 0.077042356142308,
+  "tex_max": 512,
+  "tex_mb_uncompressed": 2.53,
+  "tex_mb_vram_est": 0.84,
+  "ok": true,
+  "note": "сначала упрощено в Blender (decimate), затем нормализатор"
+ },
+ {
+  "after_size": [
+   0.237701576050827,
+   1.1,
+   0.253756000274764
+  ],
+  "after_surfaces": 3,
+  "after_tris": 2400,
+  "animations": [],
+  "before_size": [
+   0.243385314941406,
+   1.12630236148834,
+   0.259823620319366
+  ],
+  "before_surfaces": 3,
+  "before_tris": 56000,
+  "bones": 0,
+  "budget_tris": 2500,
+  "category": "item",
+  "export_err": 0,
+  "glb_mb": 3.45,
+  "materials": [
+   "M_Fabric",
+   "M_Metal",
+   "M_DriedFishAtlas"
+  ],
+  "name": "item_dried_fish",
+  "parts": [
+   {
+    "after": 2400,
+    "before": 2400,
+    "mesh": "SM_HangedDriedFish_035",
+    "target": 2400
+   }
+  ],
+  "scale": 0.97664715764816,
+  "tex_max": 512,
+  "tex_mb_uncompressed": 12.0,
+  "tex_mb_vram_est": 3.99,
+  "ok": true,
+  "note": "сначала упрощено в Blender (decimate), затем нормализатор"
+ },
+ {
+  "after_size": [
+   0.0476383920477525,
+   0.1,
+   0.0457572381908707
+  ],
+  "after_surfaces": 1,
+  "after_tris": 404,
+  "animations": [],
+  "before_size": [
+   0.0488636344671249,
+   0.102571964263916,
+   0.0469340980052948
+  ],
+  "before_surfaces": 1,
+  "before_tris": 6474,
+  "bones": 0,
+  "budget_tris": 800,
+  "category": "item",
+  "export_err": 0,
+  "glb_mb": 0.88,
+  "materials": [
+   "MAT_JunoniaShell"
+  ],
+  "name": "item_shell_junonia",
+  "parts": [
+   {
+    "after": 404,
+    "before": 6474,
+    "mesh": "OBJ_JunoniaShell",
+    "target": 800
+   }
+  ],
+  "scale": 0.974925270444286,
+  "tex_max": 512,
+  "tex_mb_uncompressed": 4.0,
+  "tex_mb_vram_est": 1.33,
+  "ok": true
+ },
+ {
+  "after_size": [
    4.60845517917233,
    10.0,
    6.2739431869902

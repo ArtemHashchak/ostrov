@@ -61,6 +61,7 @@ func _ready() -> void:
 	add_to_group(&"sea")
 	_rng.seed = 7331
 	SeaItems.register()
+	UserSeaPack.register_items()   # пак пользователя: ракушка
 	if Events.has_signal(&"character_damaged"):
 		Events.character_damaged.connect(_on_character_damaged)
 	for i in 4:
@@ -198,6 +199,7 @@ func populate() -> void:
 				continue
 			_spawn_school(pos, k + (int(d.get("id", 0)) * 3))
 	_build_reefs_and_life()
+	UserSeaPack.scatter_shells(self)   # ракушки из пака на пляжах
 
 func _build_reefs_and_life() -> void:
 	if reefs_enabled:

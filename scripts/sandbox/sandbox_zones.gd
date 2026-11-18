@@ -112,6 +112,8 @@ func build_zone(id: StringName) -> void:
 		&"pack":
 			SandboxPack.build(self, root, ZONES[&"pack"].c)
 			SandboxPack.build_sea(self, root)
+			SandboxSeaPack.build(self, root, ZONES[&"pack"].c)   # морская часть пака
+			SandboxSeaPack.build_sea(self, root)
 
 ## Вернуть зону к начальному виду (деревья в зоне растений не восстанавливаются).
 func reset_zone(id: StringName) -> void:

@@ -219,11 +219,15 @@ func _resources(d: Dictionary) -> Dictionary:
 		mesh = FishSchool.make_fish_mesh(L) if String(d.anim) != "eel" else _eel_mesh(L)
 	var m := ShaderMaterial.new()
 	m.shader = SHADER
+	# свой шейдер вида (пак пользователя): "shader": "res://…gdshader" — те же параметры + свои
+	var sh_path := String(d.get("shader", ""))
+	if sh_path != "" and ResourceLoader.exists(sh_path):
+		m.shader = load(sh_path)
 	var cols: Array = d.colors
 	m.set_shader_parameter(&"color_a", cols[0])
 	m.set_shader_parameter(&"color_b", cols[cols.size() - 1])
 	m.set_shader_parameter(&"body_len", L)
-	m.set_shader_parameter(&"anim_mode", ["fish", "eel", "ray", "jelly", "static", "vat"].find(String(d.anim)))
+	m.set_shader_parameter(&"anim_mode", ["fish", "eel", "ray", "jelly", "static", "vat", "octopus"].find(String(d.anim)))
 	m.set_shader_parameter(&"fwd_axis", maxi(0, ["-z", "+z", "+x", "-x"].find(String(d.get("forward", "-z")))))
 	var spd := float(d.speed)
 	m.set_shader_parameter(&"ang_speed", spd / maxf(float(d.roam), 1.0) * (1.0 if hash(id) % 2 == 0 else -1.0))
@@ -252,6 +256,13 @@ func _resources(d: Dictionary) -> Dictionary:
 				m.set_shader_parameter(&"use_tex", true)
 				m.set_shader_parameter(&"use_vertex_color", false)
 				m.set_shader_parameter(&"albedo_tex", src.albedo_texture)
+	# свои параметры шейдера вида: "params": {"glow": 1.5, "glow_color": "#33ddff", …}
+	var extra: Dictionary = d.get("params", {})
+	for k: Variant in extra:
+		var val: Variant = extra[k]
+		if val is String and String(val).begins_with("#"):
+			val = Color(String(val))
+		m.set_shader_parameter(StringName(String(k)), val)
 	SeaPush.register(m)
 	var r := {"mesh": mesh, "mat": m}
 	_mesh_cache[id] = r
@@ -259,7 +270,8 @@ func _resources(d: Dictionary) -> Dictionary:
 
 static func _first_mesh(res: Resource) -> Dictionary:
 	if res is Mesh:
-		return {"mesh": res, "tex": null}
+		var mt := (res as Mesh).surface_get_material(0) if (res as Mesh).get_surface_count() > 0 else null
+		return {"mesh": res, "tex": (mt as BaseMaterial3D).albedo_texture if mt is BaseMaterial3D else null}
 	if res is PackedScene:
 		var root := (res as PackedScene).instantiate()
 		var out := {}
