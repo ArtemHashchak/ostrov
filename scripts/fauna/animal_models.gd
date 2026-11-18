@@ -332,47 +332,7 @@ static func _boar() -> Node3D:
 # ---------------------------- краб ----------------------------
 static func _crab() -> Node3D:
 	var root := _root(&"crab", 0.3)
-	var mat: ShaderMaterial = root.get_meta(&"mat")
-	var body := cached("crab_body", func() -> ArrayMesh:
-		var st := begin()
-		var rings: Array = []
-		var prof := [[-0.1, 0.0, 0.01], [-0.085, 0.09, 0.03], [-0.04, 0.15, 0.045], [0.02, 0.16, 0.045], [0.07, 0.12, 0.035], [0.1, 0.03, 0.015]]
-		for p in prof:
-			rings.append({"z": p[0], "y": 0.07, "w": p[1], "h": p[2], "flat": 0.9})
-		loft(st, rings, 14, 1.0, 2.0)
-		# глаза на стебельках
-		for sx: float in [-1.0, 1.0]:
-			tube(st, Vector3(sx * 0.03, 0.1, -0.09), Vector3(sx * 0.04, 0.15, -0.11), 0.006, 0.005, 5, Color(0.8, 0, 0, 0))
-			ellipsoid(st, Vector3(sx * 0.04, 0.155, -0.112), Vector3(0.011, 0.011, 0.011), 6, Color(0.5, 1.0, 0, 0), false)
-		return commit(st))
-	root.add_child(mesh_node(body, mat, "Body"))
-	# клешни
-	var claw := cached("crab_claw", func() -> ArrayMesh:
-		var st := begin()
-		tube(st, Vector3(0, 0, 0), Vector3(0.05, 0.0, -0.07), 0.016, 0.014, 6, Color(0.9, 0, 0, 0))
-		ellipsoid(st, Vector3(0.07, 0.01, -0.11), Vector3(0.03, 0.022, 0.045), 8, Color(0.9, 0, 0, 0))
-		tube(st, Vector3(0.07, 0.015, -0.15), Vector3(0.075, 0.02, -0.19), 0.012, 0.003, 5, Color(0.6, 0.6, 0, 0))
-		tube(st, Vector3(0.085, 0.0, -0.15), Vector3(0.09, -0.004, -0.185), 0.009, 0.003, 5, Color(0.6, 0.6, 0, 0))
-		return commit(st))
-	for sx: float in [-1.0, 1.0]:
-		var piv := _pivot(root, "Claw", Vector3(sx * 0.11, 0.07, -0.07))
-		var mi := mesh_node(claw, mat, "ClawMesh")
-		mi.scale.x = sx
-		piv.add_child(mi)
-		(root.get_meta(&"legs") as Array).append(piv)
-	var leg := cached("crab_leg", func() -> ArrayMesh:
-		var st := begin()
-		tube(st, Vector3(0, 0, 0), Vector3(0.09, 0.05, 0), 0.008, 0.006, 5, Color(0.9, 0, 0, 0))
-		tube(st, Vector3(0.09, 0.05, 0), Vector3(0.15, -0.07, 0), 0.006, 0.002, 5, Color(0.7, 0, 0, 0))
-		return commit(st))
-	for i in 4:
-		for sx: float in [-1.0, 1.0]:
-			var piv := _pivot(root, "Leg", Vector3(sx * 0.13, 0.06, -0.03 + i * 0.035))
-			var mi := mesh_node(leg, mat, "LegMesh")
-			mi.scale.x = sx
-			mi.rotation.y = sx * (-0.2 + i * 0.18)
-			piv.add_child(mi)
-			(root.get_meta(&"legs") as Array).append(piv)
+	ArthropodRig.build_crab(root, root.get_meta(&"mat"))
 	root.set_meta(&"length", 0.3)
 	return root
 
@@ -539,7 +499,14 @@ static func _lizard(species: StringName, L: float) -> Node3D:
 			for i in 22:
 				var z := (-0.3 + i * 0.03) * L
 				var hgt := 0.05 * sc * (1.0 - absf(i - 6.0) / 22.0)
-				tube(st, Vector3(0, 0.08 * sc + 0.05 * sc, z), Vector3(0, 0.08 * sc + 0.05 * sc + hgt, z + 0.012), 0.006, 0.001, 4,
+				# основание шипа — на верхней линии спины (сужается к хвосту)
+				var tt := z / L + 0.45
+				var ww := 0.002
+				for q in pts.size() - 1:
+					if tt >= float(pts[q][0]) and tt <= float(pts[q + 1][0]):
+						ww = lerpf(float(pts[q][1]), float(pts[q + 1][1]), (tt - float(pts[q][0])) / (float(pts[q + 1][0]) - float(pts[q][0])))
+				var by := 0.08 * sc + ww * sc * 0.7
+				tube(st, Vector3(0, by, z), Vector3(0, by + hgt, z + 0.012), 0.006, 0.001, 4,
 					Color(1, 0.6, clampf((z) / (L * 0.55), 0.0, 1.0), 0))
 			# горловой мешок
 			ellipsoid(st, Vector3(0, 0.05 * sc, -0.355 * L), Vector3(0.007 * sc, 0.03 * sc, 0.045 * sc), 8, Color(0.2, 0.25, 0, 0), false)
@@ -570,84 +537,14 @@ static func _lizard(species: StringName, L: float) -> Node3D:
 # ---------------------------- скорпион ----------------------------
 static func _scorpion() -> Node3D:
 	var root := _root(&"scorpion", 0.2)
-	var mat: ShaderMaterial = root.get_meta(&"mat")
-	var body := cached("scorpion_body", func() -> ArrayMesh:
-		var st := begin()
-		var rings: Array = []
-		var prof := [[-0.06, 0.008], [-0.05, 0.022], [-0.02, 0.028], [0.02, 0.03], [0.05, 0.022], [0.06, 0.008]]
-		for p in prof:
-			rings.append({"z": p[0], "y": 0.022, "w": p[1], "h": p[1] * 0.45, "flat": 0.9})
-		loft(st, rings, 10, 0.0, 0.1)
-		# хвост: сегменты дугой вверх и вперёд
-		var R := 0.042
-		var cc := Vector3(0, 0.025 + R, 0.06)
-		var prev := Vector3(0, 0.025, 0.06)
-		for i in 6:
-			var a := float(i + 1) / 6.0 * PI * 1.3
-			var p := cc + Vector3(0, -cos(a) * R, sin(a) * R)
-			ellipsoid(st, (prev + p) * 0.5, Vector3(0.011 - i * 0.0007, 0.011 - i * 0.0007, 0.013), 6, Color(0.9, 0, 0, 0), false)
-			prev = p
-		# жало
-		ellipsoid(st, prev + Vector3(0, -0.004, -0.006), Vector3(0.01, 0.011, 0.013), 6, Color(0.9, 0.7, 0, 0), false)
-		tube(st, prev + Vector3(0, -0.01, -0.014), prev + Vector3(0, -0.024, -0.024), 0.004, 0.0008, 4, Color(0.3, 1.0, 0, 0), true)
-		return commit(st))
-	root.add_child(mesh_node(body, mat, "Body"))
-	var claw := cached("scorpion_claw", func() -> ArrayMesh:
-		var st := begin()
-		tube(st, Vector3(0, 0, 0), Vector3(0.025, 0.0, -0.04), 0.006, 0.005, 5, Color(0.8, 0, 0, 0))
-		ellipsoid(st, Vector3(0.03, 0.002, -0.06), Vector3(0.012, 0.008, 0.022), 6, Color(0.8, 0.5, 0, 0))
-		tube(st, Vector3(0.033, 0.004, -0.08), Vector3(0.03, 0.004, -0.095), 0.004, 0.001, 4, Color(0.6, 0.6, 0, 0))
-		return commit(st))
-	for sx: float in [-1.0, 1.0]:
-		var piv := _pivot(root, "Claw", Vector3(sx * 0.02, 0.022, -0.06))
-		var mi := mesh_node(claw, mat, "ClawMesh")
-		mi.scale.x = sx
-		piv.add_child(mi)
-		(root.get_meta(&"legs") as Array).append(piv)
-	var leg := cached("scorpion_leg", func() -> ArrayMesh:
-		var st := begin()
-		tube(st, Vector3(0, 0, 0), Vector3(0.03, 0.015, 0), 0.003, 0.0025, 4, Color(0.7, 0, 0, 0))
-		tube(st, Vector3(0.03, 0.015, 0), Vector3(0.05, -0.022, 0), 0.0025, 0.001, 4, Color(0.6, 0, 0, 0))
-		return commit(st))
-	for i in 4:
-		for sx: float in [-1.0, 1.0]:
-			var piv := _pivot(root, "Leg", Vector3(sx * 0.025, 0.02, -0.03 + i * 0.022))
-			var mi := mesh_node(leg, mat, "LegMesh")
-			mi.scale.x = sx
-			mi.rotation.y = sx * (-0.4 + i * 0.25)
-			piv.add_child(mi)
-			(root.get_meta(&"legs") as Array).append(piv)
+	ArthropodRig.build_scorpion(root, root.get_meta(&"mat"))
 	root.set_meta(&"length", 0.2)
 	return root
 
 # ---------------------------- паук (птицеед) ----------------------------
 static func _spider() -> Node3D:
 	var root := _root(&"spider", 0.15)
-	var mat: ShaderMaterial = root.get_meta(&"mat")
-	var body := cached("spider_body", func() -> ArrayMesh:
-		var st := begin()
-		ellipsoid(st, Vector3(0, 0.04, -0.025), Vector3(0.026, 0.017, 0.03), 10, Color(0.7, 0, 0, 0))   # головогрудь
-		ellipsoid(st, Vector3(0, 0.05, 0.04), Vector3(0.036, 0.03, 0.045), 12, Color(0.7, 0, 0, 0))       # брюшко
-		# хелицеры
-		for sx: float in [-1.0, 1.0]:
-			tube(st, Vector3(sx * 0.008, 0.035, -0.052), Vector3(sx * 0.008, 0.022, -0.062), 0.006, 0.003, 5, Color(0.3, 0, 0, 0))
-		return commit(st))
-	root.add_child(mesh_node(body, mat, "Body"))
-	var leg := cached("spider_leg", func() -> ArrayMesh:
-		var st := begin()
-		tube(st, Vector3(0, 0, 0), Vector3(0.04, 0.035, 0), 0.0045, 0.0038, 5, Color(0.6, 0, 0, 0))
-		tube(st, Vector3(0.04, 0.035, 0), Vector3(0.075, 0.0, 0), 0.0038, 0.003, 5, Color(0.6, 0.2, 0, 0))
-		tube(st, Vector3(0.075, 0.0, 0), Vector3(0.085, -0.04, 0), 0.003, 0.0015, 5, Color(0.5, 0.4, 0, 0))
-		return commit(st))
-	for i in 4:
-		for sx: float in [-1.0, 1.0]:
-			var piv := _pivot(root, "Leg", Vector3(sx * 0.018, 0.04, -0.045 + i * 0.013))
-			var mi := mesh_node(leg, mat, "LegMesh")
-			mi.scale.x = sx
-			mi.rotation.y = sx * (-0.7 + i * 0.45)
-			piv.add_child(mi)
-			(root.get_meta(&"legs") as Array).append(piv)
-	_eyes(root, [Vector3(-0.006, 0.055, -0.05), Vector3(0.006, 0.055, -0.05)], 0.003)
+	ArthropodRig.build_spider(root, root.get_meta(&"mat"))
 	root.set_meta(&"length", 0.15)
 	return root
 
@@ -755,13 +652,10 @@ static func _turtle() -> Node3D:
 	root.add_child(mesh_node(body, mat, "Body"))
 	var flipper := cached("turtle_flipper", func() -> ArrayMesh:
 		var st := begin()
-		var outline := [Vector3(0.0, 0.0, -0.08), Vector3(0.22, 0.0, -0.12), Vector3(0.45, -0.02, -0.06),
-			Vector3(0.42, -0.02, 0.0), Vector3(0.2, 0.0, 0.06), Vector3(0.0, 0.0, 0.06)]
-		membrane(st, Vector3(0.0, 0.0, 0.0), outline, Color(0.6, 0.6, 0, 0.0))
-		# толщина ласта
-		for i in outline.size() - 1:
-			var a: Vector3 = outline[i]
-			tube(st, a * 0.5, a, 0.025, 0.01, 5, Color(0.6, 0.6, 0, 0))
+		# плоский ласт: широкая лопасть, сужающаяся к кончику
+		ellipsoid(st, Vector3(0.06, 0.0, 0.0), Vector3(0.08, 0.03, 0.05), 8, Color(0.6, 0.6, 0, 0))
+		ellipsoid(st, Vector3(0.22, -0.005, -0.035), Vector3(0.2, 0.02, 0.07), 10, Color(0.6, 0.6, 0, 0))
+		ellipsoid(st, Vector3(0.4, -0.012, -0.05), Vector3(0.07, 0.012, 0.035), 6, Color(0.6, 0.6, 0, 0))
 		return commit(st))
 	for p in [[-0.3, 0.12, -0.25, 0.7], [0.3, 0.12, -0.25, 0.7], [-0.28, 0.12, 0.3, 0.45], [0.28, 0.12, 0.3, 0.45]]:
 		var piv := _pivot(root, "Leg", Vector3(p[0], p[1], p[2]))

@@ -330,6 +330,9 @@ func _think() -> void:
 	var d := INF
 	if pl:
 		d = pl.global_position.distance_to(global_position)
+	if species == &"crab":
+		_think_crab(pl, d)
+		temper = &"_crab"
 	match temper:
 		&"timid":
 			if pl and d < float(cfg["flee_r"]) * (1.6 if _is_crouching(pl) == false else 0.8):
@@ -380,9 +383,13 @@ func _act(dt: float) -> void:
 	var walk := float(cfg["walk"])
 	var run := float(cfg["run"])
 	match state:
+		&"burrow":
+			speed = move_toward(speed, 0.0, dt * 8.0)
 		&"idle", &"stay", &"ambush", &"nest", &"warn":
 			speed = move_toward(speed, 0.0, dt * 4.0)
-			if state == &"warn" and target:
+			if state == &"warn" and target and species == &"crab":
+				_face(target.global_position, dt * 5.0)
+			elif state == &"warn" and target:
 				_face(target.global_position, dt * 4.0)
 				_warn_t -= dt
 				if _warn_t <= 0.0:
@@ -437,6 +444,9 @@ func _act(dt: float) -> void:
 				_move_forward(float(cfg["run"]) * 1.4, dt) # бросок
 			else:
 				speed = move_toward(speed, 0.0, dt * 6.0)
+			if dd > float(cfg["reach"]) * growth + 0.8 and species == &"crab":
+				_set_state(&"warn")
+				return
 			if dd > float(cfg["reach"]) * growth + 0.8:
 				_set_state(&"chase" if cfg["temper"] != &"ambush" or state_t > 1.0 else &"attack")
 				return
@@ -449,6 +459,40 @@ func _act(dt: float) -> void:
 			if _flat_dist(move_to) < 1.0:
 				_set_state(&"idle")
 	_snap_ground(dt)
+
+# ---------------------------- краб ----------------------------
+## Краб: при приближении человека — либо зарывается в песок (на пляже), либо встаёт в угрозу
+## с поднятыми клешнями и щиплет, если подойти вплотную, либо удирает боком к воде.
+func _think_crab(pl: Node3D, d: float) -> void:
+	var fr := float(cfg["flee_r"])
+	match state:
+		&"burrow":
+			if state_t > 7.0 and (pl == null or d > fr * 1.6):
+				_set_state(&"idle")
+			return
+		&"warn":
+			if pl == null or d > fr * 1.4 or state_t > 6.0:
+				_set_state(&"flee" if pl and d < fr * 1.4 else &"idle")
+			elif d < float(cfg["reach"]) * growth + 0.45:
+				target = pl
+				_set_state(&"attack")
+			return
+		&"attack":
+			return
+		&"flee":
+			if pl == null or d > fr * 3.0:
+				_set_state(&"idle")
+			return
+	if pl and d < fr:
+		target = pl
+		var r := _rng.randf()
+		if _biome() == &"beach" and r < 0.4:
+			_set_state(&"burrow")
+		elif r < 0.75:
+			_sound(cfg["sound"], 2.0)
+			_set_state(&"warn")
+		else:
+			_set_state(&"flee")
 
 # ---------------------------- крокодил ----------------------------
 func _think_croc(pl: Node3D, d: float) -> void:
@@ -755,7 +799,8 @@ func _day_roost() -> bool:
 	var rp: Variant = flock.get("roost", null)
 	if rp == null and fauna and fauna.has_method(&"_find_perch") and not flock.has("roost_tried"):
 		flock["roost_tried"] = true
-		var p: Vector3 = fauna.call(&"_find_perch", &"parrot", home, home_r)
+		var fh: Vector3 = flock.get("home", home)
+		var p: Vector3 = fauna.call(&"_find_perch", &"parrot", fh, float(flock.get("r", home_r)))
 		if p != Vector3.INF:
 			flock["roost"] = p
 			rp = p
@@ -813,8 +858,8 @@ func _bite(t: Node3D) -> void:
 		to_w.y = 0.0
 		if to_w.length() > 0.1 and t is CharacterBody3D:
 			(t as CharacterBody3D).velocity += to_w.normalized() * 4.0
-	if cfg["temper"] == &"territorial" and not tamed:
-		# ужалив, отползает
+	if (cfg["temper"] == &"territorial" or species == &"crab") and not tamed:
+		# ужалив/ущипнув, отползает
 		_set_state(&"flee")
 
 func _sound(kind: Variant, db: float) -> void:
