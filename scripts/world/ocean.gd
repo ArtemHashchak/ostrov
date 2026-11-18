@@ -3,8 +3,21 @@ extends MeshInstance3D
 ## Океан: сетка, плотная у камеры (1.5 м) и разреженная к горизонту (до 6 км),
 ## следует за камерой с привязкой к шагу сетки. Волны — та же формула, что в
 ## шейдере ocean.gdshader (wave_height совпадает в радиусе ~250 м от камеры).
+##
+## Дёшево и красиво (по пресету Settings.graphics_quality):
+##  * низкое/среднее — 4 волны Герстнера + рябь из карты нормалей;
+##  * высокое/ультра — поверх них запечённая зацикленная FFT-зыбь (Тессендорф,
+##    tools/bake_ocean_fft.py → assets/ocean/fft_atlas.png): шейдер только
+##    листает кадры текстуры, симуляции во время игры нет. Мелкая зыбь двигает
+##    вершины у камеры (wave_height на CPU читает те же кадры), даёт нормали,
+##    барашки по якобиану.
+##  * число вершин сетки зависит от пресета (GRID_BY_Q).
 
-const GRID := 180
+const GRID_BY_Q: Array[int] = [110, 140, 180, 220]
+const FFT_FADE_START := 70.0     # где зыбь в вершинах начинает гаснуть, м
+const FFT_FADE_END := 150.0
+const FFT_AMP := 0.32            # макс. добавка высоты от зыби, м (при wave_scale 1)
+var GRID := 180
 const INNER := 330.0        # ширина плотной части, м
 const REACH := 6000.0
 const SNAP := 1.5
@@ -24,10 +37,18 @@ var _mat: ShaderMaterial
 var _depth_fn: Callable      # (x, z) -> высота рельефа
 var _img: Image
 var _area: Rect2
+var quality := 2
+var use_fft := false
+var _fft_meta := {}
+var _fft_h: Array[PackedByteArray] = []   # высоты кадров (B-канал) для wave_height
+var _fft_n := 128
+var _cam_xz := Vector2.ZERO
 
 func build(terrain_height: Callable, area: Rect2) -> void:
 	_depth_fn = terrain_height
 	name = "Ocean"
+	quality = Settings.graphics_quality if Settings else 2
+	GRID = GRID_BY_Q[clampi(quality, 0, 3)]
 	mesh = _make_mesh()
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	extra_cull_margin = 16.0
@@ -44,7 +65,91 @@ func build(terrain_height: Callable, area: Rect2) -> void:
 	_mat.set_shader_parameter(&"wave_c", WAVES[2])
 	_mat.set_shader_parameter(&"wave_d", WAVES[3])
 	_bake_depth(area)
+	_load_fft()
+	_apply_quality()
 	material_override = _mat
+	if Settings and not Settings.graphics_changed.is_connected(_on_graphics_changed):
+		Settings.graphics_changed.connect(_on_graphics_changed)
+
+func _on_graphics_changed() -> void:
+	var q := clampi(Settings.graphics_quality, 0, 3)
+	if q == quality:
+		return
+	quality = q
+	if GRID != GRID_BY_Q[q]:
+		GRID = GRID_BY_Q[q]
+		mesh = _make_mesh()
+	_apply_quality()
+
+func _apply_quality() -> void:
+	use_fft = quality >= 2 and not _fft_h.is_empty()
+	_mat.set_shader_parameter(&"use_fft", use_fft)
+	_mat.set_shader_parameter(&"detail_normals", quality >= 1)
+
+## Атлас FFT-кадров -> Texture2DArray (слои с повтором и mip-картами) + высоты для CPU.
+func _load_fft() -> void:
+	var meta_path := "res://assets/ocean/fft_meta.json"
+	var atlas_path := "res://assets/ocean/fft_atlas.png"
+	if not FileAccess.file_exists(meta_path) or not ResourceLoader.exists(atlas_path):
+		return
+	_fft_meta = JSON.parse_string(FileAccess.get_file_as_string(meta_path))
+	var tex := load(atlas_path) as Texture2D
+	var atlas := tex.get_image() if tex else null
+	if atlas == null:
+		return
+	if atlas.is_compressed():
+		atlas.decompress()
+	atlas.convert(Image.FORMAT_RGBA8)
+	var n := int(_fft_meta.n)
+	_fft_n = n
+	var cols := int(_fft_meta.cols)
+	var layers: Array[Image] = []
+	_fft_h.clear()
+	for f in int(_fft_meta.frames):
+		var img := atlas.get_region(Rect2i((f % cols) * n, (f / cols) * n, n, n))
+		var data := img.get_data()
+		var hb := PackedByteArray()
+		hb.resize(n * n)
+		for i in n * n:
+			hb[i] = data[i * 4 + 2]
+		_fft_h.append(hb)
+		img.generate_mipmaps()
+		layers.append(img)
+	var arr := Texture2DArray.new()
+	arr.create_from_images(layers)
+	_mat.set_shader_parameter(&"fft_tex", arr)
+	_mat.set_shader_parameter(&"fft_frames", float(_fft_meta.frames))
+	_mat.set_shader_parameter(&"fft_period", float(_fft_meta.period_s))
+	_mat.set_shader_parameter(&"fft_tile", float(_fft_meta.tile_m))
+	_mat.set_shader_parameter(&"fft_slope", float(_fft_meta.slope) * FFT_AMP / float(_fft_meta.height_m))
+	_mat.set_shader_parameter(&"fft_amp", FFT_AMP)
+	_mat.set_shader_parameter(&"fft_fade", Vector2(FFT_FADE_START, FFT_FADE_END))
+
+## Высота зыби (−1..1, без масштаба) в точке — та же выборка, что в шейдере.
+func _fft_sample(x: float, z: float) -> float:
+	var n := _fft_n
+	var tile := float(_fft_meta.tile_m)
+	var frames := _fft_h.size()
+	var ft := fposmod(time_s / float(_fft_meta.period_s), 1.0) * frames
+	var f0 := int(ft) % frames
+	var f1 := (f0 + 1) % frames
+	var fw := ft - floorf(ft)
+	var fx := fposmod(x / tile, 1.0) * n - 0.5
+	var fy := fposmod(z / tile, 1.0) * n - 0.5
+	var i0 := posmod(int(floorf(fx)), n)
+	var j0 := posmod(int(floorf(fy)), n)
+	var i1 := (i0 + 1) % n
+	var j1 := (j0 + 1) % n
+	var tx := fx - floorf(fx)
+	var ty := fy - floorf(fy)
+	var r := 0.0
+	for k in 2:
+		var hb: PackedByteArray = _fft_h[f0 if k == 0 else f1]
+		var a := lerpf(hb[j0 * n + i0], hb[j0 * n + i1], tx)
+		var b := lerpf(hb[j1 * n + i0], hb[j1 * n + i1], tx)
+		var v := lerpf(a, b, ty) / 255.0 * 2.0 - 1.0
+		r += v * (1.0 - fw if k == 0 else fw)
+	return r
 
 ## Карта глубин: R — 0..30 м (грубо), G — −1..+3 м (точно, для пены у берега).
 func _bake_depth(area: Rect2) -> void:
@@ -135,7 +240,8 @@ func update(dt: float, cam_pos: Vector3, level: float, scale_waves: float) -> vo
 	_mat.set_shader_parameter(&"u_time", time_s)
 	_mat.set_shader_parameter(&"water_level", water_level)
 	_mat.set_shader_parameter(&"wave_scale", wave_scale)
-	_mat.set_shader_parameter(&"cam_xz", Vector2(cam_pos.x, cam_pos.z))
+	_cam_xz = Vector2(cam_pos.x, cam_pos.z)
+	_mat.set_shader_parameter(&"cam_xz", _cam_xz)
 
 func set_night_tint(c: Color) -> void:
 	_mat.set_shader_parameter(&"night_tint", Vector3(c.r, c.g, c.b))
@@ -151,6 +257,13 @@ func wave_height(x: float, z: float) -> float:
 		var k := TAU / w.w
 		var om := sqrt(9.81 * k)
 		h += w.z * sin(k * d.dot(p) - om * time_s)
+	var dist := p.distance_to(_cam_xz)
+	var vfade := 1.0 - smoothstep(260.0, 600.0, dist)
+	h *= vfade
+	if use_fft:
+		var ff := 1.0 - smoothstep(FFT_FADE_START, FFT_FADE_END, dist)
+		if ff > 0.0:
+			h += _fft_sample(x, z) * FFT_AMP * ff
 	return water_level + h * wave_scale * shoal
 
 ## Глубина под точкой так же, как её видит шейдер (карта + линейная фильтрация).

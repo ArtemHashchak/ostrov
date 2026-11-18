@@ -33,6 +33,8 @@ static func coral_material(sway: float, water_level: float, rough: float = 0.78)
 	m.set_shader_parameter(&"sway", sway)
 	m.set_shader_parameter(&"water_level", water_level)
 	m.set_shader_parameter(&"rough", rough)
+	if sway > 0.0:
+		SeaPush.register(m)
 	_cache[key] = m
 	return m
 

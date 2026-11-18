@@ -230,6 +230,7 @@ func reef_zones() -> Array[Dictionary]:
 
 func _exit_tree() -> void:
 	SeaMeshes.clear_cache()
+	SeaPush.clear()
 	SeaCreature.clear_cache()
 
 ## Проливы между соседними островами: [{a, b, mid: Vector2, gap: float}].
@@ -823,16 +824,20 @@ func _perf_physics(delta: float) -> void:
 	if _bump_acc >= 1.0:
 		_bump_acc = 0.0
 		_bump_rafts()
-	# всплески при входе персонажей в воду
+	# всплески при входе персонажей в воду; пловцы расталкивают водоросли
+	var swimmers: Array[Vector3] = []
 	for n in get_tree().get_nodes_in_group(&"characters"):
 		if not (n is Node3D) or not n.has_method(&"is_in_water"):
 			continue
 		var id := n.get_instance_id()
 		var w: bool = n.call(&"is_in_water")
+		if w:
+			swimmers.append((n as Node3D).global_position + Vector3(0, 0.5, 0))
 		if w and not _in_water.get(id, false):
 			var p := (n as Node3D).global_position
 			splash(Vector3(p.x, water_y(), p.z), 1.0)
 		_in_water[id] = w
+	SeaPush.update(swimmers, cam_p)
 	# протухание приманок
 	for i in range(_baits.size() - 1, -1, -1):
 		if _time > float(_baits[i]["t"]):

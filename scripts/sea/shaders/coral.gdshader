@@ -5,6 +5,8 @@ render_mode cull_disabled;
 // UV.y — высота точки над основанием (0..1): водоросли и веера качаются сильнее у верхушки.
 // Каустика: световая сетка от волн на всём, что под водой, слабеет с глубиной.
 
+#include "res://shaders/sea_push.gdshaderinc"
+
 uniform float sway = 0.0;
 uniform float water_level = 0.0;
 uniform float caustic_strength = 0.75;
@@ -38,6 +40,8 @@ void vertex() {
 		float s = max(length(MODEL_MATRIX[0].xyz), 0.001);
 		vec3 lo = transpose(mat3(MODEL_MATRIX)) * vec3(off.x, -0.25 * dot(off, off), off.y) / (s * s);
 		VERTEX += lo;
+		// пловец рядом — мягкое отгибает (общая реализация sea_push)
+		VERTEX += sea_push_local(MODEL_MATRIX, (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz, h);
 	}
 	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
