@@ -49,3 +49,74 @@ func carry_log_into(bp: Blueprint, look_at: Vector3) -> bool:
 	await tap(&"interact")
 	await wait_frames(2)
 	return bp.filled_count(&"log") > before
+
+## Простой «чужак» для тестов: капсула, идёт к цели, получает урон.
+class Walker extends CharacterBody3D:
+	var team: int = 1
+	var health: float = 100.0
+	var target: Vector3 = Vector3.ZERO
+	var walking: bool = false
+	var speed: float = 3.0
+	var hits: int = 0
+
+	func _ready() -> void:
+		add_to_group(&"characters")
+		var cs := CollisionShape3D.new()
+		var cap := CapsuleShape3D.new()
+		cap.radius = 0.35
+		cap.height = 1.8
+		cs.shape = cap
+		cs.position.y = 0.9
+		add_child(cs)
+		var mi := MeshInstance3D.new()
+		var cm := CapsuleMesh.new()
+		cm.radius = 0.35
+		cm.height = 1.8
+		mi.mesh = cm
+		mi.position.y = 0.9
+		var m := StandardMaterial3D.new()
+		m.albedo_color = Game.team_color(team)
+		mi.material_override = m
+		add_child(mi)
+
+	func apply_damage(amount: float, _source: Node = null, _kind: StringName = &"melee") -> void:
+		health -= amount
+		hits += 1
+
+	func is_dead() -> bool:
+		return health <= 0.0
+
+	func _physics_process(delta: float) -> void:
+		var v := velocity
+		v.y -= 20.0 * delta
+		if walking:
+			var d := target - global_position
+			d.y = 0.0
+			if d.length() > 0.3:
+				var h := d.normalized() * speed
+				v.x = move_toward(v.x, h.x, 30.0 * delta)
+				v.z = move_toward(v.z, h.z, 30.0 * delta)
+			else:
+				v.x = 0.0
+				v.z = 0.0
+		else:
+			v.x = move_toward(v.x, 0.0, 20.0 * delta)
+			v.z = move_toward(v.z, 0.0, 20.0 * delta)
+		velocity = v
+		move_and_slide()
+
+func spawn_walker(pos: Vector3, team: int = 1) -> Walker:
+	var w := Walker.new()
+	w.team = team
+	scene.add_child(w)
+	w.global_position = pos
+	return w
+
+## Достроить постройку всеми материалами.
+func finish(b: Blueprint) -> void:
+	for t: StringName in [&"log", &"stick", &"rope", &"stone"]:
+		b.add_material(t, 99)
+
+## Точка на земле.
+func ground(x: float, z: float) -> Vector3:
+	return Vector3(x, BuildEnv.height_at(x, z), z)

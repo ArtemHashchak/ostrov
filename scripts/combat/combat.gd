@@ -551,6 +551,10 @@ static func ignite_area(pos: Vector3, radius: float, source: Node, sec: float = 
 	fz.duration = sec
 	fz.source = source
 	var host: Node = parent if parent else (t.current_scene if t.current_scene else t.root)
+	# позиция до add_child: _ready зоны по ней решает «на воде или на суше» (BUILD+ фикс:
+	# иначе зона на суше считалась плавающей и опускалась к воде)
+	var host3 := host as Node3D
+	fz.position = host3.global_transform.affine_inverse() * pos if host3 and host3.is_inside_tree() else pos
 	host.add_child(fz)
 	fz.global_position = pos
 	return fz
