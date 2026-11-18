@@ -499,7 +499,16 @@ func _pond_level(L: Dictionary) -> float:
 	var cell := _cell(c.x, c.y)
 	for idx in cell.get("i", PackedInt32Array()):
 		hh = maxf(hh, _island_h(islands[idx], c))
-	return maxf(hh - 0.8, 1.5)
+	# самая низкая точка берега вокруг пруда: вода не должна быть выше неё
+	var r: float = L.radius
+	var ring := 1e9
+	for k in 32:
+		var p := c + Vector2.from_angle(k * TAU / 32.0) * r * 1.5
+		var hp := -100.0
+		for idx in _cell(p.x, p.y).get("i", PackedInt32Array()):
+			hp = maxf(hp, _island_h(islands[idx], p))
+		ring = minf(ring, hp)
+	return maxf(minf(hh - 0.8, ring - 0.7), 1.5)
 
 func finalize_ponds() -> void:
 	## Фиксирует уровни прудов (вызывать до многопоточной выборки).

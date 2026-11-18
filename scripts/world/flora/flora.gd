@@ -24,7 +24,15 @@ signal flora_ready
 const TREE_VIS_RANGE := 280.0   # ChoppableTree (проснувшиеся)
 const LOD_DIST := 120.0
 const TREE_FAR := 650.0
-const TCHUNK := 192.0
+## Дальность видимости считается от центра AABB всей группы MultiMesh, поэтому детальный (LOD0)
+## и упрощённый (LOD1) уровни делят одинаковые мелкие чанки — иначе у камеры вместо деревьев
+## остаются «болванки». LOD2 — тот же меш, что LOD1, крупными чанками для дальних деревьев;
+## перекрытие LOD1/LOD2 безвредно (одинаковая геометрия), поэтому диапазоны с запасом.
+const TCHUNK := 48.0
+const FAR_CHUNK := 144.0
+const LOD1_END := 400.0
+const LOD2_BEGIN := 250.0
+const CCHUNK := 192.0          # чанк коллизий стволов
 const PROMOTE_R := 26.0
 const DEMOTE_R := 40.0
 const GRASS_RANGE := 42.0
@@ -113,6 +121,7 @@ var _tree_recs: Array = []
 var _grid: Dictionary = {}        # Vector2i -> Array[rec]
 var _tgroups: Dictionary = {}     # LOD0: "kind_idx|cx|cz" -> {v, mm: MultiMesh, xf: Array}
 var _fgroups: Dictionary = {}     # LOD1: "kind|cx|cz" -> {v (вариант 0), mm, xf} — один меш на вид, масштаб по высоте
+var _ggroups: Dictionary = {}     # LOD2: то же, крупные чанки FAR_CHUNK
 var _colliders: Dictionary = {}   # Vector2i -> FloraColliders
 var _shapes: Dictionary = {}
 var _bush: Dictionary = {}        # "idx|cx|cz" -> Array[Transform3D]
@@ -412,7 +421,15 @@ func _build_trees() -> void:
 		rec["gf"] = fk
 		rec["fi"] = (_fgroups[fk]["xf"] as Array).size()
 		(_fgroups[fk]["xf"] as Array).append(_xf(rec, false, _far_k(rec)))
+		var gck := Vector2i(int(floor(p.x / FAR_CHUNK)), int(floor(p.z / FAR_CHUNK)))
+		var gk2 := "%s|%d|%d" % [rec["kind"], gck.x, gck.y]
+		if not _ggroups.has(gk2):
+			_ggroups[gk2] = {"v": FloraLib.variant(rec["kind"], 0), "xf": []}
+		rec["gg"] = gk2
+		rec["gi"] = (_ggroups[gk2]["xf"] as Array).size()
+		(_ggroups[gk2]["xf"] as Array).append(_xf(rec, false, _far_k(rec)))
 		# коллизия ствола
+		ck = Vector2i(int(floor(p.x / CCHUNK)), int(floor(p.z / CCHUNK)))
 		if not _colliders.has(ck):
 			var body := FloraColliders.new()
 			body.name = "TreeColliders_%d_%d" % [ck.x, ck.y]
@@ -436,14 +453,14 @@ func _build_trees() -> void:
 		body2.recs[cs.get_instance_id()] = rec
 		rec["cs"] = cs
 	var mmis := 0
-	for lod in 2:
-		var groups := _tgroups if lod == 0 else _fgroups
+	for lod in 3:
+		var groups: Dictionary = [_tgroups, _fgroups, _ggroups][lod]
 		for gk in groups:
 			var g: Dictionary = groups[gk]
 			var xs: Array = g["xf"]
 			var mm := MultiMesh.new()
 			mm.transform_format = MultiMesh.TRANSFORM_3D
-			mm.mesh = FloraLib.tree_mesh(g["v"], lod)
+			mm.mesh = FloraLib.tree_mesh(g["v"], mini(lod, 1))
 			mm.instance_count = xs.size()
 			for k in xs.size():
 				mm.set_instance_transform(k, xs[k])
@@ -453,9 +470,13 @@ func _build_trees() -> void:
 			if lod == 0:
 				mmi.visibility_range_end = LOD_DIST
 				mmi.visibility_range_end_margin = 4.0
-			else:
+			elif lod == 1:
 				mmi.visibility_range_begin = LOD_DIST
 				mmi.visibility_range_begin_margin = 4.0
+				mmi.visibility_range_end = LOD1_END
+				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			else:
+				mmi.visibility_range_begin = LOD2_BEGIN
 				mmi.visibility_range_end = TREE_FAR
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			add_child(mmi)
@@ -471,6 +492,9 @@ func _set_mm_visible(rec: Dictionary, vis: bool) -> void:
 	(g["mm"] as MultiMesh).set_instance_transform(int(rec["mi"]), _xf(rec, not vis))
 	var f: Dictionary = _fgroups[rec["gf"]]
 	(f["mm"] as MultiMesh).set_instance_transform(int(rec["fi"]), _xf(rec, not vis, _far_k(rec)))
+	var g2: Dictionary = _ggroups.get(rec.get("gg", ""), {})
+	if not g2.is_empty():
+		(g2["mm"] as MultiMesh).set_instance_transform(int(rec["gi"]), _xf(rec, not vis, _far_k(rec)))
 
 ## Разбудить дерево: настоящий ChoppableTree вместо экземпляра MultiMesh. null — дерева уже нет.
 func promote(rec: Dictionary) -> ChoppableTree:

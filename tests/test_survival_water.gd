@@ -41,11 +41,14 @@ func run() -> void:
 	var sx := 30.0
 	while sx < 70.0 and float(scene.call(&"height_at", sx, 0.0)) > 0.6:
 		sx += 0.25
-	var stand := ground(sx - 1.2, 0.0)
+	var wx := sx
+	while wx < 80.0 and float(scene.call(&"height_at", wx, 0.0)) > p.water_level() - 0.05:
+		wx += 0.25
+	var stand := ground(maxf(sx - 1.2, wx - 1.6), 0.0)
 	p.global_position = stand + Vector3.UP * 0.1
 	p.velocity = Vector3.ZERO
 	await wait(0.5)
-	aim_at(Vector3(sx + 1.5, 0.0, 0.0))
+	aim_at(Vector3(wx + 0.6, p.water_level(), 0.0))
 	await wait_frames(3)
 	check(p.can_drink_here(), "смотрим на море (x=%.1f)" % sx)
 	p.thirst = 50.0
@@ -115,8 +118,9 @@ func run() -> void:
 	Survival.speed = 1.0
 	put(&"bottle_empty", 1, 0)
 	var before := barrel.portions()
+	var wb0 := p.inventory.count(&"water_bottle")
 	barrel.interact(p)
-	check(p.inventory.count(&"water_bottle") == 1 and barrel.portions() == before - 1, "набрал из бочки")
+	check(p.inventory.count(&"water_bottle") > wb0 and barrel.portions() == before - (p.inventory.count(&"water_bottle") - wb0), "набрал из бочки: %d→%d, бочка %d→%d" % [wb0, p.inventory.count(&"water_bottle"), before, barrel.portions()])
 	p.thirst = 20.0
 	p.inventory.select(4)
 	tarp.interact(p)

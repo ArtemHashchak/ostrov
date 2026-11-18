@@ -15,7 +15,7 @@ const SALT_DRAIN := 0.35         # доп. жажда/с при солевом �
 const NAUSEA_TIME := 40.0
 const STALE := 0.35              # свежесть ниже — риск расстройства
 const DEBRIS_PER_BEACH := 5
-const DEBRIS_MAX_PER_BEACH := 8
+const DEBRIS_MAX_PER_BEACH := 12
 const DEBRIS_WEIGHTS := {&"barrel": 2.0, &"crate": 2.5, &"bottles": 2.0, &"net": 1.5, &"scrap": 1.5}
 const CRACK_TOOLS := [&"knife", &"axe_crude", &"axe_modern", &"rock", &"stone", &"glass_shard", &"spear"]
 const KIT_RADIUS := {&"campfire": 0.7, &"smoker": 0.9, &"still": 0.7, &"rain_barrel": 0.4, &"tarp": 1.1, &"garden": 1.0}
@@ -737,7 +737,7 @@ func _beach_frame(p: Vector3) -> Dictionary:
 func _spawn_on_beach(b: Dictionary, n: int) -> int:
 	var have := 0
 	for d in get_tree().get_nodes_in_group(&"sv_debris"):
-		if (d as Node3D).global_position.distance_to(b.pos) < 16.0:
+		if (d as Node3D).global_position.distance_to(b.pos) < 12.0:
 			have += 1
 	var made := 0
 	var w := wl()
