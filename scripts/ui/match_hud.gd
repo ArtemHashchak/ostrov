@@ -56,7 +56,11 @@ func _rebuild_flags() -> void:
 		c.queue_free()
 	_flag_rows.clear()
 	_built_teams = Game.teams.size()
+	# Game.config.hud_teams — показать только эти команды (обучение); пусто — все.
+	var only: Array = Game.config.get("hud_teams", [])
 	for t in Game.teams:
+		if not only.is_empty() and not only.has(t.id):
+			continue
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override(&"separation", 8)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE

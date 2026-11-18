@@ -38,6 +38,8 @@ var _fire_light: OmniLight3D = null
 
 # дверь
 var door_open: bool = false
+## Без тоста «Построено» (заготовки, которые ставит сценарий — обучение).
+var silent: bool = false
 
 # мост-плот
 var anchor: Dictionary = {}          # {type: &"shore"} | {type: &"raft", parent: Blueprint, offset: Transform3D} | {type: &"drift"}
@@ -385,7 +387,8 @@ func fill_part(i: int, _by: Node = null) -> void:
 		completed.emit(self)
 		if Events.has_signal(&"structure_completed"):
 			Events.structure_completed.emit(self, def_id)
-		BuildEnv.toast("Построено: %s" % BuildDefs.name_of(def_id))
+		if not silent:
+			BuildEnv.toast("Построено: %s" % BuildDefs.name_of(def_id))
 
 ## Добавить n единиц материала (боты, отладка). Возвращает сколько уложено.
 func add_material(t: StringName, n: int, by: Node = null) -> int:

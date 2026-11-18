@@ -132,6 +132,8 @@ func _on_flag_destroyed(team: int, _by: Node) -> void:
 		notice.emit("Флаг %s уничтожен" % Game.TEAM_NAMES_GEN[team % 4], Game.team_color(team))
 
 func _on_team_eliminated(team: int) -> void:
+	if bool(Game.config.get("tutorial", false)):
+		return
 	notice.emit("Команда %s выбыла" % Game.TEAM_NAMES_GEN[team % 4], Game.team_color(team).darkened(0.2))
 
 func _on_match_ended(win: int) -> void:

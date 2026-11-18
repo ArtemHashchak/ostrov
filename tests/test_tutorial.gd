@@ -6,6 +6,8 @@ extends TestCase
 var dir: TutorialDirector
 var p: Node3D
 var skipped: Array[StringName] = []
+var _toasts_built := 0
+var _elim_notes := 0
 
 func _init() -> void:
 	scene_path = "res://scenes/tutorial/tutorial.tscn"
@@ -48,11 +50,21 @@ func run() -> void:
 	while (TutorialDirector.instance() == null or TutorialDirector.instance().index < 0) and Time.get_ticks_msec() - t0 < 1200000:
 		await wait(0.5)
 	dir = TutorialDirector.instance()
+	Events.toast.connect(func(t: String) -> void:
+		if t.begins_with("Построено: Мост"):
+			_toasts_built += 1)
+	var md := MatchDirector.instance()
+	if md:
+		md.notice.connect(func(t: String, _c: Color) -> void:
+			if t.contains("выбыла"):
+				_elim_notes += 1)
 	check(dir != null and dir.index == 0, "обучение запущено, шаг 1")
 	if dir == null:
 		return
 	p = dir.player
 	check(Game.teams[0].flag_placed, "свой флаг поставлен у старта")
+	await wait(0.5)
+	check((MatchUI.instance().hud.get(&"_flag_rows") as Array).size() == 1, "в начале в панели флагов только Красные")
 	check(not dir.neighbour.is_empty() and int(dir.bridge_info.get("sections", 0)) >= 2,
 		"выбран соседний остров для моста: %s, секций %d" % [dir.neighbour.get("name", "?"), int(dir.bridge_info.get("sections", 0))])
 	await wait(1.0)
@@ -257,6 +269,11 @@ func run() -> void:
 	check(dir.done, "обучение завершено")
 	check(dir.ui.done_screen.visible, "экран «Обучение завершено»")
 	check(Settings.tutorial_done, "отметка о прохождении сохранена в Settings")
+	check(_toasts_built <= 1, "нет лавины тостов «Построено» от заготовок (%d)" % _toasts_built)
+	check(_elim_notes == 0, "нет сообщений «команда выбыла» в обучении")
+	var hud := MatchUI.instance().hud
+	var rows: Array = hud.get(&"_flag_rows")
+	check(rows.size() == 2, "в панели флагов только Красные и Синие (%d)" % rows.size())
 	check(Game.state == Game.State.PLAYING, "матч не закончился поражением/победой посреди обучения")
 	await shot("11_done")
 	check(skipped.size() <= 1, "пропущено шагов: %d %s" % [skipped.size(), str(skipped)])

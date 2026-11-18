@@ -10,7 +10,7 @@ const SCENE := "res://scenes/tutorial/tutorial.tscn"
 ## из лобби, без лимита времени. tutorial=true — признак для модулей.
 const CONFIG: Dictionary = {
 	"mode": "ffa", "teams": 4, "bots_enemy": 0, "bots_ally": 0, "difficulty": "easy",
-	"minutes": 0, "map_size": "normal", "seed": 2026, "auto_flags": false, "tutorial": true,
+	"minutes": 0, "map_size": "normal", "seed": 2026, "auto_flags": false, "tutorial": true, "hud_teams": [0],
 }
 
 static func start(tree: SceneTree) -> void:

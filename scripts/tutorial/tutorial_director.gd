@@ -129,6 +129,7 @@ func _boot() -> void:
 		await get_tree().process_frame
 	player = get_tree().get_first_node_in_group(&"player") as Node3D
 	world = get_tree().get_first_node_in_group(&"world")
+	_show_hud_teams([0])
 	_prepare_world()
 	started = true
 	await get_tree().create_timer(1.0).timeout
@@ -204,6 +205,13 @@ func _cull_wildlife() -> void:
 			for a in fa.animals_near(c3, radii[k]):
 				if DANGEROUS.has(a.species):
 					a.queue_free()
+
+## Какие команды показывать в панели флагов HUD (только участники обучения).
+func _show_hud_teams(ids: Array) -> void:
+	Game.config["hud_teams"] = ids.duplicate()
+	var mui := MatchUI.instance()
+	if mui and mui.hud:
+		mui.hud.call(&"_rebuild_flags")
 
 static func _near_any(n: Node3D, centers: Array[Vector2], radii: Array[float]) -> bool:
 	var p := Vector2(n.global_position.x, n.global_position.z)
@@ -301,6 +309,7 @@ func bridge_socket() -> Variant:
 	return (slot.xform as Transform3D).origin
 
 func _fill_all(bp: Blueprint) -> void:
+	bp.silent = true   # заготовки сценария — без тостов «Построено»
 	for t: StringName in [&"log", &"stick", &"rope", &"stone", &"rock", &"cloth"]:
 		bp.add_material(t, 999, player)
 	# на случай деталей других типов
@@ -336,6 +345,7 @@ func _setup_enemy_base() -> void:
 		fv = _land_far(neighbour, landing, 0.4)
 	var fp: Vector3 = fv if fv is Vector3 else _far_side(0.5)
 	enemy_flag_pos = fp
+	_show_hud_teams([0, 1])
 	if bm:
 		bm.place_flag(1, fp, 0.0)
 	else:
