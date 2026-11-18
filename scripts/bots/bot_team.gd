@@ -111,10 +111,12 @@ func _place_next_base() -> Blueprint:
 		var p := fp + off
 		p.y = nav.h(p.x, p.z)
 		var xf := Transform3D(Basis(Vector3.UP, float(it.yaw)), p)
-		var why := bm.check_ground(it.def, xf)
+		var why := bm.check_ground(it.def, xf, team)
 		if why != "":
 			continue
-		return bm.place_blueprint(it.def, xf, team)
+		var bp := bm.place_blueprint(it.def, xf, team)
+		if bp:
+			return bp
 	base_done = true
 	return null
 
@@ -218,6 +220,17 @@ func _next_section() -> Blueprint:
 	if tip != null and not tip.is_complete():
 		return tip
 	if tip == null:
+		# BUILD подсказывает самый узкий пролив между островами
+		if bm.has_method(&"find_bridge_target"):
+			var ft: Dictionary = bm.call(&"find_bridge_target", nav.by_id.get(int(bridge.a), {}), nav.by_id.get(int(bridge.b), {}))
+			if bool(ft.get("ok", false)):
+				var bp0 := bm.place_blueprint(&"raft", ft.xform as Transform3D, team, {"type": &"shore"})
+				if bp0:
+					bridge.dir = ft.get("dir", dir)
+					bridge.root = bp0
+					bridge.tip = bp0
+					bridge.sections = 1
+					return bp0
 		var from: Vector3 = bridge.from
 		var yaw := atan2(-dir.x, -dir.z)
 		var side := Vector3(dir.z, 0, -dir.x)
@@ -228,6 +241,8 @@ func _next_section() -> Blueprint:
 				var r := bm.shore_raft(p, yaw)
 				if r.ok:
 					var bp := bm.place_blueprint(&"raft", r.xform, team, {"type": &"shore"})
+					if bp == null:
+						continue
 					bridge.root = bp
 					bridge.tip = bp
 					bridge.sections = 1
@@ -247,6 +262,10 @@ func _next_section() -> Blueprint:
 	if sock.is_empty():
 		return null
 	var bp2 := bm.place_blueprint(&"raft", sock.xform, team, {"type": &"raft", "parent": sock.parent, "offset": sock.offset})
+	if bp2 == null:
+		# дальше чужая территория — мост до сюда
+		bridge.done = true
+		return null
 	bridge.tip = bp2
 	bridge.sections = int(bridge.sections) + 1
 	return bp2
