@@ -9,6 +9,7 @@ var _menu: VBoxContainer
 var settings: SettingsPanel
 var lobby: LobbyPanel
 var controls: ControlsHelp
+var credits: CreditsPanel
 var _cam: Camera3D
 var _t := 0.0
 
@@ -54,10 +55,13 @@ func _ready() -> void:
 	_menu.add_child(PauseMenu.menu_button("Управление", func() -> void:
 		_menu.visible = false
 		controls.visible = true))
+	_menu.add_child(PauseMenu.menu_button("Авторы", func() -> void:
+		_menu.visible = false
+		credits.visible = true))
 	_menu.add_child(PauseMenu.menu_button("Выход", func() -> void: get_tree().quit()))
 	play.grab_focus.call_deferred()
 
-	var ver := UITheme.label("v0.6 · Godot " + Engine.get_version_info().string, 11, UITheme.TEXT_DIM)
+	var ver := UITheme.label("v1.0 · Godot " + Engine.get_version_info().string, 11, UITheme.TEXT_DIM)
 	ver.anchor_left = 1.0
 	ver.anchor_right = 1.0
 	ver.anchor_top = 1.0
@@ -86,6 +90,10 @@ func _ready() -> void:
 	_center(controls)
 	controls.closed.connect(func() -> void: _menu.visible = true)
 	add_child(controls)
+	credits = CreditsPanel.new()
+	_center(credits)
+	credits.closed.connect(func() -> void: _menu.visible = true)
+	add_child(credits)
 	Game.end_session()
 
 func _center(c: Control) -> void:

@@ -17,3 +17,14 @@ func run() -> void:
 	check((scene.get(&"_menu") as Control).visible, "назад из настроек")
 	# play_game() меняет текущую сцену (это раннер тестов) — проверяем только цель.
 	check(ResourceLoader.exists(scene.get(&"MATCH")) or ResourceLoader.exists(scene.get(&"FALLBACK")), "«Играть» — сцена мира существует")
+	# «Авторы» — титры CC BY.
+	var cr := scene.get(&"credits") as CreditsPanel
+	check(cr != null, "экран «Авторы» есть")
+	if cr:
+		(scene.get(&"_menu") as Control).visible = false
+		cr.visible = true
+		await wait(0.3)
+		await shot("03_credits")
+		cr.visible = false
+		cr.closed.emit()
+		check((scene.get(&"_menu") as Control).visible, "назад из «Авторов»")

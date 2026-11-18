@@ -1,0 +1,49 @@
+name: Release builds
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Тег релиза"
+        required: true
+        default: "v1.0.0"
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GODOT_VER: "4.7.2"
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Godot + шаблоны экспорта
+        run: |
+          base=https://github.com/godotengine/godot/releases/download/${GODOT_VER}-stable
+          curl -sSL -o godot.zip $base/Godot_v${GODOT_VER}-stable_linux.x86_64.zip
+          unzip -q godot.zip -d $HOME/godot
+          curl -sSL -o tpl.tpz $base/Godot_v${GODOT_VER}-stable_export_templates.tpz
+          dst=$HOME/.local/share/godot/export_templates/${GODOT_VER}.stable
+          mkdir -p $dst
+          unzip -q -j tpl.tpz "templates/macos.zip" "templates/windows_release_x86_64*.exe" "templates/version.txt" -d $dst
+          rm tpl.tpz godot.zip
+      - name: Импорт и экспорт
+        run: |
+          G=$HOME/godot/Godot_v${GODOT_VER}-stable_linux.x86_64
+          timeout 1200 $G --headless --path . --import || true
+          mkdir -p build/windows build/macos
+          $G --headless --path . --export-release "Windows" build/windows/Ostrova.exe
+          $G --headless --path . --export-release "macOS" build/macos/Ostrova.zip
+          cp LICENSES_BUILD.txt build/windows/ 2>/dev/null || true
+          (cd build/windows && zip -q -r ../Ostrova-Windows-x64.zip .)
+          mv build/macos/Ostrova.zip build/Ostrova-macOS.zip
+          ls -la build
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "Острова $TAG" --notes-file RELEASE_NOTES.md
+          gh release upload "$TAG" build/Ostrova-Windows-x64.zip build/Ostrova-macOS.zip --clobber
