@@ -12,6 +12,7 @@ const BASE_PLAN: Array[Dictionary] = [
 	{"def": &"shelter", "off": Vector3(5.5, 0, 3.0), "yaw": 0.0},
 ]
 const MAX_SECTIONS := 70
+const MAX_DETOUR := 12          # боковых секций на один мост (обход островков)
 
 var team: int = 1
 var bots: Array = []                 # Array[Bot]
@@ -251,9 +252,20 @@ func _next_section() -> Blueprint:
 		_failed_spots[bridge.key] = true
 		bridge = {}
 		return null
-	# суша впереди — мост готов
-	var ahead := tip.base_now() * Vector3(0, 0, -2.4)
-	if nav.h(ahead.x, ahead.z) > nav.wl() - 0.15 or int(bridge.sections) >= MAX_SECTIONS:
+	# впереди суша/мель: другой остров — мост готов; скальный островок, коса или свой берег —
+	# обойти боковой секцией (сокеты ±2 м по бокам) и строить дальше
+	var ahead_near := tip.base_now() * Vector3(0, 0, -2.4)
+	var shallow := nav.h(ahead_near.x, ahead_near.z) > nav.wl() - 0.15
+	var ahead := nav._land_along(tip, -1.0)
+	var probe: Vector3 = ahead if ahead.x < INF else ahead_near
+	var blocked_islet := nav.islet_at(tip.base_now() * Vector3(0, 0, -6.0), 1.25)
+	if shallow or ahead.x < INF or blocked_islet >= 0 or int(bridge.sections) >= MAX_SECTIONS:
+		var id := nav.island_id(probe) if (shallow or ahead.x < INF) else -1
+		var reached := id >= 0 and id != int(bridge.a) and blocked_islet < 0
+		if not reached and int(bridge.sections) < MAX_SECTIONS and int(bridge.get("detour", 0)) < MAX_DETOUR:
+			var sd := _sidestep(tip, probe, blocked_islet)
+			if sd:
+				return sd
 		bridge.done = true
 		bridges_built += 1
 		nav.refresh_links(module.get_tree())
@@ -269,7 +281,40 @@ func _next_section() -> Blueprint:
 		return null
 	bridge.tip = bp2
 	bridge.sections = int(bridge.sections) + 1
+	bridge.side = 0
 	return bp2
+
+## Боковая секция моста: обход препятствия впереди (островок/коса). Сторона — от центра
+## островка (или от суши впереди), если там занято — другая.
+func _sidestep(tip: Blueprint, obstacle: Vector3, islet: int) -> Blueprint:
+	var bm := _bm()
+	var xf := tip.base_now()
+	var right := xf.basis.x
+	right.y = 0.0
+	right = right.normalized()
+	var c := obstacle
+	if islet >= 0:
+		var ic: Vector2 = nav.islets[islet].center
+		c = Vector3(ic.x, 0.0, ic.y)
+	var sgn := -1.0 if (c - xf.origin).dot(right) > 0.0 else 1.0
+	var last := int(bridge.get("side", 0))
+	if last != 0:
+		sgn = float(last)          # продолжаем в ту же сторону, не мечемся
+	for s: float in [sgn, -sgn]:
+		var at := xf * Vector3(2.04 * s, 0, 0)
+		if nav.h(at.x, at.z) > nav.wl() - 0.3:
+			continue
+		var sock := bm.raft_socket(at, 0.6)
+		if sock.is_empty():
+			continue
+		var bp := bm.place_blueprint(&"raft", sock.xform, team, {"type": &"raft", "parent": sock.parent, "offset": sock.offset})
+		if bp:
+			bridge.tip = bp
+			bridge.sections = int(bridge.sections) + 1
+			bridge.detour = int(bridge.get("detour", 0)) + 1
+			bridge.side = int(s)
+			return bp
+	return null
 
 ## Точка, откуда работать над постройкой (у моста — с предыдущей секции/берега).
 func work_point(bp: Blueprint) -> Vector3:

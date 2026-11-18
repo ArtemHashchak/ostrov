@@ -413,6 +413,8 @@ func _move(delta: float) -> void:
 				apply_damage((_fall_speed - FALL_SAFE_SPEED) * FALL_DMG_PER_MS, null, &"fall")
 			_fall_speed = 0.0
 	move_and_slide()
+	if wish != Vector3.ZERO and not swimming and is_on_wall():
+		_step_up(wish)
 	# смотреть: на цель прицела, иначе по ходу
 	var face := Vector3.ZERO
 	if aiming:
@@ -426,6 +428,21 @@ func _move(delta: float) -> void:
 		rotation.y = _yaw
 	model.update_pose(delta, hv.length(), swimming, running)
 	_check_progress(delta, wish)
+
+## Шаг на невысокий уступ (борт плота, камень, ступень) — до 0.65 м.
+func _step_up(wish: Vector3) -> void:
+	var space := get_world_3d().direct_space_state
+	var ahead := global_position + wish.normalized() * (RADIUS + 0.25)
+	var q := PhysicsRayQueryParameters3D.create(ahead + Vector3.UP * 0.75, ahead + Vector3.DOWN * 0.1)
+	q.exclude = [get_rid()]
+	var hit := space.intersect_ray(q)
+	if hit.is_empty():
+		return
+	var top := (hit.position as Vector3).y
+	var rise := top - global_position.y
+	if rise > 0.04 and rise < 0.68 and (hit.normal as Vector3).y > 0.6:
+		global_position = Vector3(global_position.x, top + 0.03, global_position.z) + wish.normalized() * 0.12
+		velocity.y = maxf(velocity.y, 0.0)
 
 func face_to(p: Vector3) -> void:
 	var f := p - global_position

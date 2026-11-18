@@ -14,6 +14,7 @@ const REFRESH := 3.0
 
 var world: Node = null
 var islands: Array[Dictionary] = []
+var islets: Array[Dictionary] = []
 var by_id: Dictionary = {}           # id -> island
 ## Пары соседних островов: key "a|b" (a<b) -> {a, b, water_len, sa: Vector3, sb: Vector3, dir: Vector3 (a→b)}
 var pairs: Dictionary = {}
@@ -30,6 +31,10 @@ func setup(w: Node) -> void:
 	for I: Dictionary in w.call(&"islands"):
 		islands.append(I)
 		by_id[int(I.id)] = I
+	islets = []
+	if w.has_method(&"islets"):
+		for il: Dictionary in w.call(&"islets"):
+			islets.append(il)
 	_build_pairs()
 
 func wl() -> float:
@@ -48,6 +53,14 @@ func land(x: float, z: float) -> bool:
 func island_id(p: Vector3) -> int:
 	var I: Dictionary = world.call(&"island_at", p.x, p.z)
 	return int(I.id) if not I.is_empty() else -1
+
+## Скальный островок посреди пролива рядом с p (в пределах его радиуса × k): индекс, иначе −1.
+func islet_at(p: Vector3, k: float = 1.7) -> int:
+	for i in islets.size():
+		var c: Vector2 = islets[i].center
+		if Vector2(p.x, p.z).distance_to(c) < float(islets[i].radius) * k:
+			return i
+	return -1
 
 func home_island(team: int) -> Dictionary:
 	for I in islands:
@@ -138,9 +151,17 @@ func refresh_links(tree: SceneTree) -> void:
 		roots[r.get_instance_id()] = r
 	for rid in roots:
 		var root: Blueprint = roots[rid]
-		var start := root.base_now() * Vector3(0, 0, 2.4)
-		start = ground(start)
-		var ia := island_id(start)
+		var start := _land_along(root, 1.0)
+		var ia := island_id(start) if start.x < INF else -1
+		var head: Array[Vector3] = []
+		if ia < 0 and start.x < INF:
+			var back := root.base_now().basis.z
+			back.y = 0.0
+			var hw := _walk_to_other(start, back.normalized(), -2)
+			ia = int(hw.get("id", -1))
+			if ia >= 0:
+				head = hw.points as Array[Vector3]
+				head.reverse()
 		# обход дерева секций: путь от корня до каждой
 		var stack: Array = [[root, [root]]]
 		var tip: Blueprint = root
@@ -152,15 +173,22 @@ func refresh_links(tree: SceneTree) -> void:
 			if path.size() > tip_len:
 				tip = b
 				tip_len = path.size()
-			var ahead := b.base_now() * Vector3(0, 0, -2.4)
-			if path.size() >= 1 and h(ahead.x, ahead.z) > lvl + 0.05:
-				var ib := island_id(ahead)
-				if ib >= 0 and ib != ia and _all_complete(path):
-					var pts: Array[Vector3] = [start]
+			var ahead := _land_along(b, -1.0)
+			if ahead.x < INF and ia >= 0 and _all_complete(path):
+				# по косе дальше вперёд — до суши другого острова
+				var fwd := -(b.base_now().basis.z)
+				fwd.y = 0.0
+				fwd = fwd.normalized()
+				var tail := _walk_to_other(ahead, fwd, ia)
+				var ib := int(tail.get("id", -1))
+				if ib >= 0 and ib != ia:
+					var pts: Array[Vector3] = head.duplicate()
+					pts.append(start)
 					for d: Blueprint in path:
 						pts.append(d.base_now() * Vector3(0, 0, 1.0))
 						pts.append(d.base_now() * Vector3(0, 0, -1.0))
-					pts.append(ground(ahead + (ahead - start).normalized() * 1.5))
+					pts.append(ahead)
+					pts.append_array(tail.points as Array[Vector3])
 					links.append({"a": ia, "b": ib, "team": root.team, "points": pts, "decks": path.duplicate(), "root": root})
 			for cv in b.raft_children:
 				if not is_instance_valid(cv):
@@ -171,6 +199,48 @@ func refresh_links(tree: SceneTree) -> void:
 					np.append(c)
 					stack.append([c, np])
 		chains[rid] = {"root": root, "tip": tip, "team": root.team, "a": ia, "len": tip_len}
+
+## От точки p по направлению dir по суше/мели, пока не окажемся на другом острове (≠ not_id).
+## {id, points} или {id: -1}.
+func _walk_to_other(p: Vector3, dir: Vector3, not_id: int) -> Dictionary:
+	var pts: Array[Vector3] = []
+	var lvl := wl()
+	var id0 := island_id(p)
+	if id0 >= 0 and id0 != not_id:
+		return {"id": id0, "points": pts}
+	for k in range(1, 61):
+		var q := p + dir * float(k) * 2.0
+		var hh := h(q.x, q.z)
+		if hh < lvl - 1.0:
+			return {"id": -1}
+		if k % 4 == 0:
+			pts.append(Vector3(q.x, maxf(hh, lvl - 0.6), q.z))
+		var id := island_id(q)
+		if id >= 0 and id != not_id and hh > lvl + 0.05:
+			pts.append(Vector3(q.x, hh, q.z))
+			return {"id": id, "points": pts}
+	return {"id": -1}
+
+## Суша за кормой (sgn=+1) или перед носом (sgn=−1) секции в пределах 7 м; иначе (INF,…).
+func _land_along(b: Blueprint, sgn: float) -> Vector3:
+	var xf := b.base_now()
+	for d in [1.8, 2.4, 3.2, 4.2, 5.4, 7.0]:
+		var p := xf * Vector3(0, 0, sgn * float(d))
+		if h(p.x, p.z) > wl() + 0.02:
+			var q := xf * Vector3(0, 0, sgn * (float(d) + 1.2))
+			return ground(q if h(q.x, q.z) > wl() + 0.02 else p)
+	return Vector3(INF, INF, INF)
+
+## Отладка: что видит навигация.
+func describe() -> String:
+	var bits: PackedStringArray = []
+	for L in links:
+		bits.append("link %d→%d t%d (%d точек)" % [int(L.a), int(L.b), int(L.team), (L.points as Array).size()])
+	for k in chains:
+		var c: Dictionary = chains[k]
+		var tp: Vector3 = (c.tip as Blueprint).global_position if is_instance_valid(c.tip) else Vector3.ZERO
+		bits.append("chain a=%d len=%d t%d tip=%s" % [int(c.a), int(c.len), int(c.team), str(tp.snapped(Vector3.ONE))])
+	return "; ".join(bits)
 
 static func _all_complete(path: Array) -> bool:
 	for d in path:

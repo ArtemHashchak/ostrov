@@ -66,6 +66,8 @@ func run() -> void:
 	print("[bots] секций моста: ", n, " готов=", ta.bridge.get("done", false))
 	check(n >= 2 and bool(ta.bridge.get("done", false)), "мост к соседу построен (%d секций)" % n)
 	nav.refresh_links(get_tree())
+	print("[bots] nav: ", nav.describe())
+	print("[bots] обход: ", int(ta.bridge.get("detour", 0)), " боковых секций")
 	check(nav.reachable(hid, other, 0.0), "навигация видит мост (ребро %d→%d)" % [hid, other])
 	# бот идёт на соседний остров
 	var bot := bots.spawn_bot(1, &"easy")
