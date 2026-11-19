@@ -578,9 +578,10 @@ func _build_trees() -> void:
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			else:
 				mmi.visibility_range_begin = LOD2_BEGIN
-				mmi.visibility_range_end = TREE_FAR + 12.0
 				mmi.visibility_range_begin_margin = 20.0
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				# при короткой «Дальности видимости» дальний LOD растворяется к её границе
+				ViewDistance.cap(mmi, TREE_FAR + 12.0, ViewDistance.G_TREE_LOD2)
 			add_child(mmi)
 			g["mm"] = mm
 			mmis += 1
@@ -634,8 +635,10 @@ func _build_impostors() -> int:
 		# квад растягивается шейдером под крону: запас отсечения
 		mmi.extra_cull_margin = 30.0
 		mmi.visibility_range_begin = IMP_BEGIN - IMP_CHUNK * 0.72
-		mmi.visibility_range_end = IMP_END + IMP_CHUNK * 0.72
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# дальность снимков — по «Дальности видимости» (ViewDistance; на «Максимуме» — 6 км)
+		mmi.set_meta(&"vd_chunk", IMP_CHUNK)
+		ViewDistance.cap(mmi, ViewDistance.MAXIMUM + IMP_CHUNK * 0.72, ViewDistance.G_TREE_IMP)
 		add_child(mmi)
 		g["mm"] = mm
 		n += 1

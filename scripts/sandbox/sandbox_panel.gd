@@ -178,6 +178,38 @@ func _tools_col() -> Control:
 		_wind_lbl.text = "Ветер: как у погоды" if x < 0.0 else "Ветер: %d м/с" % int(x))
 	col.add_child(_wind)
 	col.add_child(UITheme.label("F5 — сменить погоду · F6 — время суток", 13, Color(0.8, 0.8, 0.8)))
+	# дальность видимости (та же настройка, что в «Настройках»; сохраняется)
+	var vd_lbl := UITheme.label("", 14)
+	col.add_child(vd_lbl)
+	var vd := HSlider.new()
+	vd.min_value = ViewDistance.SLIDER_AUTO
+	vd.max_value = ViewDistance.SLIDER_MAXIMUM
+	vd.step = 250.0
+	vd.value = ViewDistance.to_slider(Settings.view_distance)
+	vd.custom_minimum_size = Vector2(230, 22)
+	var vd_txt := func(x: float) -> String:
+		return "Видимость: %s · %s" % [ViewDistance.slider_label(x), ViewDistance.cost_hint()]
+	vd_lbl.text = vd_txt.call(vd.value)
+	vd.value_changed.connect(func(x: float) -> void:
+		Settings.view_distance = 0.0 if x < ViewDistance.MIN else x
+		Settings.apply_view()
+		Settings.save_settings()
+		vd_lbl.text = vd_txt.call(x))
+	col.add_child(vd)
+	var fl_lbl := UITheme.label("Растения: ×%.1f" % Settings.flora_distance, 14)
+	col.add_child(fl_lbl)
+	var fl := HSlider.new()
+	fl.min_value = 0.5
+	fl.max_value = 2.0
+	fl.step = 0.1
+	fl.value = Settings.flora_distance
+	fl.custom_minimum_size = Vector2(230, 22)
+	fl.value_changed.connect(func(x: float) -> void:
+		Settings.flora_distance = x
+		Settings.apply_view()
+		Settings.save_settings()
+		fl_lbl.text = "Растения: ×%.1f" % x)
+	col.add_child(fl)
 	var ra := Button.new()
 	ra.text = "Вернуть убитых животных"
 	ra.pressed.connect(func() -> void:

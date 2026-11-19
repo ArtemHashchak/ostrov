@@ -1,6 +1,6 @@
 class_name SettingsPanel
 extends PanelContainer
-## Настройки: графика (пресет, разрешение 3D, интерфейс, кадры, окно),
+## Настройки: графика (пресет, разрешение 3D, дальность видимости и растений, интерфейс, кадры, окно),
 ## чувствительность, поле зрения, инверсия Y, громкость,
 ## переназначение клавиш. Всё пишет в Settings и сохраняет.
 
@@ -54,6 +54,22 @@ func _ready() -> void:
 			DynamicResolution.reset()
 			Settings.apply_graphics(),
 		func(x: float) -> String: return "авто" if x < 0.4 else "%d%%" % int(round(x * 100.0)))
+	# дальность видимости: авто (по пресету) · 500–3500 м · «Максимум»; применяется на лету
+	_slider(grid, "Дальность видимости", ViewDistance.SLIDER_AUTO, ViewDistance.SLIDER_MAXIMUM, 250.0,
+		ViewDistance.to_slider(Settings.view_distance),
+		func(x: float) -> void:
+			Settings.view_distance = 0.0 if x < ViewDistance.MIN else x
+			Settings.apply_view(),
+		func(x: float) -> String:
+			var m := ViewDistance.PRESET_DEFAULT[clampi(Settings.graphics_quality, 0, 3)] if x < ViewDistance.MIN \
+				else (ViewDistance.MAXIMUM if x > ViewDistance.SLIDER_MAX + 1.0 else x)
+			return "%s · %s" % [ViewDistance.slider_label(x), ViewDistance.cost_hint(m)])
+	_slider(grid, "Дальность растений", 0.5, 2.0, 0.1, Settings.flora_distance,
+		func(x: float) -> void:
+			Settings.flora_distance = x
+			Settings.apply_view(),
+		func(x: float) -> String:
+			return "×%.1f · %s" % [x, "нагрузка: низкая" if x < 0.85 else ("нагрузка: средняя" if x <= 1.25 else "нагрузка: высокая")])
 	_slider(grid, "Масштаб интерфейса", 0.75, 1.5, 0.05, Settings.ui_scale,
 		func(x: float) -> void:
 			Settings.ui_scale = x

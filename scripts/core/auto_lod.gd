@@ -11,7 +11,8 @@ extends RefCounted
 ##   s < 8    → 300 м               (брёвна мостов, стены, лодки)
 ##   s < 30   → 600 м               (крупные постройки, остовы кораблей)
 ##   больше   → без ограничения
-## Дальность умножается на GraphicsQuality.detail() (пресет).
+## Дальность умножается на GraphicsQuality.detail() (пресет × «Дальность растений»)
+## и не превышает дальности видимости (ViewDistance).
 ## Не трогаем: уже заданную дальность, геометрию в под-вьюпортах (иконки),
 ## руки/предметы у камеры, узлы с метой "no_auto_lod" и потомков групп
 ## "flag" и "no_auto_lod".
@@ -107,7 +108,7 @@ static func apply(gi: GeometryInstance3D) -> void:
 		return # дальность задана модулем
 	gi.set_meta(META_BASE, r)
 	gi.add_to_group(GROUP)
-	gi.visibility_range_end = r * GraphicsQuality.detail()
+	gi.visibility_range_end = minf(r * GraphicsQuality.detail(), ViewDistance.meters())
 	gi.visibility_range_end_margin = clampf(r * 0.12, 4.0, 30.0)
 	# плавное растворение на границе (Forward+/Mobile; в Compatibility — без эффекта):
 	# без него предметы «выскакивают», а граница дальности читается кругом вокруг игрока
@@ -116,10 +117,11 @@ static func apply(gi: GeometryInstance3D) -> void:
 		gi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	processed += 1
 
-## Пресет изменился — пересчитать дальности.
+## Пресет/дальность изменились — пересчитать дальности (не дальше дальности видимости).
 static func rescale(tree: SceneTree) -> void:
 	var k := GraphicsQuality.detail()
+	var vd := ViewDistance.meters()
 	for n in tree.get_nodes_in_group(GROUP):
 		var gi := n as GeometryInstance3D
 		if gi and gi.has_meta(META_BASE):
-			gi.visibility_range_end = float(gi.get_meta(META_BASE)) * k
+			gi.visibility_range_end = minf(float(gi.get_meta(META_BASE)) * k, vd)

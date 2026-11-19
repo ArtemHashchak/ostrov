@@ -28,9 +28,15 @@ var fullscreen: bool = false
 var show_perf: bool = false
 ## Пресет графики уже подобран автоматически при первом запуске.
 var graphics_detected: bool = false
+## Дальность видимости, м (ViewDistance): <500 — авто по пресету, >3500 — «Максимум».
+var view_distance: float = 0.0
+## Дальность растений и мелких предметов — множитель 0.5..2.0 к пресету (GraphicsQuality.detail).
+var flora_distance: float = 1.0
 
 ## Изменились настройки графики — окружение/солнце/модули перенастраиваются.
 signal graphics_changed
+## Изменилась дальность видимости/растений (apply_view) — туман пересчитывается сразу.
+signal view_changed
 
 ## Действия → события по умолчанию. Клавиши — physical keycode.
 const DEFAULT_KEYS: Dictionary = {
@@ -145,6 +151,8 @@ func save_settings() -> void:
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("video", "show_perf", show_perf)
 	cfg.set_value("video", "graphics_detected", graphics_detected)
+	cfg.set_value("video", "view_distance", view_distance)
+	cfg.set_value("video", "flora_distance", flora_distance)
 	cfg.set_value("meta", "keys_version", KEYS_VERSION)
 	cfg.set_value("audio", "master_volume", master_volume)
 	cfg.set_value("progress", "tutorial_done", tutorial_done)
@@ -173,6 +181,8 @@ func load_settings() -> void:
 	fullscreen = bool(cfg.get_value("video", "fullscreen", fullscreen))
 	show_perf = bool(cfg.get_value("video", "show_perf", show_perf))
 	graphics_detected = bool(cfg.get_value("video", "graphics_detected", graphics_detected))
+	view_distance = float(cfg.get_value("video", "view_distance", view_distance))
+	flora_distance = clampf(float(cfg.get_value("video", "flora_distance", flora_distance)), 0.5, 2.0)
 	var old_keys := int(cfg.get_value("meta", "keys_version", 1)) < KEYS_VERSION
 	master_volume = cfg.get_value("audio", "master_volume", master_volume)
 	tutorial_done = bool(cfg.get_value("progress", "tutorial_done", tutorial_done))
@@ -212,6 +222,19 @@ func apply_graphics() -> void:
 	apply_window()
 	Engine.max_fps = fps_cap
 	AutoLOD.rescale(tree)
+	ViewDistance.apply(tree)
+	graphics_changed.emit()
+
+## Дальность видимости / растений изменилась — применить на лету, без пересборки
+## мира и без перенастройки вьюпорта (рельеф, деревья, предметы, туман, растения).
+func apply_view() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	flora_distance = clampf(flora_distance, 0.5, 2.0)
+	AutoLOD.rescale(tree)
+	ViewDistance.apply(tree)
+	view_changed.emit()
 	graphics_changed.emit()
 
 ## Окно: полноэкранный режим, вертикальная синхронизация, масштаб интерфейса.

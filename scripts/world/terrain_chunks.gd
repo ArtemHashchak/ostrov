@@ -19,7 +19,7 @@ const COARSE := 4.0
 const LOD1 := 90.0       # дальше — меш 2 м
 const LOD2 := 210.0      # дальше — меш 4 м
 const LOD3 := 520.0      # дальше — меш 8 м
-const FAR := 3500.0      # дальше чанк не рисуется (дальние острова видны до ~3.5 км)
+const FAR := 3500.0      # дальность по умолчанию; фактическую задаёт ViewDistance (настройка «Дальность видимости»)
 ## Без гистерезиса: с запасом (margin) и без плавного перехода LOD сохраняет
 ## прежнее состояние в полосе ±margin. После телепорта (возрождение, смена
 ## камеры) соседние уровни оба оставались скрытыми — «дыры» в рельефе, сквозь
@@ -221,8 +221,9 @@ func _flush_sea_blocks() -> void:
 		mi.name = "Tsea_%d_%d" % [bk.x, bk.y]
 		mi.mesh = _merge(_sea_blocks[bk])
 		mi.material_override = material
-		mi.visibility_range_end = FAR
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# дальность — по настройке «Дальность видимости» (ViewDistance; на «Максимуме» — 6 км)
+		ViewDistance.cap(mi, ViewDistance.MAXIMUM, ViewDistance.G_TERRAIN)
 		add_child(mi)
 	_sea_blocks.clear()
 
@@ -237,9 +238,10 @@ func _flush_far_blocks() -> void:
 		mi.mesh = _merge(_far_blocks[bk], -0.8)
 		mi.material_override = material
 		mi.visibility_range_begin = maxf(LOD3 - half_diag, 0.0)
-		mi.visibility_range_end = FAR
 		mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# дальше выбранной дальности видимости блок не рисуется (туман густеет к этой границе)
+		ViewDistance.cap(mi, ViewDistance.MAXIMUM, ViewDistance.G_TERRAIN)
 		add_child(mi)
 	_far_blocks.clear()
 

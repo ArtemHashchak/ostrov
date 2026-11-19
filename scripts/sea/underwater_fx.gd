@@ -69,8 +69,10 @@ func _apply(under: bool) -> void:
 			_saved = {
 				"fog_enabled": _env.fog_enabled, "fog_density": _env.fog_density,
 				"fog_light_color": _env.fog_light_color, "fog_sky_affect": _env.fog_sky_affect,
-				"fog_aerial": _env.fog_aerial_perspective,
+				"fog_aerial": _env.fog_aerial_perspective, "fog_mode": _env.fog_mode,
 			}
+			# под водой — экспоненциальный туман (над водой может быть глубинный: ViewDistance)
+			_env.fog_mode = Environment.FOG_MODE_EXPONENTIAL
 			_env.fog_enabled = true
 			_env.fog_sky_affect = 1.0
 			_env.fog_aerial_perspective = 0.0
@@ -80,6 +82,7 @@ func _apply(under: bool) -> void:
 			_env.fog_light_color = _saved["fog_light_color"]
 			_env.fog_sky_affect = _saved["fog_sky_affect"]
 			_env.fog_aerial_perspective = _saved["fog_aerial"]
+			_env.fog_mode = int(_saved.get("fog_mode", Environment.FOG_MODE_EXPONENTIAL)) as Environment.FogMode
 	if under and _plankton == null:
 		_plankton = CPUParticles3D.new()
 		_plankton.amount = 120

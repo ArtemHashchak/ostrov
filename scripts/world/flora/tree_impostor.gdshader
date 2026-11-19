@@ -9,6 +9,8 @@ uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_disabl
 uniform vec2 size = vec2(10.0, 10.0);
 uniform float y0 = 0.0;
 uniform vec2 fade_in = vec2(595.0, 650.0);
+// растворение к границе «Дальности видимости» (ViewDistance; на «Максимуме» — далеко)
+uniform vec2 fade_out = vec2(1.0e8, 1.1e8);
 uniform float ready = 0.0;
 global uniform float weather_wetness;
 
@@ -27,7 +29,7 @@ void vertex() {
 	vec3 nw = normalize(vec3(tc.x, 0.0, tc.y) * 0.55 + vec3(0.0, 0.85, 0.0));
 	NORMAL = normalize((inv * vec4(nw, 0.0)).xyz);
 	float d = length(to_cam);
-	v_fade = smoothstep(fade_in.x, fade_in.y, d) * ready;
+	v_fade = smoothstep(fade_in.x, fade_in.y, d) * (1.0 - smoothstep(fade_out.x, fade_out.y, d)) * ready;
 	v_var = fract(sin(dot(o.xz, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
 }
 

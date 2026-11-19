@@ -61,9 +61,10 @@ static func is_metal() -> bool:
 	return OS.get_name() == "macOS" and not is_compat() \
 		and RenderingServer.get_current_rendering_driver_name().to_lower().contains("metal")
 
-## Множитель дальности мелкой растительности/декора (трава, кусты, камни).
+## Множитель дальности мелкой растительности/декора (трава, кусты, камни):
+## пресет × настройка «Дальность растений» (Settings.flora_distance).
 static func detail() -> float:
-	return float(preset().get("detail", 1.0))
+	return float(preset().get("detail", 1.0)) * ViewDistance.flora_k()
 
 ## Масштаб 3D: ручной (Settings.render_scale > 0) или авто по пресету и
 ## размеру окна — на 4K/Retina-экранах рендерим меньшую долю пикселей.
