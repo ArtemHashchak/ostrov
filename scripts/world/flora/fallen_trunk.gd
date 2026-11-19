@@ -22,6 +22,7 @@ var settled: bool = false
 var _t: float = 0.0
 var _pieces: Array[MeshInstance3D] = []
 var _notch: Dictionary = {} # надпил под текущий распил: {h, dir, depth}
+var _butt_ext: Dictionary = {} # удлинённая капсула комля {height, center} — до наклона ствола
 
 func setup(v: Dictionary, cut: float, xform: Transform3D, coconuts: int = 0) -> void:
 	variant = v
@@ -77,8 +78,10 @@ func _add_segment(h0: float, h1: float) -> void:
 	var cs := CollisionShape3D.new()
 	var a := FloraLib.trunk_point(variant, h0)
 	var b := FloraLib.trunk_point(variant, h1)
-	# радиус — по толстому торцу (комель с расширением у корня толще середины участка)
-	var r := maxf(FloraLib.trunk_radius(variant, h0), FloraLib.trunk_radius(variant, h1))
+	# радиус — по середине участка, пока ствол стоит; когда лёг — по толстому торцу
+	# (_extend_butt: комель с расширением у корня толще середины и иначе тонет в земле)
+	var r := FloraLib.trunk_radius(variant, (h0 + h1) * 0.5)
+	var r_thick := maxf(FloraLib.trunk_radius(variant, h0), FloraLib.trunk_radius(variant, h1))
 	var cap := CapsuleShape3D.new()
 	cap.radius = r
 	cap.height = maxf(a.distance_to(b) + r * 0.5, r * 2.1)
@@ -87,10 +90,10 @@ func _add_segment(h0: float, h1: float) -> void:
 	if segments.is_empty() and a.distance_to(b) > r:
 		# комель: цилиндрическая часть капсулы — от самого среза (иначе скруглённый конец
 		# капсулы оставляет край комля без опоры, и он уходит в землю); полусфера за срезом
-		# не ниже образующей — ствол не приподнимает
-		var cyl := a.distance_to(b) - r * 0.75
-		cap.height = cyl + r * 2.0
-		center = a + y * cyl * 0.5
+		# не ниже образующей — ствол не приподнимает. Включается, когда ствол уже наклонился
+		# (_extend_butt): у стоящего полусфера под срезом цепляет землю и валит его не туда.
+		var cyl := a.distance_to(b) - r_thick * 0.75
+		_butt_ext = {"height": cyl + r_thick * 2.0, "center": a + y * cyl * 0.5}
 	cs.shape = cap
 	var x := y.cross(Vector3.FORWARD).normalized()
 	if x.length() < 0.5:
@@ -98,7 +101,7 @@ func _add_segment(h0: float, h1: float) -> void:
 	var z := x.cross(y).normalized()
 	cs.transform = Transform3D(Basis(x, y, z), center)
 	add_child(cs)
-	segments.append({"mesh": null, "shape": cs, "h0": h0, "h1": h1})
+	segments.append({"mesh": null, "shape": cs, "h0": h0, "h1": h1, "r_thick": r_thick})
 
 ## Непрерывные куски ствола: [[i0, i1], ...] — индексы участков подряд без распила между ними.
 func _runs() -> Array:
@@ -166,6 +169,8 @@ func _perf_physics(delta: float) -> void:
 		angular_velocity = angular_velocity.lerp(want, 0.2)
 	if crown_shape and crown_shape.disabled and global_transform.basis.y.angle_to(Vector3.UP) > 0.6:
 		crown_shape.disabled = false
+	if not _butt_ext.is_empty() and global_transform.basis.y.angle_to(Vector3.UP) > 1.0:
+		_extend_butt()
 	if linear_velocity.length() > 14.0:
 		linear_velocity = linear_velocity.limit_length(14.0)
 	if angular_velocity.length() > 3.0:
@@ -174,6 +179,22 @@ func _perf_physics(delta: float) -> void:
 		settled = true
 		set_deferred(&"freeze_mode", RigidBody3D.FREEZE_MODE_STATIC)
 		set_deferred(&"freeze", true)
+
+func _extend_butt() -> void:
+	var ext := _butt_ext
+	_butt_ext = {}
+	for i in segments.size():
+		var cs := segments[i]["shape"] as CollisionShape3D
+		if cs == null or not is_instance_valid(cs) or not segments[i].has("r_thick"):
+			continue
+		var cap := (cs.shape as CapsuleShape3D).duplicate() as CapsuleShape3D
+		var rt := float(segments[i]["r_thick"])
+		cap.height = maxf(cap.height + (rt - cap.radius) * 0.5, rt * 2.1)
+		cap.radius = rt
+		if i == 0 and float(segments[0]["h0"]) <= cut_h + 0.05:   # комель ещё не отпилен
+			cap.height = float(ext["height"])
+			cs.position = ext["center"]
+		cs.shape = cap
 
 func _on_body_entered(_b: Node) -> void:
 	if landed or _t < 0.6:
