@@ -17,6 +17,9 @@ var spin := false
 var velocity := Vector3.ZERO
 var gravity_scale := 1.0
 var max_range := 300.0
+## Современный огнестрел: урон с падением по дистанции, эффекты попаданий по поверхностям.
+var wdef: WeaponDef
+var tracer := false
 
 var _v0 := 1.0
 var _t := 0.0
@@ -25,11 +28,17 @@ var _model: Node3D
 var _in_water := false
 var _exclude: Array[RID] = []
 var _done := false
+var _tracer: MeshInstance3D
 
 func _ready() -> void:
 	top_level = true
 	_v0 = maxf(velocity.length(), 0.1)
-	_model = CombatModels.projectile(ammo_id)
+	if ammo_id == &"bullet":
+		_model = Node3D.new() # пуля не видна глазом; трассер — светящийся штрих
+		if tracer and wdef:
+			_tracer = GunFx.tracer(self, wdef.tracer_color)
+	else:
+		_model = CombatModels.projectile(ammo_id)
 	add_child(_model)
 	if on_fire:
 		var fm := _model.find_child("Flame", true, false) as Node3D
@@ -48,6 +57,7 @@ func _drag() -> float:
 		&"musket_ball": return 0.35
 		&"arrow", &"arrow_fire": return 0.03
 		&"bolt": return 0.02
+		&"bullet": return 0.0
 	return 0.01
 
 func _orient() -> void:
@@ -76,6 +86,7 @@ func _physics_process(delta: float) -> void:
 	q.exclude = _exclude
 	var hit := space.intersect_ray(q)
 	if not hit.is_empty():
+		_travel += from.distance_to(hit.position) - from.distance_to(to) # точная дистанция до попадания
 		global_position = hit.position
 		_impact(hit)
 		return
@@ -84,7 +95,13 @@ func _physics_process(delta: float) -> void:
 	if not _in_water and to.y < ws and from.y >= ws - 0.05:
 		_in_water = true
 		var wp := Vector3(to.x, ws, to.z)
-		CombatFx.impact(self, wp, Vector3.UP, &"water")
+		if wdef:
+			GunFx.bullet_impact(self, null, wp, Vector3.UP, &"water", velocity)
+		else:
+			CombatFx.impact(self, wp, Vector3.UP, &"water")
+		if ammo_id == &"bullet":
+			queue_free() # пуля в воде быстро теряет энергию
+			return
 		if ammo_id == &"molotov":
 			global_position = wp
 			_shatter(wp, null)
@@ -94,6 +111,12 @@ func _physics_process(delta: float) -> void:
 		_t = maxf(_t, LIFE - 3.0)
 	global_position = to
 	_orient()
+	if _tracer:
+		# штрих позади пули: виден, когда пуля отошла от стрелка
+		var ln := clampf(minf(_travel - 2.5, velocity.length() * delta * 0.9), 0.0, 9.0)
+		_tracer.visible = ln > 0.3
+		_tracer.scale = Vector3(1.0, 1.0, maxf(ln, 0.01))
+		_tracer.position = Vector3(0, 0, ln * 0.5)
 
 func _impact(hit: Dictionary) -> void:
 	_done = true
@@ -105,6 +128,12 @@ func _impact(hit: Dictionary) -> void:
 		CombatFx.sound_at(self, "glass_break", pos, 0.0)
 		Combat.deliver(shooter, col, pos, nrm, damage, &"melee", weapon_id)
 		_shatter(pos, col)
+		return
+	if wdef:
+		# пуля: урон по дистанции полёта (WeaponDef.falloff_at), след и эффекты по материалу
+		Combat.deliver(shooter, col, pos, nrm, damage * wdef.falloff_at(_travel), kind, weapon_id, false, on_fire)
+		GunFx.bullet_impact(self, col, pos, nrm, GunFx.surface_of(col, pos, nrm), velocity)
+		queue_free()
 		return
 	var dealt := Combat.deliver(shooter, col, pos, nrm, damage * speed_k, kind, weapon_id, false, on_fire)
 	var target := Combat._find_with(col, &"apply_damage")

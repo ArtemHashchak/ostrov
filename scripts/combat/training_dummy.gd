@@ -9,6 +9,7 @@ var total := 0.0
 func _ready() -> void:
 	add_to_group(&"characters")
 	add_to_group(&"dummies")
+	set_meta(&"surface", &"straw") # GunFx: солома — без крови, следы от пуль на чучеле
 	var cs := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
 	cap.radius = 0.28
