@@ -135,10 +135,14 @@ func run() -> void:
 	await shot("08_crossbow_crank")
 	await wait(2.0)
 	check(Combat.is_loaded(p, &"crossbow"), "арбалет взведён, болт на ложе")
+	# прицельно (ADS): от бедра разброс 1.4° — на этой дистанции болт случайно уходит в ноги
+	Input.action_press(&"aim")
+	await wait(0.6)
 	aim_at(body)
 	await wait(0.3)
 	await shot("09_crossbow_loaded")
 	h = await fire_at(body + Vector3.UP * 0.01)
+	Input.action_release(&"aim")
 	check(not h.is_empty() and h.zone == &"body" and float(h.damage) > 52.0 * 0.8 and float(h.damage) <= 52.01, "арбалет — тело ×1 (%s, %.1f)" % [h.get("zone", "мимо"), float(h.get("damage", 0.0))])
 	await wait(0.3)
 	var stuck := false
