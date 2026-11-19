@@ -541,7 +541,7 @@ static func fire(parent: Node3D, size: float = 1.0, pos: Vector3 = Vector3.ZERO)
 	var smoke := CPUParticles3D.new()
 	smoke.name = "Smoke"
 	smoke.amount = int(14 * size) + 4
-	smoke.lifetime = 3.2
+	smoke.lifetime = 3.0   # > 3 с — чёрные клубы в Compatibility
 	smoke.local_coords = false
 	var sq := QuadMesh.new()
 	sq.size = Vector2(0.6, 0.6) * size

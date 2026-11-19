@@ -122,12 +122,16 @@ static func particle_mat(kind: String, additive: bool) -> StandardMaterial3D:
 	_tex[key] = m
 	return m
 
+const MAX_LIFE := 3.0
+
 static func particles(parent: Node, pos: Vector3, amount: int, life: float, kind: String, additive: bool,
 		ramp: Gradient, size: float, vel: float, spread: float, dir: Vector3, grav: Vector3, one_shot: bool = true,
 		explosive: float = 1.0) -> CPUParticles3D:
 	var p := CPUParticles3D.new()
 	p.amount = amount
-	p.lifetime = life
+	# В Compatibility CPUParticles3D с жизнью частиц > 3 с рисуют клубы чёрными
+	# (см. SupplyFx.smoke_column) — долгий дым собирается из нескольких эмиттеров.
+	p.lifetime = minf(life, MAX_LIFE)
 	p.one_shot = one_shot
 	p.explosiveness = explosive if one_shot else 0.0
 	var qm := QuadMesh.new()
@@ -184,7 +188,7 @@ static func muzzle(ctx: Node, pos: Vector3, dir: Vector3, size: float = 1.0) -> 
 	particles(root, pos, 14, 0.08, "flame", true, _ramp([Color(1, 0.95, 0.7, 1), Color(1, 0.5, 0.1, 0.8), Color(0.6, 0.2, 0.05, 0)]),
 		0.16 * size, 7.0 * size, 12.0, dir, Vector3.ZERO)
 	# облако чёрного порохового дыма — густое, медленно расплывается
-	particles(root, pos + dir * 0.1, int(26 * size) + 6, 3.2, "smoke", false,
+	particles(root, pos + dir * 0.1, int(26 * size) + 6, 3.0, "smoke", false,
 		_ramp([Color(0.75, 0.74, 0.72, 0.9), Color(0.7, 0.7, 0.7, 0.55), Color(0.72, 0.72, 0.72, 0.0)]),
 		0.45 * size + 0.2, 3.5 * size, 18.0, dir, Vector3(0.15, 0.25, 0.0))
 	# дым из полки замка
@@ -312,9 +316,15 @@ static func explosion(pos: Vector3, radius: float) -> void:
 	particles(root, pos, 40, 0.5, "flame", true,
 		_ramp([Color(1, 0.95, 0.8, 1), Color(1, 0.6, 0.15, 0.95), Color(0.6, 0.2, 0.05, 0.6), Color(0.1, 0.05, 0.02, 0)]),
 		1.4 * s, 14.0 * s, 180.0, Vector3.UP, Vector3(0, 2.0, 0))
-	particles(root, pos, 46, 5.0, "smoke", false,
+	particles(root, pos, 46, 3.0, "smoke", false,
 		_ramp([Color(0.18, 0.16, 0.14, 0.95), Color(0.3, 0.28, 0.26, 0.7), Color(0.45, 0.44, 0.42, 0.0)]),
 		2.2 * s, 8.0 * s, 180.0, Vector3.UP, Vector3(0, 1.2, 0))
+	# оседающее облако (вместо жизни 5 с у первого — см. MAX_LIFE): второй эмиттер выше и позже
+	t.create_timer(1.4).timeout.connect(func() -> void:
+		if is_instance_valid(root):
+			particles(root, pos + Vector3.UP * 2.5 * s, 30, 3.0, "smoke", false,
+				_ramp([Color(0.3, 0.28, 0.26, 0.0), Color(0.36, 0.35, 0.33, 0.6), Color(0.5, 0.49, 0.47, 0.0)]),
+				2.8 * s, 2.0 * s, 180.0, Vector3.UP, Vector3(0.2, 0.5, 0), true, 0.6))
 	# комья земли/щепки
 	particles(root, pos, 40, 1.6, "smoke", false, _ramp([Color(0.25, 0.2, 0.15, 1), Color(0.25, 0.2, 0.15, 0.0)]),
 		0.12, 16.0 * s, 70.0, Vector3.UP, Vector3(0, -9.8, 0))

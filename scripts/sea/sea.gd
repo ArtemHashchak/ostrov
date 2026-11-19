@@ -783,7 +783,7 @@ func _blood_cloud(pos: Vector3, strength: float) -> void:
 	var p := CPUParticles3D.new()
 	p.one_shot = true
 	p.amount = 14 + int(strength * 0.6)
-	p.lifetime = 3.5
+	p.lifetime = 3.0   # > 3 с — чёрные клубы в Compatibility
 	p.explosiveness = 0.8
 	p.direction = Vector3.UP
 	p.spread = 180.0
