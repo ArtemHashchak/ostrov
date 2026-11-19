@@ -14,6 +14,7 @@ var drops: GPUParticles3D
 var splashes: GPUParticles3D
 var leaves: GPUParticles3D
 var spray: GPUParticles3D
+const SEA_SPRAY_ENABLED := false
 var sheets: Array[MeshInstance3D] = []
 ## Дальняя завеса ливня (шторм): цилиндр ~110 м, полосы плывут по ветру.
 var curtain: MeshInstance3D
@@ -111,6 +112,7 @@ func _make_sheets() -> void:
 		m.set_shader_parameter(&"color", Color(0.82, 0.86, 0.92, cfg[3]))
 		m.set_shader_parameter(&"streak_len", 0.13)
 		m.set_shader_parameter(&"thickness", 0.12)
+		m.set_shader_parameter(&"soft_dist", 3.0 if cfg[0] < 10.0 else 8.0)
 		cm.material = m
 		mi.mesh = cm
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -133,6 +135,8 @@ func _make_curtain() -> void:
 	cm.cap_bottom = false
 	_curtain_mat = ShaderMaterial.new()
 	_curtain_mat.shader = load("res://scripts/world/weather/rain_curtain.gdshader") as Shader
+	# пелена плавно «набирается» за 45 м за стеной цилиндра — без видимой границы на воде/суше
+	_curtain_mat.set_shader_parameter(&"soft_dist", 45.0)
 	cm.material = _curtain_mat
 	curtain.mesh = cm
 	curtain.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -387,7 +391,9 @@ func update(dt: float, cam: Camera3D, rain: float, storm: float, wdir: Vector2, 
 	_leaf_pm.initial_velocity_max = wspeed * 0.8
 	leaves.global_position = Vector3(cp.x - wdir.x * 12.0, ground_h + 1.6, cp.z - wdir.y * 12.0)
 	# морские брызги у берега/над водой в шторм
-	spray.emitting = st > 0.1 and near_shore and not underwater
+	# морская пыль частицами выключена: на экране читалась как летающие белые точки
+	# (отзыв пользователя); у берега шторм передают пена и прибой в шейдере океана
+	spray.emitting = SEA_SPRAY_ENABLED and st > 0.1 and near_shore and not underwater
 	spray.amount_ratio = clampf(st, 0.05, 1.0)
 	_spray_pm.direction = Vector3(wdir.x, 0.35, wdir.y).normalized()
 	_spray_pm.initial_velocity_min = wspeed * 0.25

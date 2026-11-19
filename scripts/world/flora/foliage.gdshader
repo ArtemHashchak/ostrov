@@ -20,10 +20,23 @@ global uniform float wind_gust;
 global uniform float weather_wetness;
 global uniform float weather_storm;
 
+// Мягкий уход мелкой растительности вдали (трава/папоротник/кусты): экземпляр плавно
+// «уходит в землю» (масштаб к основанию) на отрезке [fade_far - fade_len, fade_far].
+// Без этого граница видимости чанков читается как круг вокруг игрока. 0 — выключено.
+uniform float fade_far = 0.0;
+uniform float fade_len = 14.0;
+
 varying float v_var;
 varying float v_shade; // COLOR.g: затенение внутренней листвы кроны
 
 void vertex() {
+	if (fade_far > 0.0) {
+		vec3 io = (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+		float d = distance(io, CAMERA_POSITION_WORLD);
+		float f = 1.0 - smoothstep(fade_far - fade_len, fade_far, d);
+		// приседание в землю + сжатие по горизонтали: без резкой границы и без «точек»
+		VERTEX *= vec3(mix(f, 1.0, f), f * f * (3.0 - 2.0 * f), mix(f, 1.0, f));
+	}
 	vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	float w = COLOR.r;
 	v_shade = COLOR.g;

@@ -108,7 +108,10 @@ static func apply(gi: GeometryInstance3D) -> void:
 	gi.set_meta(META_BASE, r)
 	gi.add_to_group(GROUP)
 	gi.visibility_range_end = r * GraphicsQuality.detail()
-	gi.visibility_range_end_margin = clampf(r * 0.08, 3.0, 20.0)
+	gi.visibility_range_end_margin = clampf(r * 0.12, 4.0, 30.0)
+	# плавное растворение на границе (Forward+/Mobile; в Compatibility — без эффекта):
+	# без него предметы «выскакивают», а граница дальности читается кругом вокруг игрока
+	gi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	if s < 1.0:
 		gi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	processed += 1

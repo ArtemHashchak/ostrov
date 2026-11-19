@@ -24,6 +24,10 @@ signal flora_ready
 const TREE_VIS_RANGE := 280.0   # ChoppableTree (проснувшиеся)
 const LOD_DIST := 140.0   # с TCHUNK 96: ближайший LOD1 ~72 м от камеры (как было при 64/120)
 const TREE_FAR := 650.0
+# LOD3 — «снимки» деревьев (TreeImpostors) от ~600 м до горизонта: дальние острова не лысеют
+const IMP_BEGIN := 595.0
+const IMP_END := 3500.0
+const IMP_CHUNK := 768.0
 ## Дальность видимости считается от центра AABB всей группы MultiMesh, поэтому детальный (LOD0)
 ## и упрощённый (LOD1) уровни делят одинаковые мелкие чанки — иначе у камеры вместо деревьев
 ## остаются «болванки». LOD2 — тот же меш, что LOD1, крупными чанками для дальних деревьев;
@@ -41,7 +45,7 @@ const FERN_RANGE := 70.0
 const BUSH_RANGE := 120.0       # кусты 1–1.5 м: дальше 120 м — пиксели; чанки 128 м
 const CHUNK := 32.0             # чанк травы/папоротника
 const DECOR_STREAM := 80.0
-const BUSH_CHUNK := 128.0
+const BUSH_CHUNK := 64.0       # 64 м: чанк гасится позже на полудиагональ (см. _detail_range)
 const NODE_STREAM := 85.0
 const ROCK_STREAM := 125.0
 const CELL := 4.0               # шаг сетки рассадки
@@ -123,6 +127,7 @@ var _grid: Dictionary = {}        # Vector2i -> Array[rec]
 var _tgroups: Dictionary = {}     # LOD0: "kind_idx|cx|cz" -> {v, mm: MultiMesh, xf: Array}
 var _fgroups: Dictionary = {}     # LOD1: "kind|cx|cz" -> {v (вариант 0), mm, xf} — один меш на вид, масштаб по высоте
 var _sgroups: Dictionary = {}     # тень ближних деревьев: "kind_idx|cx|cz" (SCHUNK) -> {v, mm, xf}
+var _igroups: Dictionary = {}     # LOD3: «снимки» деревьев, kind|cx|cz (IMP_CHUNK)
 var _ggroups: Dictionary = {}     # LOD2: то же, крупные чанки FAR_CHUNK
 var _colliders: Dictionary = {}   # Vector2i -> FloraColliders
 var _shapes: Dictionary = {}
@@ -164,10 +169,55 @@ func _ready() -> void:
 	populate()
 
 ## Дальность мелкой растительности × пресет графики (GraphicsQuality.detail).
-func _detail_range(gi: GeometryInstance3D, base: float) -> void:
+## Граница видимости не должна читаться кругом вокруг игрока: каждый экземпляр плавно
+## уходит в землю в шейдере (fade_far), а сам чанк гасится позже — на полудиагональ
+## чанка (видимость считается до центра AABB чанка).
+func _detail_range(gi: GeometryInstance3D, base: float, chunk: float = CHUNK) -> void:
 	gi.set_meta(&"detail_base", base)
-	gi.visibility_range_end = base * GraphicsQuality.detail()
+	gi.set_meta(&"detail_chunk", chunk)
+	var mmi := gi as MultiMeshInstance3D
+	if mmi and mmi.multimesh and mmi.multimesh.mesh:
+		var fm := _fade_material(mmi.multimesh.mesh, base)
+		if fm:
+			mmi.material_override = fm
+	_apply_detail_range(gi, GraphicsQuality.detail())
 	gi.add_to_group(&"flora_detail")
+
+func _apply_detail_range(gi: GeometryInstance3D, k: float) -> void:
+	var base := float(gi.get_meta(&"detail_base", gi.visibility_range_end))
+	var chunk := float(gi.get_meta(&"detail_chunk", CHUNK))
+	gi.visibility_range_end = base * k + chunk * 0.72
+	gi.visibility_range_end_margin = 0.0
+	var m := gi.material_override
+	if m is ShaderMaterial:
+		(m as ShaderMaterial).set_shader_parameter(&"fade_far", base * k)
+		(m as ShaderMaterial).set_shader_parameter(&"fade_len", maxf(8.0, base * k * 0.3))
+	elif m is StandardMaterial3D:
+		var sm := m as StandardMaterial3D
+		sm.distance_fade_min_distance = base * k
+		sm.distance_fade_max_distance = base * k * 0.7
+
+## Материал с плавным уходом вдали (кэш по исходному материалу и базовой дальности).
+var _fade_mats: Dictionary = {}
+func _fade_material(mesh: Mesh, base: float) -> Material:
+	if mesh.get_surface_count() != 1:
+		return null
+	var src := mesh.surface_get_material(0)
+	if src == null:
+		return null
+	var key := "%d|%.0f" % [src.get_instance_id(), base]
+	if _fade_mats.has(key):
+		return _fade_mats[key]
+	var m: Material = null
+	if src is ShaderMaterial and (src as ShaderMaterial).shader == preload("res://scripts/world/flora/foliage.gdshader"):
+		m = (src as ShaderMaterial).duplicate()
+	elif src is StandardMaterial3D:
+		var sm := (src as StandardMaterial3D).duplicate() as StandardMaterial3D
+		# дальше min — полностью прозрачно (обратный режим: max < min), дизер по пикселям
+		sm.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_DITHER
+		m = sm
+	_fade_mats[key] = m
+	return m
 
 func _on_graphics_changed() -> void:
 	if not is_inside_tree():
@@ -176,7 +226,7 @@ func _on_graphics_changed() -> void:
 	for n in get_tree().get_nodes_in_group(&"flora_detail"):
 		var gi := n as GeometryInstance3D
 		if gi:
-			gi.visibility_range_end = float(gi.get_meta(&"detail_base", gi.visibility_range_end)) * k
+			_apply_detail_range(gi, k)
 
 func _find_height_source() -> Node:
 	var n: Node = get_parent()
@@ -451,6 +501,13 @@ func _build_trees() -> void:
 		rec["gg"] = gk2
 		rec["gi"] = (_ggroups[gk2]["xf"] as Array).size()
 		(_ggroups[gk2]["xf"] as Array).append(_xf(rec, false, _far_k(rec)))
+		var ick := Vector2i(int(floor(p.x / IMP_CHUNK)), int(floor(p.z / IMP_CHUNK)))
+		var ik := "%s|%d|%d" % [rec["kind"], ick.x, ick.y]
+		if not _igroups.has(ik):
+			_igroups[ik] = {"v": FloraLib.variant(rec["kind"], 0), "xf": []}
+		rec["gm"] = ik
+		rec["ii"] = (_igroups[ik]["xf"] as Array).size()
+		(_igroups[ik]["xf"] as Array).append(_xf(rec, false, _far_k(rec)))
 		# теневой двойник: лёгкий меш варианта, крупные чанки, только в карту теней
 		var sck := Vector2i(int(floor(p.x / SCHUNK)), int(floor(p.z / SCHUNK)))
 		# пальмы — по вариантам (наклон ствола заметен в тени на песке), лиственные/мангры/баньяны —
@@ -504,24 +561,30 @@ func _build_trees() -> void:
 			var mmi := MultiMeshInstance3D.new()
 			mmi.name = "Trees%d_%s" % [lod, String(gk).replace("|", "_")]
 			mmi.multimesh = mm
+			# переход LOD0 → LOD1 растворением (Forward+; в Compatibility — без эффекта),
+			# иначе на ~140 м деревья заметно «переключаются» чанками
+			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 			if lod == 0:
 				mmi.visibility_range_end = LOD_DIST
-				mmi.visibility_range_end_margin = 4.0
+				mmi.visibility_range_end_margin = 16.0
 				# Тень ближних деревьев рисует дешёвый «теневой двойник» (LOD1, один меш на вид):
 				# детальный LOD0 в карту теней не идёт (было ≈450k примитивов/240 вызовов со спавна).
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			elif lod == 1:
 				mmi.visibility_range_begin = LOD_DIST
-				mmi.visibility_range_begin_margin = 4.0
+				mmi.visibility_range_begin_margin = 16.0
+				mmi.visibility_range_end_margin = 20.0
 				mmi.visibility_range_end = LOD1_END
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			else:
 				mmi.visibility_range_begin = LOD2_BEGIN
-				mmi.visibility_range_end = TREE_FAR
+				mmi.visibility_range_end = TREE_FAR + 12.0
+				mmi.visibility_range_begin_margin = 20.0
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			add_child(mmi)
 			g["mm"] = mm
 			mmis += 1
+	mmis += _build_impostors()
 	for sk3 in _sgroups:
 		var sg: Dictionary = _sgroups[sk3]
 		var sxs: Array = sg["xf"]
@@ -543,6 +606,42 @@ func _build_trees() -> void:
 	stats["tree_mmi"] = mmis
 	stats["tree_chunks"] = _colliders.size()
 
+## LOD3: по одному MultiMesh «снимков» на вид дерева и крупный чанк. Снимок вида
+## делается один раз при загрузке (асинхронно); до готовности квады невидимы.
+var _imp_mats: Dictionary = {}
+func _build_impostors() -> int:
+	var n := 0
+	var quad := TreeImpostors.quad_mesh()
+	for ik in _igroups:
+		var g: Dictionary = _igroups[ik]
+		var kind := String(ik).split("|")[0]
+		if not _imp_mats.has(kind):
+			var src := FloraLib.tree_mesh(g["v"], 1)
+			var mat := TreeImpostors.make_material(src, IMP_BEGIN, TREE_FAR)
+			_imp_mats[kind] = mat
+			TreeImpostors.bake(self, src, mat)
+		var xs: Array = g["xf"]
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = quad
+		mm.instance_count = xs.size()
+		for k in xs.size():
+			mm.set_instance_transform(k, xs[k])
+		var mmi := MultiMeshInstance3D.new()
+		mmi.name = "Trees3_%s" % String(ik).replace("|", "_")
+		mmi.multimesh = mm
+		mmi.material_override = _imp_mats[kind]
+		# квад растягивается шейдером под крону: запас отсечения
+		mmi.extra_cull_margin = 30.0
+		mmi.visibility_range_begin = IMP_BEGIN - IMP_CHUNK * 0.72
+		mmi.visibility_range_end = IMP_END + IMP_CHUNK * 0.72
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mmi)
+		g["mm"] = mm
+		n += 1
+	stats["tree_impostor_mmi"] = n
+	return n
+
 func _set_mm_visible(rec: Dictionary, vis: bool) -> void:
 	var g: Dictionary = _tgroups.get(rec.get("g", ""), {})
 	if g.is_empty():
@@ -556,6 +655,9 @@ func _set_mm_visible(rec: Dictionary, vis: bool) -> void:
 	var g2: Dictionary = _ggroups.get(rec.get("gg", ""), {})
 	if not g2.is_empty():
 		(g2["mm"] as MultiMesh).set_instance_transform(int(rec["gi"]), _xf(rec, not vis, _far_k(rec)))
+	var g3: Dictionary = _igroups.get(rec.get("gm", ""), {})
+	if not g3.is_empty() and g3.has("mm"):
+		(g3["mm"] as MultiMesh).set_instance_transform(int(rec["ii"]), _xf(rec, not vis, _far_k(rec)))
 
 ## Разбудить дерево: настоящий ChoppableTree вместо экземпляра MultiMesh. null — дерева уже нет.
 func promote(rec: Dictionary) -> ChoppableTree:
@@ -622,7 +724,7 @@ func _build_bushes() -> void:
 		var mmi := MultiMeshInstance3D.new()
 		mmi.name = "Bush_" + String(key).replace("|", "_")
 		mmi.multimesh = mm
-		_detail_range(mmi, BUSH_RANGE)
+		_detail_range(mmi, BUSH_RANGE, BUSH_CHUNK)
 		add_child(mmi)
 	stats["bush_mmi"] = _bush.size()
 

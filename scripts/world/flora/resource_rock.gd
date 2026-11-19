@@ -80,6 +80,8 @@ func _add_veins(box: AABB) -> void:
 	mi.mesh = st.commit()
 	mi.mesh.surface_set_material(0, mat)
 	mi.visibility_range_end = 120.0
+	mi.visibility_range_end_margin = 10.0
+	mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	add_child(mi)
 
 ## Тень валуна — только вблизи: сам меш в карту теней не идёт, а теневой двойник

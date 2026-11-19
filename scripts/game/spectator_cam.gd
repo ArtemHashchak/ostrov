@@ -24,7 +24,7 @@ static func start(tree: SceneTree, own_team: int) -> SpectatorCam:
 	var cam := SpectatorCam.new()
 	cam.team = own_team
 	cam.add_to_group(&"spectator_cam")
-	cam.far = 1500.0
+	cam.far = 20000.0
 	scene.add_child(cam)
 	cam.current = true
 	return cam

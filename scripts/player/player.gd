@@ -131,7 +131,9 @@ func _ready() -> void:
 	camera.name = "Camera"
 	camera.fov = Settings.fov
 	camera.near = 0.03
-	camera.far = 1500.0
+	# море (Ocean.REACH 20 км) — до горизонта и с высоты; раньше за 1.5 км
+	# море обрезалось и вокруг читался «круг» с серой полосой неба под горизонтом
+	camera.far = 20000.0
 	camera.current = true
 	head.add_child(camera)
 	ray = RayCast3D.new()

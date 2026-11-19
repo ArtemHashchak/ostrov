@@ -140,6 +140,14 @@ static func apply_environment(env: Environment) -> void:
 		env.sdfgi_cascades = 4
 		env.sdfgi_y_scale = Environment.SDFGI_Y_SCALE_50_PERCENT
 	env.volumetric_fog_enabled = bool(p.vol_fog)
+	if env.volumetric_fog_enabled:
+		# По умолчанию объёмный туман кончается в 64 м — граница видна «полусферой»
+		# вокруг игрока (дальше туман резко пропадает). Растягиваем объём на 240 м
+		# (дальние срезы грубее — detail_spread) и гасим его плотность к краю: дальше
+		# работает обычный глубинный туман, который продолжается без шва.
+		env.volumetric_fog_length = 240.0
+		env.volumetric_fog_detail_spread = 2.5
+		env.volumetric_fog_temporal_reprojection_enabled = true
 	env.glow_enabled = bool(p.glow)
 	env.ssr_enabled = bool(p.ssr)
 	if env.sky:

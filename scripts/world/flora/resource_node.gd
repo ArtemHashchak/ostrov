@@ -37,6 +37,8 @@ func _ready() -> void:
 	_mi.name = "Mesh"
 	_mi.mesh = FloraLib.resource_mesh(kind, vidx, is_harvested)
 	_mi.visibility_range_end = 95.0
+	_mi.visibility_range_end_margin = 10.0
+	_mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if kind in [&"liana", &"wild_maize", &"berries", &"cotton"] else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_mi)
 	var info: Dictionary = INFO.get(kind, INFO[&"herb"])

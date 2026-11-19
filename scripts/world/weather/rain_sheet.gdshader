@@ -13,6 +13,21 @@ uniform float light = 1.0;
 uniform float amount = 1.0;         // 0..1 сила дождя
 uniform float sheet_fade = 1.0;     // общая прозрачность слоя
 
+
+// Мягкое пересечение с геометрией (рельеф/вода/скалы): без резкой линии там, где
+// цилиндр слоя входит в землю — иначе вокруг игрока читается «круг».
+uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
+uniform float soft_dist = 4.0;
+float soft_fade(vec2 suv, float frag_z, mat4 inv_proj) {
+	float raw = texture(depth_tex, suv).r;
+	#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+	raw = raw * 2.0 - 1.0;
+	#endif
+	vec4 v = inv_proj * vec4(suv * 2.0 - 1.0, raw, 1.0);
+	float scene_d = -v.z / v.w;
+	return clamp((scene_d - frag_z) / soft_dist, 0.0, 1.0);
+}
+
 float hash(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
 
 void fragment() {
@@ -30,5 +45,5 @@ void fragment() {
 	// края цилиндра по высоте растворяются
 	float vfade = smoothstep(0.0, 0.25, UV.y) * smoothstep(1.0, 0.7, UV.y);
 	ALBEDO = color.rgb * clamp(light, 0.35, 1.6);
-	ALPHA = color.a * line * drop * on * vfade * sheet_fade * amount;
+	ALPHA = color.a * line * drop * on * vfade * sheet_fade * amount * soft_fade(SCREEN_UV, -VERTEX.z, INV_PROJECTION_MATRIX);
 }

@@ -30,6 +30,8 @@ static func _make(id: StringName, mesh: Mesh, shape: Shape3D, m: float) -> Flora
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
 	mi.visibility_range_end = 70.0
+	mi.visibility_range_end_margin = 10.0
+	mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	p.add_child(mi)
 	var cs := CollisionShape3D.new()
 	cs.shape = shape

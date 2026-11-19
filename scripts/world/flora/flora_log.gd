@@ -46,6 +46,8 @@ func _ready() -> void:
 	var mi := MeshInstance3D.new()
 	mi.mesh = _mesh
 	mi.visibility_range_end = 180.0
+	mi.visibility_range_end_margin = 10.0
+	mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	add_child(mi)
 	var cs := CollisionShape3D.new()
 	cs.shape = _shape
