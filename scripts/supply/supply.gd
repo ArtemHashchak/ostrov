@@ -60,6 +60,8 @@ func _ready() -> void:
 	add_child(SeasonNotes.new())
 	# мачты-громкоговорители и камеры наблюдения (декор)
 	add_child(ShowProps.new())
+	# кат-сцена «В эфире» в начале матча
+	add_child(ShowIntro.new())
 
 func _exit_tree() -> void:
 	SupplyModels.clear_caches()
