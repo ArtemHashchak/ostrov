@@ -481,6 +481,8 @@ static func _monkey() -> Node3D:
 
 # ---------------------------- игуана / варан ----------------------------
 static func _lizard(species: StringName, L: float) -> Node3D:
+	if UserLizardRig.available():
+		return UserLizardRig.make_model(species, L)   # ящерица из пака пользователя (скелет)
 	var root := _root(species, L)
 	var mat: ShaderMaterial = root.get_meta(&"mat")
 	var is_monitor := species == &"monitor"

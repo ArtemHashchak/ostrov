@@ -124,7 +124,10 @@ void fragment() {
 			// след проступает по высоте: сначала самые глубокие отпечатки
 			float k = smoothstep(0.0, 0.55, tr * 1.25 - (th - 0.35));
 			k *= tr;
-			sand = mix(sand, texture(tramp_albedo, puv).rgb * sand_tint, k) * (1.0 - k * 0.07);
+			// внутри отпечатка: утоптанное зерно пользователя (не темнее основного песка) + лёгкая тень лунки
+			vec3 tcol = texture(tramp_albedo, puv).rgb * sand_tint;
+			tcol *= dot(sand, vec3(0.333)) / max(dot(tcol, vec3(0.333)), 0.02);
+			sand = mix(sand, tcol, k * 0.6) * (1.0 - k * 0.1);
 			sh = mix(sh, th, k);
 			tr = k;
 		}
@@ -199,10 +202,10 @@ void fragment() {
 		if (tr > 0.003) {
 			n_s = mix(n_s, texture(tramp_normal, wpos.xz * tramp_tile).rgb, clamp(tr * 1.3, 0.0, 1.0));
 			// вдавленная ступня: наклон нормали по градиенту карты следов (край отпечатка)
-			float e = 1.0 / 512.0;
+			float e = 1.0 / 1024.0;
 			float mx = texture(sand_tracks_map, tuv + vec2(e, 0.0)).r - texture(sand_tracks_map, tuv - vec2(e, 0.0)).r;
 			float mz = texture(sand_tracks_map, tuv + vec2(0.0, e)).r - texture(sand_tracks_map, tuv - vec2(0.0, e)).r;
-			n_s.xy = clamp(n_s.xy + vec2(mx, mz) * 0.9, vec2(0.0), vec2(1.0));
+			n_s.xy = clamp(n_s.xy + vec2(mx, mz) * 0.45, vec2(0.34), vec2(0.66));
 		}
 	}
 	vec3 n_g = texture(grass_normal, uv * 0.8).rgb;
@@ -217,7 +220,7 @@ void fragment() {
 		nm = mix(nm, vec3(0.5 + rip.x * 0.35, 0.5 + rip.y * 0.35, 1.0), puddle);
 	}
 	NORMAL_MAP = nm;
-	NORMAL_MAP_DEPTH = mix(mix(1.0, 1.35 + tr * 0.8, use_beach_sand * (1.0 - k_grass) * (1.0 - k_sea)), 1.6, k_rock);
+	NORMAL_MAP_DEPTH = mix(mix(1.0, 1.35 + tr * 0.4, use_beach_sand * (1.0 - k_grass) * (1.0 - k_sea)), 1.6, k_rock);
 	float sand_r = mix(0.93, texture(sand_rough, suv).r, use_beach_sand);
 	ROUGHNESS = mix(mix(sand_r, 0.6, k_wet * (1.0 - k_grass)), 0.95, max(max(k_grass, k_rock), k_volc));
 	ROUGHNESS = mix(ROUGHNESS, mix(0.32, 0.55, k_grass), rain_wet);

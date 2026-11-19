@@ -35,7 +35,24 @@ static func make_tropic(water_level: float = 0.0) -> ShaderMaterial:
 	m.set_shader_parameter(&"volc_albedo", _t("dark_rock", "albedo"))
 	m.set_shader_parameter(&"volc_normal", _t("dark_rock", "normal"))
 	m.set_shader_parameter(&"water_level", water_level)
+	_apply_beach_sand(m)
 	return m
+
+## Песок пользователя (Грунт/Песок): пляжный материал + утоптанный песок со следами.
+static func _apply_beach_sand(m: ShaderMaterial) -> void:
+	var alb := _t("beach_sand", "albedo")
+	if alb == null:
+		return
+	m.set_shader_parameter(&"use_beach_sand", 1.0)
+	m.set_shader_parameter(&"sand_albedo", alb)
+	m.set_shader_parameter(&"sand_normal", _t("beach_sand", "normal"))
+	m.set_shader_parameter(&"sand_height", _t("beach_sand", "height"))
+	m.set_shader_parameter(&"sand_rough", _t("beach_sand", "roughness"))
+	m.set_shader_parameter(&"tramp_albedo", _t("sand_trampled", "albedo"))
+	m.set_shader_parameter(&"tramp_normal", _t("sand_trampled", "normal"))
+	m.set_shader_parameter(&"tramp_height", _t("sand_trampled", "height"))
+	# исходник тёплый (~#A28F6C); тропический пляж светлее — поднимаем яркость, чуть теплее
+	m.set_shader_parameter(&"sand_tint", Color(1.22, 1.13, 0.98))
 
 ## PBR-материал из набора (albedo/normal/roughness/ao).
 static func pbr(set_name: String, uv_scale: float = 1.0) -> StandardMaterial3D:

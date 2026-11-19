@@ -74,6 +74,30 @@ static func build(zones: SandboxZones, root: Node3D, c: Vector2) -> void:
 		P.tag(root, cx, cz + 3.1, "Краб (crab.blend, скелет автора + подвижные пальцы клешней)\n130k (multires) → 32.5k → 7.0k треуг. · 37 костей · текстуры 1024\nходьба боком на IK, клешни: щелчки, угроза, щипок, кормёжка", 2.2, 45.0)
 		var g := P.ground(cx, cz)
 		zones._point(&"pack_crab", "Пак: краб", Vector3(cx - 1.6, P.ground(cx - 1.6, cz - 2.4) + 0.2, cz - 2.4), Vector3(cx, g + 0.1, cz))
+	# --- ящерица пользователя: игуана и варан (одна модель, разная окраска/размер), в загонах
+	if UserLizardRig.available():
+		var fa2 := Fauna.instance()
+		var specs := [[&"iguana", "Игуана", 1.25], [&"monitor", "Варан", 1.7]]
+		for i in specs.size():
+			var lx := c.x + 15.0 + i * 6.0
+			var lz := c.y + 13.0
+			P.pen(root, lx, lz, 2.8)
+			if fa2:
+				zones._penned(fa2, specs[i][0], Vector2(lx, lz), 2.8)
+			P.tag(root, lx, lz + 3.3, "%s — ящерица пользователя (lizard_model.blend)\n14.7k+5.8k+сабсёрф → 5.2k треуг. · 95 костей автора · текстуры 1024\nокраска: палитра по яркости исходника (%s)\nходьба по диагонали, S-изгиб, хвост волной, %s" % [
+				specs[i][1], "зелёная" if i == 0 else "серо-бурая, охристый крап",
+				"кивки головой" if i == 0 else "покачивание головой"], 2.2, 45.0)
+			zones._point(StringName("pack_" + String(specs[i][0])), "Пак: " + specs[i][1],
+				Vector3(lx - 2.2, P.ground(lx - 2.2, lz - 2.6) + 0.6, lz - 2.6), Vector3(lx, P.ground(lx, lz) + 0.2, lz))
+	# --- крылан пользователя (Flying Bat.fbx): стайка над площадкой
+	if UserBatRig.available():
+		var fa3 := Fauna.instance()
+		var bx := c.x - 14.0
+		var bz := c.y + 14.0
+		if fa3:
+			zones._flock(fa3, &"bat", Vector3(bx, P.ground(bx, bz) + 5.0, bz), 4)
+		P.tag(root, bx, bz, "Крылан — летучая мышь пользователя (скан, без скелета)\n241k → 3.6k треуг. · скелет и веса построены по геометрии (7 костей)\nвзмахи/планирование/висит вниз головой — BirdAnim на костях", 2.2, 45.0)
+		zones._point(&"pack_bat", "Пак: крылан", Vector3(bx + 4.0, P.ground(bx + 4.0, bz - 4.0) + 2.0, bz - 4.0), Vector3(bx, P.ground(bx, bz) + 4.5, bz))
 	zones._stand(&"pack", "Пак моделей", c.x, c.y - 12.0, c.x + 2.0, c.y + 2.0, 2.5)
 
 

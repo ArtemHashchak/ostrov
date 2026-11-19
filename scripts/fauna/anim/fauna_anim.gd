@@ -69,7 +69,8 @@ static func _ensure() -> void:
 	if not _builders.has(&"gull"):
 		_builders[&"gull"] = CreatureRigs.bird.bind(&"gull")
 	if not _builders.has(&"bat"):
-		_builders[&"bat"] = CreatureRigs.bat
+		# крылан из пака пользователя (скелет, те же шарниры BirdAnim); иначе — процедурная мышь
+		_builders[&"bat"] = UserBatRig.build if UserBatRig.available() else CreatureRigs.bat
 
 ## Позиция активной камеры (кэш на кадр).
 static func cam_pos(n: Node) -> Vector3:

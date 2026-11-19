@@ -16,6 +16,7 @@ Settings="*res://scripts/core/settings.gd"
 Events="*res://scripts/core/events.gd"
 Items="*res://scripts/core/items.gd"
 Game="*res://scripts/core/game.gd"
+SandTracks="*res://scripts/world/sand_tracks.gd"
 
 [display]
 
@@ -77,6 +78,14 @@ sea_time={
 sea_level={
 "type": "float",
 "value": 0.0
+}
+sand_tracks_map={
+"type": "sampler2D",
+"value": ""
+}
+sand_tracks_rect={
+"type": "vec4",
+"value": Vector4(0, 0, 96, 0)
 }
 
 [importer_defaults]
