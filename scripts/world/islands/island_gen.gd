@@ -252,12 +252,14 @@ func _h_volcanic(I: Dictionary, p: Vector2, _v: Vector2, ang: float, d: float, i
 	var sa := float(P.get("stream_ang", 0.0))
 	var da := absf(angle_difference(ang, sa))
 	var fall_r := float(P.get("fall_r", 0.48))    # где уступ (доля радиуса от центра)
-	var amph := (1.0 - smoothstep(0.22, 0.42, da))
-	if amph > 0.0:
-		# ниже уступа — чаша амфитеатра (понижение), выше — плечо
-		var below := smoothstep(fall_r - 0.01, fall_r + 0.015, d)
-		var cut := below * (h - lerpf(9.0, BEACH_H + 1.5, smoothstep(fall_r, 0.97, d))) * amph
-		h -= maxf(cut, 0.0)
+	# амфитеатр — U-образная долина ниже уступа: дно спускается к морю, борта
+	# поднимаются к прежнему склону (ширина ±0.28 рад), уступ — отвесная стенка
+	if da < 0.3:
+		var below := smoothstep(fall_r - 0.004, fall_r + 0.012, d)
+		var floor_h := lerpf(10.0, BEACH_H + 1.2, smoothstep(fall_r, 0.96, d)) + _n_hills.get_noise_2d(p.x * 2.0, p.y * 2.0) * 0.8
+		var wall_k := pow(clampf(da / 0.28, 0.0, 1.0), 1.6)
+		var target := lerpf(floor_h, h, wall_k)
+		h = lerpf(h, minf(h, target), below)
 	# русло ручья: от истока выше уступа до моря
 	var pts: PackedVector2Array = P.get("stream_pts", PackedVector2Array())
 	if pts.size() > 1:
