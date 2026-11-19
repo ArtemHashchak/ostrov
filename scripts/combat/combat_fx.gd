@@ -10,8 +10,28 @@ static var _tex: Dictionary = {}
 
 ## Сброс кэшей (при выходе модуля из дерева — иначе ресурсы «утекают» при закрытии игры).
 static func clear_caches() -> void:
+	stop_all_sounds()
 	_cache.clear()
 	_tex.clear()
+
+## Живые плееры sound_at/взрыва: при выходе из матча их останавливаем — ещё играющий
+## звук остаётся в аудиосервере («resources still in use at exit»), как у Flora.stop_all_sfx.
+static var _live: Array = []
+
+static func _track(p: AudioStreamPlayer3D) -> void:
+	if _live.size() > 24:
+		_live = _live.filter(func(x: Variant) -> bool: return is_instance_valid(x))
+	_live.append(p)
+
+static func stop_all_sounds() -> void:
+	var n := 0
+	for p in _live:
+		if is_instance_valid(p):
+			p.stop()
+			n += 1
+	_live.clear()
+	if n > 0:
+		OS.delay_msec(200)
 
 static func stream(sound_name: String) -> AudioStream:
 	if _cache.has(sound_name):
@@ -56,6 +76,7 @@ static func sound_at(ctx: Node, sound_name: String, pos: Vector3, db: float = 0.
 	p.global_position = pos
 	p.play()
 	p.finished.connect(p.queue_free)
+	_track(p)
 	return p
 
 static func loop_on(parent: Node3D, sound_name: String, db: float = -6.0) -> AudioStreamPlayer3D:
@@ -307,6 +328,12 @@ class Flicker:
 
 # ---------- взрыв ----------
 
+static func _late_cloud(root: Node, pos: Vector3, s: float, tm: Timer) -> void:
+	tm.queue_free()
+	particles(root, pos + Vector3.UP * 2.5 * s, 30, 3.0, "smoke", false,
+		_ramp([Color(0.3, 0.28, 0.26, 0.0), Color(0.36, 0.35, 0.33, 0.6), Color(0.5, 0.49, 0.47, 0.0)]),
+		2.8 * s, 2.0 * s, 180.0, Vector3.UP, Vector3(0.2, 0.5, 0), true, 0.6)
+
 static func explosion(pos: Vector3, radius: float) -> void:
 	var t := Engine.get_main_loop() as SceneTree
 	if t == null or t.current_scene == null:
@@ -320,11 +347,13 @@ static func explosion(pos: Vector3, radius: float) -> void:
 		_ramp([Color(0.18, 0.16, 0.14, 0.95), Color(0.3, 0.28, 0.26, 0.7), Color(0.45, 0.44, 0.42, 0.0)]),
 		2.2 * s, 8.0 * s, 180.0, Vector3.UP, Vector3(0, 1.2, 0))
 	# оседающее облако (вместо жизни 5 с у первого — см. MAX_LIFE): второй эмиттер выше и позже
-	t.create_timer(1.4).timeout.connect(func() -> void:
-		if is_instance_valid(root):
-			particles(root, pos + Vector3.UP * 2.5 * s, 30, 3.0, "smoke", false,
-				_ramp([Color(0.3, 0.28, 0.26, 0.0), Color(0.36, 0.35, 0.33, 0.6), Color(0.5, 0.49, 0.47, 0.0)]),
-				2.8 * s, 2.0 * s, 180.0, Vector3.UP, Vector3(0.2, 0.5, 0), true, 0.6))
+	# (таймер — узел в дереве, а не create_timer с лямбдой: та течёт, если игра закрыта раньше)
+	var tm := Timer.new()
+	tm.one_shot = true
+	tm.wait_time = 1.4
+	tm.autostart = true
+	root.add_child(tm)
+	tm.timeout.connect(_late_cloud.bind(root, pos, s, tm))
 	# комья земли/щепки
 	particles(root, pos, 40, 1.6, "smoke", false, _ramp([Color(0.25, 0.2, 0.15, 1), Color(0.25, 0.2, 0.15, 0.0)]),
 		0.12, 16.0 * s, 70.0, Vector3.UP, Vector3(0, -9.8, 0))
@@ -338,3 +367,4 @@ static func explosion(pos: Vector3, radius: float) -> void:
 	p.global_position = pos
 	p.play()
 	p.finished.connect(p.queue_free)
+	_track(p)
