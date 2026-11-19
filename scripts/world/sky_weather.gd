@@ -287,6 +287,7 @@ func wetness() -> float:
 # ------------------------------------------------------------ обновление
 
 func update(dt: float, cam: Camera3D, water_surface_at_cam: float) -> void:
+	WetMaterials.update(wetness(), dt, get_tree())
 	if _auto:
 		_left -= dt
 		if _left <= 0.0:
@@ -373,8 +374,15 @@ func _apply(_dt: float) -> void:
 		_env.adjustment_brightness = 1.0 - 0.1 * storm - 0.03 * rain + _flash * 0.12
 		_env.adjustment_contrast = 1.0 + 0.06 * storm
 		_env.adjustment_saturation = 1.0 - 0.32 * storm - 0.1 * rain
-		var fog_night := Color(0.05, 0.07, 0.1)
+		# ночь под тучами: луна рассеивается в облаках — тусклый сине-серый минимум, чтобы
+		# силуэты волн и островов читались и без молнии (молния — по-прежнему главный «показ»)
+		var overcast := clampf(maxf(maxf(storm, rain * 0.8), (float(_cur.cov) - 0.6) * 1.5), 0.0, 1.0)
+		var nk := (1.0 - dl) * overcast
+		var fog_night := Color(0.05, 0.07, 0.1).lerp(Color(0.12, 0.14, 0.19), overcast)
 		_env.fog_light_color = fog_night.lerp(fog_day, dl)
+		# небо ночью почти чёрное → рассеянный свет берём частично из «облачного» цвета
+		_env.ambient_light_color = Color(0.16, 0.19, 0.25)
+		_env.ambient_light_sky_contribution = 1.0 - 0.55 * nk
 		_env.fog_density = float(_cur.fog)
 		# в дождь/шторм небо затянуто: дымка заметно перекрывает небо (серое, а не чёрное)
 		_env.fog_sky_affect = clampf(0.15 + float(_cur.fog) * 14.0 + 0.45 * storm + 0.25 * rain, 0.15, 0.9)
@@ -421,3 +429,7 @@ func _update_underwater(under: bool) -> void:
 
 func is_underwater_view() -> bool:
 	return _underwater
+
+func _exit_tree() -> void:
+	# мокрые StandardMaterial3D общие (кэши модулей) — вернуть сухими при выходе из матча
+	WetMaterials.reset()

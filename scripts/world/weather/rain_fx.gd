@@ -8,13 +8,17 @@ extends Node3D
 const FALL_SPEED := 11.0
 
 ## [ближние капли, брызги, листья, морские брызги] по пресету Низкое..Ультра
-const AMOUNTS := [[900, 120, 20, 40], [1800, 260, 40, 80], [3200, 480, 70, 140], [5200, 720, 100, 200]]
+const AMOUNTS := [[1300, 120, 20, 40], [2700, 260, 40, 80], [4800, 480, 70, 140], [7600, 720, 100, 200]]
 
 var drops: GPUParticles3D
 var splashes: GPUParticles3D
 var leaves: GPUParticles3D
 var spray: GPUParticles3D
 var sheets: Array[MeshInstance3D] = []
+## Дальняя завеса ливня (шторм): цилиндр ~110 м, полосы плывут по ветру.
+var curtain: MeshInstance3D
+var _curtain_mat: ShaderMaterial
+var _curtain_drift := 0.0
 var _drop_pm: ParticleProcessMaterial
 var _leaf_pm: ParticleProcessMaterial
 var _spray_pm: ParticleProcessMaterial
@@ -32,6 +36,7 @@ func _ready() -> void:
 	name = "RainFx"
 	_make_drops()
 	_make_sheets()
+	_make_curtain()
 	_make_splashes()
 	_make_leaves()
 	_make_spray()
@@ -114,6 +119,26 @@ func _make_sheets() -> void:
 		add_child(mi)
 		sheets.append(mi)
 		_sheet_mats.append(m)
+
+func _make_curtain() -> void:
+	curtain = MeshInstance3D.new()
+	curtain.name = "RainCurtain"
+	var cm := CylinderMesh.new()
+	cm.top_radius = 110.0
+	cm.bottom_radius = 110.0
+	cm.height = 90.0
+	cm.radial_segments = 48
+	cm.rings = 1
+	cm.cap_top = false
+	cm.cap_bottom = false
+	_curtain_mat = ShaderMaterial.new()
+	_curtain_mat.shader = load("res://scripts/world/weather/rain_curtain.gdshader") as Shader
+	cm.material = _curtain_mat
+	curtain.mesh = cm
+	curtain.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	curtain.extra_cull_margin = 200.0
+	curtain.visible = false
+	add_child(curtain)
 
 func _make_splashes() -> void:
 	splashes = GPUParticles3D.new()
@@ -334,6 +359,16 @@ func update(dt: float, cam: Camera3D, rain: float, storm: float, wdir: Vector2, 
 		m.set_shader_parameter(&"light", light)
 		# под крышей ближний цилиндр дал бы штрихи прямо по стенам навеса — гасим
 		m.set_shader_parameter(&"sheet_fade", 0.0 if (covered and i == 0) else 1.0)
+	# дальняя завеса ливня: только в сильный дождь/шторм, не на «Низком»
+	var ca := clampf(smoothstep(0.55, 1.0, rain) * 0.6 + smoothstep(0.3, 1.0, storm) * 0.6, 0.0, 1.0)
+	curtain.visible = ca > 0.02 and not underwater and Settings.graphics_quality > 0
+	if curtain.visible:
+		curtain.global_position = Vector3(cp.x, sea_h + 44.0, cp.z)
+		curtain.global_basis = Basis.IDENTITY
+		_curtain_drift += dt * wspeed * 0.012
+		_curtain_mat.set_shader_parameter(&"amount", ca)
+		_curtain_mat.set_shader_parameter(&"light", light)
+		_curtain_mat.set_shader_parameter(&"drift", _curtain_drift)
 	# брызги у земли/воды под камерой
 	splashes.global_position = Vector3(cp.x, ground_h + 0.02, cp.z)
 	splashes.emitting = raining and not covered and cp.y - ground_h < 12.0
@@ -366,6 +401,7 @@ func counts() -> Dictionary:
 		"splashes": splashes.amount if splashes.emitting else 0,
 		"leaves": leaves.amount if leaves.emitting else 0,
 		"spray": spray.amount if spray.emitting else 0,
+		"curtain": curtain.visible,
 		"sheets": sheets.filter(func(s: MeshInstance3D) -> bool: return s.visible).size(),
 		"covered": covered,
 	}

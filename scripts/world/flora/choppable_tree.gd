@@ -31,7 +31,21 @@ var coconuts0: int = 0
 
 var _trunk: MeshInstance3D
 var _crown: MeshInstance3D
-var _coconut_nodes: Array[MeshInstance3D] = []
+var _coconut_pos: Array[Vector3] = []
+var _coconut_mi: MeshInstance3D
+
+func _rebuild_coconuts() -> void:
+	if _coconut_mi == null:
+		return
+	if _coconut_pos.is_empty():
+		_coconut_mi.mesh = null
+		return
+	var parts: Array = []
+	for p in _coconut_pos:
+		parts.append([FloraLib.coconut_mesh(), Transform3D(Basis(), p)])
+	_coconut_mi.mesh = FloraLib.combine(parts)
+	# кокосы на макушке гнутся вместе со стволом
+	_coconut_mi.material_override = FloraLib.sway_of(FloraLib.coconut_material())
 var _notch: MeshInstance3D
 var _shape: CollisionShape3D
 var _last_hitter: Node = null
@@ -52,9 +66,9 @@ var _shadow_mi: MeshInstance3D
 
 func _set_shadow_proxy(on: bool) -> void:
 	var mode := GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if on else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-	for mi: MeshInstance3D in [_trunk, _crown]:
+	for mi in [_trunk, _crown, get_node_or_null(^"Roots")]:
 		if mi:
-			mi.cast_shadow = mode
+			(mi as MeshInstance3D).cast_shadow = mode
 	if _crown and not felled:
 		# вдали от игрока — облегчённая крона (у пальмы та же)
 		_crown.mesh = FloraLib.crown_mesh(variant, 1 if on else 0)
@@ -104,13 +118,15 @@ func _ready() -> void:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = int(variant["seed"]) + get_instance_id()
 		for i in coconuts:
-			var c := MeshInstance3D.new()
-			c.mesh = FloraLib.coconut_mesh()
 			var a := TAU * float(i) / float(maxi(coconuts, 1)) + rng.randf_range(-0.3, 0.3)
-			c.position = top + Vector3(cos(a) * 0.22, -0.32 - rng.randf() * 0.18, sin(a) * 0.22)
-			c.visibility_range_end = 80.0
-			add_child(c)
-			_coconut_nodes.append(c)
+			_coconut_pos.append(top + Vector3(cos(a) * 0.22, -0.32 - rng.randf() * 0.18, sin(a) * 0.22))
+		# все кокосы дерева — один меш (было по узлу на кокос: 4–6 вызовов отрисовки на пальму)
+		_coconut_mi = MeshInstance3D.new()
+		_coconut_mi.name = "Coconuts"
+		_coconut_mi.visibility_range_end = 80.0
+		_coconut_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_coconut_mi)
+		_rebuild_coconuts()
 	_shape = CollisionShape3D.new()
 	var cyl := CylinderShape3D.new()
 	var hh := minf(4.0, (variant["H"] as float) * 0.5)
@@ -201,10 +217,9 @@ func _drop_coconut(by: Node) -> void:
 	if coconuts <= 0:
 		return
 	coconuts -= 1
-	var node: MeshInstance3D = _coconut_nodes.pop_back() if not _coconut_nodes.is_empty() else null
-	var from := global_transform * (node.position if node else FloraLib.trunk_point(variant, variant["H"]))
-	if node:
-		node.queue_free()
+	var lp: Vector3 = _coconut_pos.pop_back() if not _coconut_pos.is_empty() else FloraLib.trunk_point(variant, variant["H"])
+	var from := global_transform * lp
+	_rebuild_coconuts()
 	var p := FloraPickup.make_coconut()
 	get_parent().add_child(p)
 	p.global_position = from
@@ -234,10 +249,9 @@ func fell(by: Node) -> void:
 	_trunk.visibility_range_end = 160.0
 	_crown.visible = false
 	_set_shadow_proxy(false)
-	for c in _coconut_nodes:
-		c.queue_free()
 	var left_coconuts := coconuts
-	_coconut_nodes.clear()
+	_coconut_pos.clear()
+	_rebuild_coconuts()
 	coconuts = 0
 	if _notch:
 		_notch.queue_free()

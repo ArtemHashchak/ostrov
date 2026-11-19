@@ -2,6 +2,7 @@ shader_type spatial;
 // Листва FLORA: альфа-отсечение, двусторонность, ветер, мягкое «просвечивание».
 // Вес качания — в канале COLOR.r вершины (0 у основания, 1 у кончика).
 render_mode cull_disabled, depth_draw_opaque, diffuse_lambert_wrap, specular_schlick_ggx;
+#include "res://scripts/world/flora/tree_bend.gdshaderinc"
 
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap_anisotropic, repeat_disable;
 uniform vec4 tint : source_color = vec4(1.0);
@@ -39,11 +40,13 @@ void vertex() {
 	VERTEX.z += (cos(t * 0.9 + wp.x * wind_scale) * 0.5 + s2 * 0.2) * amp;
 	VERTEX.y += s2 * wind_strength * 0.25 * w;
 	// постоянный изгиб по ветру (кроны пальм «стелются» в шторм): мировое направление → локальное
-	float bend = max(0.0, wf - 1.25) * w * w * wind_strength * 4.0 * (0.8 + 0.4 * wind_gust + 0.15 * s1);
+	float bend = max(0.0, wf - 1.25) * w * w * wind_strength * 7.0 * (0.8 + 0.4 * wind_gust + 0.25 * s1);
 	vec3 bw = vec3(wind_dir.x, -0.25, wind_dir.y) * bend;
 	vec3 bl = transpose(mat3(MODEL_MATRIX)) * bw;
 	float sc2 = max(dot(MODEL_MATRIX[0].xyz, MODEL_MATRIX[0].xyz), 1e-4);
 	VERTEX += bl / sc2;
+	// изгиб всего дерева (тот же, что у ствола: tree_sway_pbr) — крона идёт вместе со стволом
+	VERTEX += tree_bend_local(VERTEX, MODEL_MATRIX, TIME, wind_dir, weather_storm, wind_gust);
 	// разброс оттенка по позиции объекта
 	vec3 o = (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
 	v_var = fract(sin(dot(o.xz, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;

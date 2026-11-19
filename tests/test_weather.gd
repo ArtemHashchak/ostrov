@@ -66,10 +66,40 @@ func run() -> void:
 	check(int(c.leaves) > 0, "листья летят в шторм")
 	await _view(eye, look, "03_storm")
 	await _view(eye, sea_look, "03b_storm_sea")
-	# пальмы вблизи
+	check(bool(c.get("curtain", false)), "дальняя завеса ливня в шторм")
+	# пальмы вблизи: серия кадров — изгиб по ветру и раскачка порывами
 	var palm := _near_tree(b)
 	if palm != Vector3.INF:
-		await _view(palm + Vector3(9, 3, 9), palm + Vector3(0, 5, 0), "04_storm_palms")
+		var wd := w.wind_dir()
+		var side := Vector3(-wd.y, 0, wd.x)
+		await _view(palm + side * 13.0 + Vector3(0, 4, 0), palm + Vector3(0, 6, 0), "04_storm_palms")
+		for i in 6:
+			await wait(0.35)
+			await shot("04s_palm_seq_%d" % i)
+	# лужи и мокрые материалы: смотрим вниз на ровный луг
+	var mp := b.lerp(Vector3(0, b.y, 0), 0.22)
+	mp.y = w.height_at(mp.x, mp.z)
+	var box := MeshInstance3D.new()
+	var bxm := BoxMesh.new()
+	bxm.size = Vector3(1.2, 0.8, 1.2)
+	var sm := StandardMaterial3D.new()
+	sm.albedo_color = Color(0.8, 0.75, 0.68)
+	sm.roughness = 0.9
+	bxm.material = sm
+	box.mesh = bxm
+	w.add_child(box)
+	box.global_position = mp + Vector3(2.0, 0.4, 0.0)
+	# обход сцены идёт кусками (под llvmpipe кадры медленные) — регистрируем ящик сразу,
+	# применение сырости проверяем как есть
+	WetMaterials.register_node(box)
+	for k in 10:
+		await wait(0.5)
+		if sm.albedo_color.r < 0.7:
+			break
+	print("[test] мокрых материалов: %d, альбедо пробного ящика %.2f, шероховатость %.2f" % [WetMaterials.count(), sm.albedo_color.r, sm.roughness])
+	check(WetMaterials.count() > 0 and sm.albedo_color.r < 0.7 and sm.roughness < 0.6, "обычные материалы мокнут (StandardMaterial3D)")
+	await _view(mp + Vector3(-5, 3.5, -5), mp + Vector3(1, 0, 1), "09_puddles")
+	box.queue_free()
 	# молния
 	cam.global_position = eye
 	cam.look_at(look)

@@ -25,6 +25,7 @@ uniform float grass_start = 1.75;
 uniform float rock_slope = 0.74;
 uniform float time_s = 0.0;
 global uniform float weather_wetness;  // CONTRACT_WEATHER: сырость после дождя
+global uniform float weather_rain;     // CONTRACT_WEATHER: сила дождя сейчас (рябь в лужах)
 uniform vec3 sand_tint : source_color = vec3(1.3, 1.22, 1.04);
 
 varying vec3 wpos;
@@ -49,6 +50,25 @@ float vnoise(vec2 p) {
 // две шкалы одной текстуры — меньше видны повторы
 vec3 tex2(sampler2D t, vec2 uv) {
 	return mix(texture(t, uv).rgb, texture(t, uv * 0.37 + 0.13).rgb, 0.35);
+}
+
+// Рябь от капель в луже: сетка ячеек, в каждой — расходящееся кольцо со своей фазой.
+// Возвращает наклон нормали (xy). Два слоя со сдвигом — без видимой сетки.
+vec2 rain_ripples(vec2 p, float t) {
+	vec2 g = vec2(0.0);
+	for (int k = 0; k < 2; k++) {
+		vec2 q = p + vec2(float(k) * 0.37, float(k) * 0.61);
+		vec2 cell = floor(q);
+		vec2 f = fract(q) - 0.5;
+		vec2 o = vec2(hash(cell), hash(cell + 7.3)) - 0.5;
+		float ph = fract(t * (0.9 + 0.3 * hash(cell + 3.1)) + hash(cell + 1.7));
+		vec2 d = f - o * 0.5;
+		float r = length(d);
+		float rr = ph * 0.45;
+		float ring = sin((r - rr) * 55.0) * exp(-abs(r - rr) * 18.0) * (1.0 - ph);
+		g += (d / max(r, 1e-3)) * ring;
+	}
+	return g * 0.5;
 }
 
 vec3 tri(sampler2D t, vec3 p, vec3 n, float s) {
@@ -114,6 +134,13 @@ void fragment() {
 	float rain_wet = weather_wetness * (1.0 - k_sea) * (1.0 - k_wet);
 	float soak = mix(0.62, 0.8, k_grass * (1.0 - k_rock));
 	col *= mix(1.0, soak, rain_wet);
+	// лужи: ровные места вне скал и прибоя, проступают по мере намокания (песок впитывает)
+	float flatness = smoothstep(0.972, 0.995, wnrm.y);
+	float pn = vnoise(wpos.xz * 0.11) * 0.65 + vnoise(wpos.xz * 0.43 + 5.0) * 0.35;
+	float grow = smoothstep(0.35, 0.95, weather_wetness);
+	float puddle = smoothstep(0.66 - 0.1 * grow, 0.72 - 0.1 * grow, pn) * grow * flatness
+			* (1.0 - k_sea) * (1.0 - k_wet) * (1.0 - k_rock) * (1.0 - k_volc * 0.6) * mix(0.25, 1.0, max(k_grass, k_mud));
+	col = mix(col, col * 0.42 + vec3(0.015, 0.02, 0.025), puddle);
 	ALBEDO = col;
 
 	vec3 n_s = texture(sand_normal, uv).rgb;
@@ -124,9 +151,15 @@ void fragment() {
 	nm = mix(nm, n_j, k_jungle);
 	nm = mix(nm, n_r, k_rock);
 	nm = mix(nm, tri(volc_normal, wpos, wnrm, rock_tile * 1.6), k_volc);
+	if (puddle > 0.01) {
+		vec2 rip = rain_ripples(wpos.xz * 2.6, TIME * 1.1) * clamp(weather_rain * 1.5, 0.0, 1.0);
+		nm = mix(nm, vec3(0.5 + rip.x * 0.35, 0.5 + rip.y * 0.35, 1.0), puddle);
+	}
 	NORMAL_MAP = nm;
 	NORMAL_MAP_DEPTH = mix(1.0, 1.6, k_rock);
 	ROUGHNESS = mix(mix(0.93, 0.6, k_wet * (1.0 - k_grass)), 0.95, max(max(k_grass, k_rock), k_volc));
 	ROUGHNESS = mix(ROUGHNESS, mix(0.32, 0.55, k_grass), rain_wet);
 	SPECULAR = mix(mix(0.3, 0.45, k_wet * (1.0 - k_grass)), 0.55, rain_wet * 0.8);
+	ROUGHNESS = mix(ROUGHNESS, 0.04, puddle);
+	SPECULAR = mix(SPECULAR, 0.65, puddle);
 }

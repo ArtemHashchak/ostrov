@@ -38,6 +38,42 @@ static func bark_material(set_name: String) -> StandardMaterial3D:
 	_mat_cache[key] = m
 	return m
 
+## Версия материала коры/кокоса для СТОЯЩЕГО дерева: тот же PBR + изгиб ветром
+## (tree_sway_pbr.gdshader, общий изгиб с листвой — crown не отрывается от ствола).
+static func sway_of(mat: Material) -> Material:
+	if not (mat is StandardMaterial3D):
+		return mat
+	var sm := mat as StandardMaterial3D
+	var key := "sway_%d" % sm.get_instance_id()
+	if _mat_cache.has(key):
+		return _mat_cache[key]
+	var m := ShaderMaterial.new()
+	m.shader = load("res://scripts/world/flora/tree_sway_pbr.gdshader") as Shader
+	m.set_shader_parameter(&"albedo_color", sm.albedo_color)
+	m.set_shader_parameter(&"has_albedo", sm.albedo_texture != null)
+	if sm.albedo_texture:
+		m.set_shader_parameter(&"albedo_tex", sm.albedo_texture)
+	m.set_shader_parameter(&"has_normal", sm.normal_enabled and sm.normal_texture != null)
+	if sm.normal_texture:
+		m.set_shader_parameter(&"normal_tex", sm.normal_texture)
+	m.set_shader_parameter(&"has_rough", sm.roughness_texture != null)
+	if sm.roughness_texture:
+		m.set_shader_parameter(&"rough_tex", sm.roughness_texture)
+	m.set_shader_parameter(&"roughness_v", sm.roughness)
+	m.set_shader_parameter(&"has_ao", sm.ao_enabled and sm.ao_texture != null)
+	if sm.ao_texture:
+		m.set_shader_parameter(&"ao_tex", sm.ao_texture)
+	m.set_shader_parameter(&"uv_scale", sm.uv1_scale)
+	_mat_cache[key] = m
+	return m
+
+## Все StandardMaterial3D-поверхности меша дерева → версии с изгибом ветром.
+static func _sway_surfaces(mesh: ArrayMesh) -> void:
+	for si in mesh.get_surface_count():
+		var mt := mesh.surface_get_material(si)
+		if mt is StandardMaterial3D:
+			mesh.surface_set_material(si, sway_of(mt))
+
 static func end_grain_material() -> StandardMaterial3D:
 	if _mat_cache.has("end_grain"):
 		return _mat_cache["end_grain"]
@@ -327,7 +363,9 @@ static func trunk_mesh(v: Dictionary, h0: float, h1: float, caps: int = 0, sides
 						wood_n += 1
 	st.generate_tangents()
 	var mesh := st.commit()
-	mesh.surface_set_material(0, bark_material(v["bark"]))
+	# целый стоящий ствол (от основания до макушки) гнётся ветром вместе с кроной
+	var whole := h0 <= 0.001 and h1 >= (v["H"] as float) * 0.98 and offset == Vector3.ZERO
+	mesh.surface_set_material(0, sway_of(bark_material(v["bark"])) if whole else bark_material(v["bark"]))
 	if caps != 0:
 		var cs := SurfaceTool.new()
 		cs.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -705,6 +743,7 @@ static func tree_mesh(v: Dictionary, lod: int) -> ArrayMesh:
 			var a := TAU * float(i) / float(maxi(n, 1))
 			parts.append([coconut_mesh(), Transform3D(Basis(), top + Vector3(cos(a) * 0.22, -0.4, sin(a) * 0.22))])
 	var mesh := combine(parts)
+	_sway_surfaces(mesh)
 	mesh = with_auto_lods(mesh) # и LOD1: дальние чанки 140–330 м тоже берут упрощённые индексы
 	_mesh_cache[key] = mesh
 	return mesh
@@ -769,7 +808,7 @@ static func shadow_tree_mesh(v: Dictionary, single: bool = false) -> ArrayMesh:
 	var mesh := ArrayMesh.new()
 	if not single:
 		mesh = bst.commit()
-		mesh.surface_set_material(0, bark_material(v["bark"]))
+		mesh.surface_set_material(0, sway_of(bark_material(v["bark"])))
 	var rng := RandomNumberGenerator.new()
 	var mat: Material
 	if v["kind"] == &"palm":
