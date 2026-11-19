@@ -146,6 +146,14 @@ func set_overview(on: bool) -> void:
 		var c := b.get_center()
 		overview_cam.global_position = Vector3(c.x, b.size.x * 0.36, b.end.y + b.size.x * 0.33)
 		overview_cam.look_at(Vector3(c.x, 0.0, c.y))
+		# своя среда с редкой дымкой: с 1–2 км обычный туман погоды съедает весь ряд
+		var base_env: Environment = get_viewport().find_world_3d().environment
+		if base_env:
+			var env := base_env.duplicate() as Environment
+			env.fog_density = base_env.fog_density * 0.1
+			env.fog_aerial_perspective = 0.15
+			env.volumetric_fog_enabled = false
+			overview_cam.environment = env
 		overview_cam.current = true
 		for l in labels:
 			l.pixel_size = 0.9
