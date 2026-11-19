@@ -214,11 +214,23 @@ func _emit() -> void:
 			# дальний уровень: только крупные (каждый второй)
 			_mm(t, 1, xf, col, mat, end_hi, LO_END, 2)
 
-## Кораллы пака: LOD0 вблизи (узор, карточки, качание), LOD1 средняя дистанция (половина карточек),
-## (средняя дистанция — каждый 2-й/3-й экземпляр), LOD2 вдали (каждый 4-й) — только у крупных (мелкие вдали не читаются, а вызовы отрисовки стоят).
+## Кораллы пака — цепочка уровней по расстоянию КАЖДОГО экземпляра (полоса в шейдере, края —
+## дизеринг; вне полосы вершины схлопываются), MultiMesh собираются в под-ячейки, чтобы далёкие
+## под-ячейки ближних уровней вообще не рисовались (visibility range по центру под-ячейки):
+##   твёрдые (есть импостор): LOD0 0..13 м (ячейки 16 м) → LOD1 13..35 м (32 м) → импостор 35..160 м (64 м);
+##   мягкие (щупальца, без импосторов): LOD0 0..22 м (32 м) → LOD1 22..42 м, каждый 2-й (64 м).
+const PACK_HARD_L0 := 13.0
+const PACK_HARD_L1 := 35.0
+const PACK_SOFT_L0 := 22.0
+const PACK_SOFT_L1 := 42.0
+const PACK_FADE := 1.5
+## Старые константы (на случай отсутствия импосторов).
 const PACK_LOD0_END := 22.0
 const PACK_LOD1_END := 65.0
 const PACK_BIG := [&"table", &"staghorn", &"corymbose", &"lobed", &"mound", &"foliose"]
+
+## Счётчики для тестов: экземпляры по уровням.
+var pack_stats := {"lod0": 0, "lod1": 0, "lod2": 0, "imp": 0, "mm": 0}
 
 func _emit_pack(t: StringName, v: int, xf: Array, col: PackedColorArray, wy: float) -> void:
 	var m0 := CoralPack.mesh(t, v, 0)
@@ -226,12 +238,49 @@ func _emit_pack(t: StringName, v: int, xf: Array, col: PackedColorArray, wy: flo
 	var m2 := CoralPack.mesh(t, v, 2)
 	if m0 == null:
 		return
+	if CoralPack.has_impostor(t, v):
+		_split(t, 0, xf, col, CoralPack.material_band(t, wy, 0, 0.0, PACK_HARD_L0), 16.0, PACK_HARD_L0 + PACK_FADE, 1, m0)
+		if m1:
+			_split(t, 1, xf, col, CoralPack.material_band(t, wy, 1, PACK_HARD_L0, PACK_HARD_L1), 32.0, PACK_HARD_L1 + PACK_FADE, 1, m1)
+		_split(t, 3, xf, col, CoralPack.impostor_band(t, v, wy, PACK_HARD_L1, LO_END), CELL, LO_END + 3.0, 1, CoralPack.impostor_mesh(t, v))
+		return
+	if not (t in CoralPack.HARD):
+		_split(t, 0, xf, col, CoralPack.material_band(t, wy, 0, 0.0, PACK_SOFT_L0), 32.0, PACK_SOFT_L0 + PACK_FADE, 1, m0)
+		if m1:
+			_split(t, 1, xf, col, CoralPack.material_band(t, wy, 1, PACK_SOFT_L0, PACK_SOFT_L1), CELL, PACK_SOFT_L1 + PACK_FADE, 2, m1)
+		return
+	# твёрдый без импостора — прежняя схема
 	var big := t in PACK_BIG
 	_mm(t, 0, xf, col, CoralPack.material(t, wy, 0), 0.0, PACK_LOD0_END, 1, m0)
 	if m1:
 		_mm(t, 1, xf, col, CoralPack.material(t, wy, 1), PACK_LOD0_END, PACK_LOD1_END if big else 42.0, 2 if big else 3, m1)
 	if big and m2:
 		_mm(t, 2, xf, col, CoralPack.material(t, wy, 2), PACK_LOD1_END, LO_END, 4, m2)
+
+## Разбить экземпляры ячейки на под-ячейки size м и выпустить по MultiMesh на каждую:
+## visibility range под-ячейки = дальняя граница полосы + её полудиагональ (ближе неё экземпляры
+## могут попасть в полосу), сама полоса отсекается в шейдере по каждому экземпляру.
+func _split(t: StringName, lod: int, xf: Array, col: PackedColorArray, mat: Material, size: float, band_end: float, step_n: int, mesh: Mesh) -> void:
+	if mat == null or mesh == null:
+		return
+	var groups := {}
+	for i in range(0, xf.size(), step_n):
+		var o: Vector3 = (xf[i] as Transform3D).origin
+		var k := Vector2i(int(floor(o.x / size)), int(floor(o.z / size)))
+		if not groups.has(k):
+			groups[k] = [[], PackedColorArray()]
+		(groups[k][0] as Array).append(xf[i])
+		var pc: PackedColorArray = groups[k][1]
+		pc.append(col[i])
+		groups[k][1] = pc
+	var half_diag := size * 0.7072
+	for k in groups:
+		var gx: Array = groups[k][0]
+		var gc: PackedColorArray = groups[k][1]
+		_mm(t, lod, gx, gc, mat, 0.0, band_end + half_diag, 1, mesh)
+		pack_stats["mm"] = int(pack_stats["mm"]) + 1
+		var key := "imp" if lod == 3 else "lod%d" % lod
+		pack_stats[key] = int(pack_stats[key]) + gx.size()
 
 func _mm(t: StringName, lod: int, xf: Array, col: PackedColorArray, mat: Material, begin: float, end: float, step_n: int, mesh_override: Mesh = null) -> void:
 	var mm := MultiMesh.new()

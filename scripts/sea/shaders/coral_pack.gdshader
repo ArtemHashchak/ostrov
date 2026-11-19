@@ -3,11 +3,16 @@ render_mode cull_disabled;
 // Кораллы по референсу пользователя (assets/corals/corals.glb, docs/CORALS_REF.md).
 // COLOR — запечённый цвет вершин (альбедо × затенение, светлые кончики);
 // INSTANCE_CUSTOM.rgb — оттенок экземпляра (множитель), .a — фаза;
-// UV.x — 1 у мягкой ткани (щупальца, перья, полипы), UV.y — гибкость 0..1.
+// UV.x — тип части: 0 скелет, 1 мягкая ткань, 2..3 слой ворса, 4..5 карточка атласа,
+//        6 нить-скелет (веточка/ворс), 7 нить мягкая (щупальце, полип); UV.y — гибкость 0..1.
+// Нити (UV.x ≥ 5.5) разворачиваются к камере — см. coral_common.gdshaderinc.
 // Узор полипов/кораллитов — процедурный в координатах модели (pattern: 0 — кораллиты-точки,
 // 1 — гребни/извилины, 2 — гладкая ткань с кольцами). Свет сзади + цветной ободок вместо SSS.
+// lod_begin/lod_end — полоса расстояний экземпляра (м), в которой этот уровень виден; на краях
+// полосы (±lod_fade) экземпляр «растворяется» дизерингом, вне полосы его вершины схлопываются.
 
 #include "res://shaders/sea_push.gdshaderinc"
+#include "res://scripts/sea/shaders/coral_common.gdshaderinc"
 
 uniform float sway = 0.0;            // амплитуда качания мягкой ткани
 uniform float water_level = 0.0;
@@ -17,16 +22,24 @@ uniform float wet_spec = 0.35;
 uniform int pattern = 0;
 uniform float pattern_scale = 90.0;
 uniform float detail = 1.0;          // 0 на дальнем LOD — без узора
+uniform float strand_scale = 1.0;    // множитель радиуса нитей (на LOD1 нитей меньше — они толще)
+uniform float lod_begin = 0.0;       // 0 — без нижней границы
+uniform float lod_end = 0.0;         // 0 — без верхней границы
+uniform float lod_fade = 1.5;
 uniform sampler2D cards : source_color, filter_linear_mipmap, repeat_disable;   // атлас карточек 2×2
 
 varying vec3 wpos;
 varying vec3 tint;
 varying vec3 lpos;
-varying vec3 lnrm;
 varying float hue_k;
 varying float soft;
 varying float shell;      // 1/2 — слой «ворса» (оболочка над пластиной), 0 — обычная поверхность
 varying float card;       // 0 — не карточка, 1..4 — плитка атласа + 1
+varying float strand;     // 1 — нить
+varying float s_x;        // поперечная координата нити −1..1
+varying vec3 s_side;      // базис нити в пространстве вида
+varying vec3 s_face;
+varying float vis;
 
 float caus(vec2 p, float t) {
 	vec2 q = p + vec2(sin(p.y * 1.7 + t * 0.9), cos(p.x * 1.3 - t * 0.7)) * 0.6;
@@ -37,38 +50,20 @@ float caus(vec2 p, float t) {
 	return pow(clamp(c, 0.0, 1.0), 7.0);
 }
 
-float hash3(vec3 p) {
-	p = fract(p * 0.3183099 + 0.1);
-	p *= 17.0;
-	return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
-}
-
-// Ячеистый шум: расстояние до ближайшей «чашечки» кораллита.
-float cells(vec3 p) {
-	vec3 i = floor(p);
-	vec3 f = fract(p);
-	float d = 1.0;
-	for (int z = -1; z <= 1; z++)
-	for (int y = -1; y <= 1; y++)
-	for (int x = -1; x <= 1; x++) {
-		vec3 g = vec3(float(x), float(y), float(z));
-		vec3 o = vec3(hash3(i + g), hash3(i + g + 17.1), hash3(i + g + 31.7));
-		d = min(d, length(g + o - f));
-	}
-	return d;
-}
-
 void vertex() {
 	tint = INSTANCE_CUSTOM.rgb;
 	if (dot(tint, tint) < 0.0001) {
 		tint = vec3(1.0);
 	}
-	lpos = VERTEX;
-	lnrm = NORMAL;
+	float idist = length(CAMERA_POSITION_WORLD - MODEL_MATRIX[3].xyz);
+	vis = coral_lod_vis(idist, lod_begin, lod_end, lod_fade);
 	hue_k = fract(INSTANCE_CUSTOM.a * 7.13) - 0.5;
-	soft = UV.x < 1.5 ? UV.x : (UV.x > 3.5 ? 1.0 : 0.0);
+	strand = UV.x > 5.5 ? 1.0 : 0.0;
+	soft = UV.x > 6.5 ? 1.0 : (UV.x < 1.5 ? UV.x : (UV.x > 3.5 && UV.x < 5.5 ? 1.0 : 0.0));
 	shell = (UV.x > 1.5 && UV.x < 3.5) ? UV.x - 2.0 : 0.0;
-	card = UV.x > 3.5 ? floor(UV.x - 4.0 + 0.5) + 1.0 : 0.0;
+	card = (UV.x > 3.5 && UV.x < 5.5) ? floor(UV.x - 4.0 + 0.5) + 1.0 : 0.0;
+	s_x = UV2.x;
+	vec3 axis = NORMAL;
 	float h = UV.y;
 	if (sway > 0.0 && h > 0.0) {
 		float ph = INSTANCE_CUSTOM.a * 6.2831;
@@ -81,11 +76,32 @@ void vertex() {
 		VERTEX += transpose(mat3(MODEL_MATRIX)) * vec3(off.x, -0.2 * dot(off, off), off.y) / (s * s);
 		VERTEX += sea_push_local(MODEL_MATRIX, (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz, h);
 	}
+	if (strand > 0.5) {
+		vec3 sd;
+		vec3 fd;
+		vec3 cam_l = coral_cam_local(MODEL_MATRIX, CAMERA_POSITION_WORLD);
+		VERTEX = coral_strand_expand(VERTEX, normalize(axis), UV2.x, UV2.y * strand_scale, cam_l, sd, fd);
+		NORMAL = fd;
+		s_side = normalize((MODELVIEW_MATRIX * vec4(sd, 0.0)).xyz);
+		s_face = normalize((MODELVIEW_MATRIX * vec4(fd, 0.0)).xyz);
+	} else {
+		s_side = vec3(1.0, 0.0, 0.0);
+		s_face = vec3(0.0, 0.0, 1.0);
+	}
+	lpos = VERTEX;
+	if (vis <= 0.0) {
+		VERTEX = vec3(0.0);   // экземпляр вне своей полосы LOD — ничего не рисуем
+	}
 	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 
 void fragment() {
-	if (dot(NORMAL, VIEW) < 0.0) {
+	if (vis < 0.999 && vis <= coral_dither(FRAGCOORD.xy)) {
+		discard;
+	}
+	if (strand > 0.5) {
+		NORMAL = coral_strand_normal(s_side, s_face, s_x);
+	} else if (dot(NORMAL, VIEW) < 0.0) {
 		NORMAL = -NORMAL;
 	}
 	if (shell > 0.5) {
@@ -94,7 +110,7 @@ void fragment() {
 			discard;
 		}
 		vec2 q2 = lpos.xz * pattern_scale * 0.32;
-		float cd = cells(vec3(q2, shell * 7.3));
+		float cd = coral_cells(vec3(q2, shell * 7.3));
 		float rad = shell < 0.9 ? 0.36 : 0.24;
 		if (cd > rad) {
 			discard;
@@ -116,7 +132,7 @@ void fragment() {
 		vec3 q = lpos * pattern_scale;
 		if (pattern == 0) {
 			// кораллиты: тёмные чашечки с светлым ободком
-			float c = cells(q);
+			float c = coral_cells(q);
 			cav = 1.0 - smoothstep(0.12, 0.32, c);
 			col *= 1.0 - cav * 0.28 * detail;
 			col += vec3(0.05) * smoothstep(0.32, 0.42, c) * (1.0 - smoothstep(0.42, 0.55, c)) * detail;
@@ -125,9 +141,9 @@ void fragment() {
 			float r = sin(q.x * 0.7 + sin(q.z * 0.6) * 2.0) * sin(q.y * 0.65 + sin(q.x * 0.5) * 2.0) * sin(q.z * 0.7 + q.y * 0.3);
 			cav = smoothstep(0.0, 0.6, -r);
 			col *= 1.0 - cav * 0.22 * detail;
-			float c2 = cells(q * 1.8);
+			float c2 = coral_cells(q * 1.8);
 			col *= 1.0 - (1.0 - smoothstep(0.1, 0.25, c2)) * 0.12 * detail;
-		} else {
+		} else if (strand < 0.5) {
 			// гладкая ткань: тонкие кольца вдоль щупалец, светлее к кончикам
 			float rings = sin(lpos.y * pattern_scale * 1.3 + lpos.x * 20.0) * 0.5 + 0.5;
 			col *= 1.0 - rings * 0.06 * detail;

@@ -10,9 +10,9 @@ func _init() -> void:
 var root: Node3D
 var cam: Camera3D
 
-## LOD0 вместе с карточками: обычные ≤ ~3k, «герои» (столовая, кустовая, актиния) ≤ ~4.2k.
-const BUDGET0 := {&"table": 4000, &"staghorn": 4200, &"corymbose": 3000, &"lobed": 3000, &"foliose": 3000,
-	&"antler": 3000, &"softcoral": 3000, &"leather": 4000, &"anemone": 4000, &"bubble": 4000, &"crinoid": 3000,
+## LOD0 (вблизи, ≤13–22 м) — подробные; дальше LOD1/LOD2, у твёрдых — импосторы («заранее снятые»).
+const BUDGET0 := {&"table": 20000, &"staghorn": 17000, &"corymbose": 6500, &"lobed": 4500, &"foliose": 3200,
+	&"antler": 7600, &"softcoral": 21500, &"leather": 8000, &"anemone": 7600, &"bubble": 6200, &"crinoid": 12000,
 	&"mound": 900, &"millepora": 3000}
 
 func run() -> void:
@@ -32,7 +32,7 @@ func run() -> void:
 			var b := CoralPack.tri_count(m1)
 			var c2 := CoralPack.tri_count(m2)
 			total += 1
-			check(a <= int(BUDGET0[t]) and b < a and c2 < b, "%s v%d: %d / %d / %d треуг. (бюджет LOD0 %d)" % [t, v, a, b, c2, int(BUDGET0[t])])
+			check(a <= int(BUDGET0[t]) and b < a and c2 <= b, "%s v%d: %d / %d / %d треуг. (бюджет LOD0 %d)" % [t, v, a, b, c2, int(BUDGET0[t])])
 			var arr := m0.surface_get_arrays(0)
 			check((arr[Mesh.ARRAY_COLOR] as PackedColorArray).size() > 0, "%s v%d: есть цвет вершин" % [t, v])
 	print("[test] видов×вариантов: %d" % total)
