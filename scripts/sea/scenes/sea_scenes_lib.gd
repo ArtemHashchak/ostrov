@@ -274,7 +274,7 @@ class SharkHunt extends SeaScene:
 		if sh == null:
 			stand = critter("tiger_shark", c + Vector3(-12, 0.3, 0))
 			if stand:
-				stand.orbit(c, 9.0, 1.0, stand.cruise)
+				stand.orbit(c, 7.0, 1.0, stand.cruise)
 	func _shark_pos() -> Vector3:
 		if sh and is_instance_valid(sh):
 			return sh.global_position
@@ -288,7 +288,8 @@ class SharkHunt extends SeaScene:
 			return
 		match phase:
 			0:
-				if phase_t > 9.0:
+				# пара кругов на подходе (4 с), затем бросок; пловец рядом — бросок раньше
+				if phase_t > 4.0 or (phase_t > 1.5 and swimmer_dist(sch.center) < 6.0):
 					next_phase()
 					if sh:
 						(sh as Shark).home = Vector2(sch.center.x, sch.center.z)
@@ -592,7 +593,9 @@ class OctopusDen extends SeaScene:
 		den = cover_spots(at, 2.5, 1)[0]
 		den.y = floor_y(den.x, den.z)
 		den2 = on_floor(Vector3(4.0, 0, -2.5))
-		octo = critter("octopus", on_floor(Vector3(-2.5, 0, 1.5)))
+		# осьминог выходит «на охоту» в метре-полутора от своей норы и ползёт обратно
+		var off := Vector3(-1.2, 0, 0.8) if den.x >= at.x else Vector3(1.2, 0, -0.8)
+		octo = critter("octopus", on_floor(den - at + off))
 	func _step(_dt: float) -> void:
 		if octo == null:
 			return
@@ -600,8 +603,12 @@ class OctopusDen extends SeaScene:
 		match phase:
 			0:
 				octo.octo.crawl = 1.0
-				octo.goto(den, octo.cruise)
-				if octo.global_position.distance_to(den) < 0.4:
+				# заметил пловца — спешит в нору, перебирая щупальцами чаще
+				var hurry := 2.6 if sd < 4.5 else 1.0
+				octo.octo.crawl = minf(hurry, 1.0)
+				octo.goto(den, octo.cruise * hurry)
+				var dh := Vector2(octo.global_position.x - den.x, octo.global_position.z - den.z).length()
+				if dh < 0.6:
 					next_phase()
 			1:
 				octo.hold(den)
@@ -920,7 +927,20 @@ class CoralSpawning extends SeaScene:
 	func _begin() -> void:
 		duration = 60.0
 		spots = cover_spots(at, 5.0, 10)
+		# икру ночью приплывают есть мелкие рыбы: стайка ласточек и пара губанов
+		feeders = school("damselfish", 22, in_water(Vector3.ZERO, 1.2), 2.5)
+		if feeders:
+			feeders.mill(feeders.center, 2.5)
+		for i in 3:
+			var f := critter("cleaner_wrasse", in_water(Vector3(rng.randf_range(-3, 3), 0, rng.randf_range(-3, 3)), 0.8))
+			if f:
+				f.wander(at + Vector3(0, 0.8, 0), 3.0, f.cruise)
+	var feeders: SeaSchool = null
 	func _step(dt: float) -> void:
+		if feeders and k > 0 and k % 3 == 0:
+			# стайка тянется к последнему облаку икры и «клюёт» его, поднимаясь выше
+			var p: Vector3 = spots[(k - 1) % spots.size()]
+			feeders.mill(p + Vector3(0, 0.9, 0), 1.8)
 		acc -= dt
 		if acc <= 0.0 and not spots.is_empty():
 			acc = 1.2

@@ -262,7 +262,6 @@ func run() -> void:
 	dir.auto = false
 	dir.stop_all()
 	await wait_frames(3)
-	finish()
 
 func _count_particles() -> int:
 	var n := 0
