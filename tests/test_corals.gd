@@ -10,8 +10,10 @@ func _init() -> void:
 var root: Node3D
 var cam: Camera3D
 
-const BUDGET0 := {&"table": 4600, &"staghorn": 4600, &"corymbose": 3200, &"lobed": 2000, &"foliose": 1200,
-	&"antler": 1800, &"softcoral": 2600, &"leather": 4000, &"anemone": 4200, &"bubble": 2800, &"crinoid": 2400, &"mound": 900}
+## LOD0 вместе с карточками: обычные ≤ ~3k, «герои» (столовая, кустовая, актиния) ≤ ~4.2k.
+const BUDGET0 := {&"table": 4000, &"staghorn": 4200, &"corymbose": 3000, &"lobed": 3000, &"foliose": 3000,
+	&"antler": 3000, &"softcoral": 3000, &"leather": 3000, &"anemone": 4000, &"bubble": 3000, &"crinoid": 3000,
+	&"mound": 900, &"millepora": 3000}
 
 func run() -> void:
 	check(CoralPack.available(), "кораллы пака загружаются из %s" % CoralPack.GLB)
@@ -22,13 +24,15 @@ func run() -> void:
 		for v in CoralPack.variants(t):
 			var m0 := CoralPack.mesh(t, v, 0)
 			var m1 := CoralPack.mesh(t, v, 1)
-			check(m0 != null and m1 != null, "%s v%d: есть LOD0 и LOD1" % [t, v])
-			if m0 == null or m1 == null:
+			var m2 := CoralPack.mesh(t, v, 2)
+			check(m0 != null and m1 != null and m2 != null, "%s v%d: есть LOD0, LOD1, LOD2" % [t, v])
+			if m0 == null or m1 == null or m2 == null:
 				continue
 			var a := CoralPack.tri_count(m0)
 			var b := CoralPack.tri_count(m1)
+			var c2 := CoralPack.tri_count(m2)
 			total += 1
-			check(a <= int(BUDGET0[t]) and b < a, "%s v%d: %d / %d треуг. (бюджет LOD0 %d)" % [t, v, a, b, int(BUDGET0[t])])
+			check(a <= int(BUDGET0[t]) and b < a and c2 < b, "%s v%d: %d / %d / %d треуг. (бюджет LOD0 %d)" % [t, v, a, b, c2, int(BUDGET0[t])])
 			var arr := m0.surface_get_arrays(0)
 			check((arr[Mesh.ARRAY_COLOR] as PackedColorArray).size() > 0, "%s v%d: есть цвет вершин" % [t, v])
 	print("[test] видов×вариантов: %d" % total)
@@ -39,6 +43,13 @@ func run() -> void:
 	add_child(root)
 	var env := WorldEnvironment.new()
 	env.environment = RenderProfile.make_environment()
+	# фон как у референса: тёмно-синяя студия
+	env.environment.background_mode = Environment.BG_COLOR
+	env.environment.background_color = Color("#1B2C5C")
+	env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.environment.ambient_light_color = Color("#8FA6D8")
+	env.environment.ambient_light_energy = 0.55
+	env.environment.fog_enabled = false
 	root.add_child(env)
 	root.add_child(RenderProfile.make_sun())
 	var ground := MeshInstance3D.new()
@@ -46,7 +57,7 @@ func run() -> void:
 	pm.size = Vector2(200, 200)
 	ground.mesh = pm
 	var gm := StandardMaterial3D.new()
-	gm.albedo_color = Color(0.8, 0.72, 0.55)
+	gm.albedo_color = Color("#22366A")
 	gm.roughness = 1.0
 	ground.material_override = gm
 	root.add_child(ground)

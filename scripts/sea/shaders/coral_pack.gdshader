@@ -17,6 +17,7 @@ uniform float wet_spec = 0.35;
 uniform int pattern = 0;
 uniform float pattern_scale = 90.0;
 uniform float detail = 1.0;          // 0 на дальнем LOD — без узора
+uniform sampler2D cards : source_color, filter_linear_mipmap, repeat_disable;   // атлас карточек 2×2
 
 varying vec3 wpos;
 varying vec3 tint;
@@ -25,6 +26,7 @@ varying vec3 lnrm;
 varying float hue_k;
 varying float soft;
 varying float shell;      // 1/2 — слой «ворса» (оболочка над пластиной), 0 — обычная поверхность
+varying float card;       // 0 — не карточка, 1..4 — плитка атласа + 1
 
 float caus(vec2 p, float t) {
 	vec2 q = p + vec2(sin(p.y * 1.7 + t * 0.9), cos(p.x * 1.3 - t * 0.7)) * 0.6;
@@ -64,8 +66,9 @@ void vertex() {
 	lpos = VERTEX;
 	lnrm = NORMAL;
 	hue_k = fract(INSTANCE_CUSTOM.a * 7.13) - 0.5;
-	soft = UV.x < 1.5 ? UV.x : 0.0;
-	shell = UV.x > 1.5 ? UV.x - 2.0 : 0.0;
+	soft = UV.x < 1.5 ? UV.x : (UV.x > 3.5 ? 1.0 : 0.0);
+	shell = (UV.x > 1.5 && UV.x < 3.5) ? UV.x - 2.0 : 0.0;
+	card = UV.x > 3.5 ? floor(UV.x - 4.0 + 0.5) + 1.0 : 0.0;
 	float h = UV.y;
 	if (sway > 0.0 && h > 0.0) {
 		float ph = INSTANCE_CUSTOM.a * 6.2831;
@@ -98,9 +101,18 @@ void fragment() {
 		}
 	}
 	vec3 col = COLOR.rgb * tint;
+	if (card > 0.5) {
+		float ti = card - 1.0;
+		vec2 auv = (vec2(mod(ti, 2.0), floor(ti / 2.0)) + clamp(UV2, vec2(0.004), vec2(0.996))) * 0.5;
+		vec4 tx = texture(cards, auv);
+		if (tx.a < 0.35) {
+			discard;
+		}
+		col *= tx.rgb;
+	}
 	col = mix(col, col.gbr, hue_k * 0.10);
 	float cav = 0.0;
-	if (detail > 0.0) {
+	if (detail > 0.0 && card < 0.5) {
 		vec3 q = lpos * pattern_scale;
 		if (pattern == 0) {
 			// кораллиты: тёмные чашечки с светлым ободком

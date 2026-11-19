@@ -214,16 +214,24 @@ func _emit() -> void:
 			# дальний уровень: только крупные (каждый второй)
 			_mm(t, 1, xf, col, mat, end_hi, LO_END, 2)
 
-## Кораллы пака: LOD0 вблизи (с узором и качанием), LOD1 дальше (каждый второй, без узора).
+## Кораллы пака: LOD0 вблизи (узор, карточки, качание), LOD1 средняя дистанция (половина карточек),
+## LOD2 вдали — только у крупных (мелкие вдали не читаются, а вызовы отрисовки стоят).
+const PACK_LOD0_END := 45.0
+const PACK_LOD1_END := 100.0
+const PACK_BIG := [&"table", &"staghorn", &"corymbose", &"lobed", &"mound", &"foliose"]
+
 func _emit_pack(t: StringName, v: int, xf: Array, col: PackedColorArray, wy: float) -> void:
 	var m0 := CoralPack.mesh(t, v, 0)
 	var m1 := CoralPack.mesh(t, v, 1)
+	var m2 := CoralPack.mesh(t, v, 2)
 	if m0 == null:
 		return
-	_mm(t, 0, xf, col, CoralPack.material(t, wy, 0), 0.0, HI_END, 1, m0)
-	# дальний уровень — только у крупных (мелкие вдали не читаются, а вызовы отрисовки стоят)
-	if m1 and t in [&"table", &"staghorn", &"corymbose", &"lobed", &"mound"]:
-		_mm(t, 1, xf, col, CoralPack.material(t, wy, 1), HI_END, LO_END, 2, m1)
+	var big := t in PACK_BIG
+	_mm(t, 0, xf, col, CoralPack.material(t, wy, 0), 0.0, PACK_LOD0_END, 1, m0)
+	if m1:
+		_mm(t, 1, xf, col, CoralPack.material(t, wy, 1), PACK_LOD0_END, PACK_LOD1_END if big else 80.0, 1, m1)
+	if big and m2:
+		_mm(t, 2, xf, col, CoralPack.material(t, wy, 2), PACK_LOD1_END, LO_END, 2, m2)
 
 func _mm(t: StringName, lod: int, xf: Array, col: PackedColorArray, mat: Material, begin: float, end: float, step_n: int, mesh_override: Mesh = null) -> void:
 	var mm := MultiMesh.new()
