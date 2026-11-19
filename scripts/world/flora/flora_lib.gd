@@ -705,8 +705,27 @@ static func tree_mesh(v: Dictionary, lod: int) -> ArrayMesh:
 			var a := TAU * float(i) / float(maxi(n, 1))
 			parts.append([coconut_mesh(), Transform3D(Basis(), top + Vector3(cos(a) * 0.22, -0.4, sin(a) * 0.22))])
 	var mesh := combine(parts)
+	if lod == 0:
+		mesh = with_auto_lods(mesh)
 	_mesh_cache[key] = mesh
 	return mesh
+
+## Меш с автоматическими LOD движка (meshoptimizer через ImporterMesh): деревья LOD0
+## рисуются MultiMesh-чанками 96 м до ~200 м — дальние чанки берут упрощённые индексы
+## (выбор по экранной ошибке, порог — mesh_lod_threshold пресета). Без этого
+## «джунгли» со спавна давали ~550k треугольников только от LOD0 деревьев.
+static func with_auto_lods(m: ArrayMesh) -> ArrayMesh:
+	var im := ImporterMesh.new()
+	for si in m.get_surface_count():
+		var st := SurfaceTool.new()
+		st.create_from(m, si)
+		st.index()
+		im.add_surface(m.surface_get_primitive_type(si), st.commit_to_arrays(), [], {}, m.surface_get_material(si), m.surface_get_name(si))
+	im.generate_lods(25.0, 60.0, [])
+	var out := im.get_mesh()
+	if out == null or out.get_surface_count() != m.get_surface_count():
+		return m
+	return out
 
 ## Слить меши по материалам: parts = [[Mesh, Transform3D], ...].
 static func combine(parts: Array) -> ArrayMesh:
