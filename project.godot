@@ -46,6 +46,30 @@ enabled=PackedStringArray("res://addons/terrain_3d/plugin.cfg", "res://addons/sk
 
 [shader_globals]
 
+wind_dir={
+"type": "vec2",
+"value": Vector2(1, 0)
+}
+wind_speed={
+"type": "float",
+"value": 3.0
+}
+wind_gust={
+"type": "float",
+"value": 0.0
+}
+weather_rain={
+"type": "float",
+"value": 0.0
+}
+weather_storm={
+"type": "float",
+"value": 0.0
+}
+weather_wetness={
+"type": "float",
+"value": 0.0
+}
 sea_time={
 "type": "float",
 "value": 0.0

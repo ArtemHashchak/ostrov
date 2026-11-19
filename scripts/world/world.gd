@@ -4,6 +4,8 @@ extends Node3D
 ## API для других модулей — см. CONTRACT_G1.md («Мир»).
 
 signal world_ready
+## Смена погоды (плавный переход начинается сейчас). См. CONTRACT_WEATHER.md.
+signal weather_changed(w: StringName)
 
 @export var seed_value: int = 2026
 @export var start_hour: float = 8.5
@@ -44,7 +46,8 @@ func _ready() -> void:
 	sky = SkyWeather.new()
 	sky.name = "SkyWeather"
 	add_child(sky)
-	sky.setup(start_hour)
+	sky.setup(start_hour, seed_value)
+	sky.weather_changed.connect(func(w: StringName) -> void: weather_changed.emit(w))
 	build_ms = Time.get_ticks_msec() - t0
 	build_stats = {"total_ms": build_ms, "layout_ms": t_arch - t0, "terrain_ms": t_terr - t_arch,
 			"ocean_ms": t_ocean - t_terr, "terrain": terrain.stats, "islands": arch.islands.size()}
@@ -428,3 +431,22 @@ func set_weather(w: StringName, instant: bool = false) -> void:
 
 func rain_factor() -> float:
 	return sky.rain_factor()
+
+# ---- ветер и погода (CONTRACT_WEATHER.md)
+func wind_dir() -> Vector2:
+	return sky.wind_dir()
+
+func wind_speed() -> float:
+	return sky.wind_speed()
+
+func gust() -> float:
+	return sky.gust()
+
+func storm_intensity() -> float:
+	return sky.storm_intensity()
+
+func rain_intensity() -> float:
+	return sky.rain_intensity()
+
+func wetness() -> float:
+	return sky.wetness()
