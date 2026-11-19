@@ -26,6 +26,7 @@ const LOOT_COMMON := [
 	[[[&"pot", 1]], 0.6],
 	[[[&"gas_can", 2]], 0.6],
 	[[[&"shotgun_shell", 4]], 0.6],
+	[[[&"ammo_9mm", 15]], 0.7],
 ]
 const LOOT_RARE := [
 	[[[&"shotgun", 1], [&"shotgun_shell", 6]], 2.0],
@@ -35,10 +36,12 @@ const LOOT_RARE := [
 	[[[&"chainsaw", 1], [&"fuel_can", 2]], 1.4],
 	[[[&"grenade", 1]], 1.4],
 	[[[&"rifle_ammo", 15]], 0.7],
+	[[[&"pistol_9mm", 1], [&"ammo_9mm", 30]], 1.8],
 	[[[&"dynamite", 1]], 0.7],
 ]
 const LOOT_LEGENDARY := [
 	[[[&"rifle", 1], [&"rifle_ammo", 30]], 3.0],
+	[[[&"pistol_9mm", 1], [&"ammo_9mm", 45]], 0.8],
 	[[[&"grenade", 2]], 1.6],
 	[[[&"armor_vest", 1], [&"medkit", 1]], 1.0],
 	[[[&"shotgun", 1], [&"shotgun_shell", 10]], 0.8],
@@ -54,7 +57,11 @@ static func register() -> void:
 	SurvivalItems.register()
 	# --- оружие ---
 	_item(&"rifle", "Автомат", &"weapon", 1, 3.6, {"tool": &"gun", "damage": 10.0, "ranged": true, "held": SupplyModels.held(&"rifle"),
-		"color": Color(0.3, 0.26, 0.2), "desc": "Посылка спонсоров. Очередь — держи ЛКМ, магазин 20, R — перезарядка. Патронов мало."})
+		"color": Color(0.3, 0.26, 0.2), "desc": "Посылка спонсоров. Очередь — держи ЛКМ, V — одиночный/авто, ПКМ — прицел, магазин 20 (+1 в патроннике), R — перезарядка. Каждый 4-й — трассер."})
+	_item(&"pistol_9mm", "Пистолет", &"weapon", 1, 0.9, {"tool": &"gun", "damage": 5.0, "ranged": true, "held": SupplyModels.held(&"pistol_9mm"),
+		"color": Color(0.12, 0.12, 0.13), "desc": "Посылка спонсоров. Современный 9 мм, магазин 15 (+1 в патроннике). ПКМ — прицел, R — перезарядка."})
+	_item(&"ammo_9mm", "Патроны 9 мм", &"ammo", 90, 0.012, {"held": SupplyModels.held(&"ammo_9mm"), "color": Color(0.75, 0.6, 0.3),
+		"desc": "Для пистолета."})
 	_item(&"rifle_ammo", "Патроны 7,62", &"ammo", 60, 0.02, {"held": SupplyModels.held(&"rifle_ammo"), "color": Color(0.7, 0.55, 0.25),
 		"desc": "Для автомата. В ящиках спонсоров — горстями."})
 	_item(&"shotgun", "Дробовик", &"weapon", 1, 3.2, {"tool": &"gun", "damage": 9.0, "ranged": true, "held": SupplyModels.held(&"shotgun"),

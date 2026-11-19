@@ -147,6 +147,8 @@ static func _build(id: StringName) -> Node3D:
 	r.name = "Supply_" + String(id)
 	match id:
 		&"rifle": rifle(r)
+		&"pistol_9mm": pistol_9mm(r)
+		&"ammo_9mm": ammo_box_9mm(r)
 		&"shotgun": shotgun(r)
 		&"flare_gun": flare_gun(r)
 		&"grenade": grenade(r)
@@ -224,6 +226,57 @@ static func rifle(root: Node3D) -> void:
 	marker(root, "Sight", Vector3(0, by + 0.065, -0.205))
 	marker(root, "Muzzle", Vector3(0, by, -0.74))
 	marker(root, "Forend", Vector3(0, by - 0.035, -0.36))
+	# GUNPLAY (WeaponDef): окно выброса гильз справа и точка совмещения прицела (целик–мушка)
+	box(root, Vector3(0.003, 0.016, 0.05), mat("polymer"), Vector3(0.0235, by + 0.004, -0.11))
+	marker(root, "ejection_port", Vector3(0.026, by + 0.006, -0.11))
+	marker(root, "ads_anchor", Vector3(0, by + 0.064, -0.205))
+
+## Современный пистолет 9 мм (вымышленный, полимерная рамка): затвор-кожух «Slide»
+## (откатывается при выстреле, встаёт на задержку пустым), сокеты muzzle / ejection_port /
+## ads_anchor, магазин «Mag».
+static func pistol_9mm(root: Node3D) -> void:
+	var by := 0.05
+	var steel := HeldModels.color_mat(Color(0.11, 0.115, 0.12), 0.38, 0.75)
+	var poly := mat("polymer")
+	# рамка и рукоять
+	box(root, Vector3(0.026, 0.02, 0.15), poly, Vector3(0, by - 0.021, -0.055))
+	box(root, Vector3(0.022, 0.012, 0.04), poly, Vector3(0, by - 0.034, -0.105)) # планка под фонарь
+	tube(root, [Vector3(0, by - 0.03, 0.02), Vector3(0, -0.005, 0.03), Vector3(0, -0.075, 0.048)],
+		[Vector2(0.0145, 0.016), Vector2(0.0145, 0.017), Vector2(0.015, 0.018)], poly, Vector3.BACK, 10)
+	box(root, Vector3(0.03, 0.012, 0.036), poly, Vector3(0, -0.083, 0.05), Vector3(-0.3, 0, 0)) # пятка магазина
+	var mg := Node3D.new()
+	mg.name = "Mag"
+	mg.position = Vector3(0, -0.06, 0.042)
+	root.add_child(mg)
+	# спусковая скоба и спуск
+	var tg := []
+	var tr := []
+	for i in 9:
+		var a := PI * float(i) / 8.0
+		tg.append(Vector3(0, by - 0.031 - sin(a) * 0.022, -0.01 + cos(a) * 0.03))
+		tr.append(Vector2(0.0035, 0.004))
+	tube(root, tg, tr, poly, Vector3.RIGHT, 6)
+	CombatModels.rod(root, Vector3(0, by - 0.03, -0.012), Vector3(0, by - 0.047, -0.006), 0.0025, steel, 6)
+	# затвор-кожух (подвижный)
+	var sl := Node3D.new()
+	sl.name = "Slide"
+	root.add_child(sl)
+	box(sl, Vector3(0.028, 0.03, 0.19), steel, Vector3(0, by + 0.004, -0.06))
+	for k in 5:
+		box(sl, Vector3(0.0285, 0.022, 0.0025), HeldModels.color_mat(Color(0.06, 0.06, 0.065), 0.6, 0.6),
+			Vector3(0, by + 0.004, 0.022 - k * 0.006))
+	box(sl, Vector3(0.002, 0.012, 0.045), HeldModels.color_mat(Color(0.03, 0.03, 0.03), 0.7), Vector3(0.0141, by + 0.008, -0.03)) # окно выброса
+	# прицельные приспособления: целик с прорезью, мушка (точки)
+	box(sl, Vector3(0.008, 0.008, 0.008), steel, Vector3(-0.007, by + 0.023, 0.028))
+	box(sl, Vector3(0.008, 0.008, 0.008), steel, Vector3(0.007, by + 0.023, 0.028))
+	box(sl, Vector3(0.004, 0.007, 0.006), steel, Vector3(0, by + 0.0225, -0.148))
+	HeldModels._sphere(sl, 0.0012, mat("white"), Vector3(0, by + 0.024, -0.1512), Vector3.ONE, 6)
+	# ствол виден в окне кожуха спереди
+	cyl(root, 0.0068, 0.0068, 0.012, steel, Vector3(0, by, -0.151), Vector3(PI / 2, 0, 0), 10)
+	cyl(root, 0.0045, 0.0045, 0.0125, HeldModels.color_mat(Color(0.01, 0.01, 0.01), 0.9), Vector3(0, by, -0.151), Vector3(PI / 2, 0, 0), 8)
+	marker(sl, "ejection_port", Vector3(0.016, by + 0.01, -0.03))
+	marker(root, "ads_anchor", Vector3(0, by + 0.026, 0.028)) # не на кожухе: прицел не дёргается при откате
+	marker(root, "muzzle", Vector3(0, by, -0.16))
 
 ## Помповый дробовик: ствол + подствольный магазин, цевьё-помпа, полимерный приклад.
 static func shotgun(root: Node3D) -> void:
@@ -461,6 +514,12 @@ static func ammo_box(root: Node3D) -> void:
 	for k in 4:
 		cyl(root, 0.0045, 0.0045, 0.04, mat("brass"), Vector3(-0.024 + k * 0.016, 0.035, 0.0), Vector3.ZERO, 8)
 		cyl(root, 0.003, 0.0045, 0.012, mat("steel"), Vector3(-0.024 + k * 0.016, 0.06, 0.0), Vector3.ZERO, 8)
+
+static func ammo_box_9mm(root: Node3D) -> void:
+	box(root, Vector3(0.07, 0.04, 0.045), HeldModels.color_mat(Color(0.25, 0.32, 0.45), 0.8), Vector3(0, 0.0, 0))
+	for k in 5:
+		cyl(root, 0.0048, 0.0048, 0.019, mat("brass"), Vector3(-0.024 + k * 0.012, 0.028, 0.0), Vector3.ZERO, 8)
+		HeldModels._sphere(root, 0.0045, mat("brass"), Vector3(-0.024 + k * 0.012, 0.039, 0.0), Vector3(1, 1.3, 1), 8)
 
 static func shells(root: Node3D) -> void:
 	for k in 3:
