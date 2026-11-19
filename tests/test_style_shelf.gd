@@ -73,7 +73,8 @@ func run() -> void:
 	check(shelf.showing_after, "F7 ещё раз — «после»")
 	await _key(KEY_F8)
 	await wait(0.3)
-	check(shelf.light_i == 0, "F8 — следующий свет (день после заката: %d)" % shelf.light_i)
+	check(shelf.light_i == 3, "F8 — следующий свет (ночь после заката: %d)" % shelf.light_i)
+	shelf.set_light(0)
 	# ---- крупно: акула, краб, рыбы
 	var c := SandboxZones.ZONES[&"style"].c as Vector2
 	sb.cheats.set_fly(true)
