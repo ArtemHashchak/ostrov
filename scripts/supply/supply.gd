@@ -56,6 +56,8 @@ func _ready() -> void:
 	add_child(dr)
 	# и «Ведущий» — субтитры реплик (сбросы, флаги, выбывание, первая кровь)
 	add_child(ShowHost.new())
+	# и записки прошлых сезонов у остовов кораблей
+	add_child(SeasonNotes.new())
 
 func _exit_tree() -> void:
 	SupplyModels.clear_caches()
