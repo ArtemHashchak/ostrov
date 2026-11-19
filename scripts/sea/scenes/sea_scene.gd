@@ -160,7 +160,8 @@ func school(sp_id: String, count: int, c: Vector3, r: float) -> SeaSchool:
 	add_child(s)
 	s.radius = r
 	s.speed = float(sp.get("speed", 1.0))
-	s.setup(sea, entry, String(vis.get("tint", "#ffffff")), count, float(sp.get("length", 0.16)), c, _seed * 31)
+	var tint := String(vis.get("tint", ((entry.get("params", {}) as Dictionary).get("tint", "#ffffff"))))
+	s.setup(sea, entry, tint, count, float(sp.get("length", 0.16)), c, _seed * 31)
 	schools.append(s)
 	return s
 

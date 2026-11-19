@@ -87,10 +87,15 @@ func _perf_process(delta: float) -> void:
 	var cp := cam.global_position
 	var wy := _wy()
 	_caus_mat.set_shader_parameter(&"water_level", wy)
+	# блики на дне — только от прямого солнца: ночью нет, в тучи/дождь/грозу гаснут
 	var sun := 1.0
 	var w: Node = sea.get(&"world")
 	if w and w.has_method(&"is_night") and bool(w.call(&"is_night")):
-		sun = 0.15
+		sun = 0.0
+	if w and w.has_method(&"storm_intensity"):
+		sun *= 1.0 - clampf(float(w.call(&"storm_intensity")) * 1.4, 0.0, 1.0)
+	if w and w.has_method(&"rain_intensity"):
+		sun *= 1.0 - 0.7 * clampf(float(w.call(&"rain_intensity")), 0.0, 1.0)
 	_caus_mat.set_shader_parameter(&"sun", sun)
 	# каустика — только если камера не слишком высоко над водой и не «низкое»
 	var q := clampi(Settings.graphics_quality, 0, 3)
@@ -102,7 +107,7 @@ func _perf_process(delta: float) -> void:
 	var under := cp.y < wy - 0.05
 	for i in _rays.size():
 		var r := _rays[i]
-		r.visible = under and sun > 0.5 and i < RAYS_BY_Q[q]
+		r.visible = under and sun > 0.4 and i < RAYS_BY_Q[q]
 		if r.visible:
 			var a := TAU * i / _rays.size() + _t * 0.03 + i * 0.7
 			var d := 4.0 + float(i % 3) * 3.5

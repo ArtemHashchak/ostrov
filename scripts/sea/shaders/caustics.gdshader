@@ -7,7 +7,7 @@ uniform float water_level = 0.0;
 uniform float strength = 0.22;
 uniform vec3 grid_center = vec3(0.0);
 uniform float grid_half = 28.0;
-uniform float sun = 1.0;
+uniform float sun = 1.0;   // дневной свет × ясность неба (0 ночью и в грозу)
 
 varying vec3 wpos;
 
@@ -30,7 +30,9 @@ void fragment() {
 	}
 	vec2 e = abs(wpos.xz - grid_center.xz) / grid_half;
 	float edge = 1.0 - smoothstep(0.65, 1.0, max(e.x, e.y));
-	float fade = clamp(1.0 - depth / 9.0, 0.0, 1.0) * smoothstep(0.05, 0.6, depth);
+	// у самой кромки (где волны то открывают, то закрывают песок) — без бликов:
+	// иначе на мокром песке «светятся линии»
+	float fade = clamp(1.0 - depth / 9.0, 0.0, 1.0) * smoothstep(0.6, 1.6, depth);
 	float c = caus(wpos.xz * 0.85, TIME * 0.9) + 0.6 * caus(wpos.xz * 1.9 + 3.1, TIME * 1.15);
 	ALBEDO = vec3(0.85, 1.0, 0.9) * c * strength * fade * edge * sun;
 }
