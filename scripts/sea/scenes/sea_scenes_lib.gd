@@ -670,6 +670,8 @@ class StarBarrens extends SeaScene:
 	func _begin() -> void:
 		duration = 60.0
 		plant_patch("red_algae", at, 3.0, 10)
+		plant_patch("padina", at, 3.0, 12)
+		plant_patch("encrusting_sponge", at, 2.5, 6)
 		for i in 16:
 			var c := critter("urchin", on_floor(Vector3(rng.randf_range(-2.5, 2.5), 0, rng.randf_range(-2.5, 2.5))))
 			if c:
@@ -761,6 +763,7 @@ class TurtleGrazing extends SeaScene:
 	func _begin() -> void:
 		duration = 70.0
 		plant_patch("turtle_grass", at, 4.0, 60)
+		plant_patch("manatee_grass", at, 4.5, 40)
 		graze = in_water(Vector3.ZERO, 0.45)
 		tu = critter("sea_turtle", graze + Vector3(-3, 0.5, 0))
 		if tu:
@@ -821,6 +824,8 @@ class SeagrassNursery extends SeaScene:
 		duration = 60.0
 		plant_patch("turtle_grass", at, 5.0, 90)
 		plant_patch("halimeda", at, 4.0, 14)
+		plant_patch("ulva", at, 4.0, 10)
+		plant_patch("turbinaria", at, 3.5, 8)
 		for i in 10:
 			spots.append(on_floor(Vector3(rng.randf_range(-4, 4), 0.12, rng.randf_range(-4, 4))))
 		sch = school("juvenile", 32, in_water(Vector3.ZERO, 0.7), 1.2)
@@ -844,6 +849,9 @@ class KelpForest extends SeaScene:
 		duration = 70.0
 		plant_patch("kelp", at, 6.0, 26, 1.6)
 		plant_patch("red_algae", at, 5.0, 12)
+		plant_patch("codium", at, 5.0, 10)
+		plant_patch("vase_sponge", at, 6.0, 4)
+		plant_patch("sea_whip_algae", at, 4.0, 16)
 		for i in 5:
 			var c := critter("parrotfish" if i == 0 else "angelfish", in_water(Vector3(rng.randf_range(-4, 4), 0, rng.randf_range(-4, 4)), rng.randf_range(0.8, 2.5)))
 			if c:

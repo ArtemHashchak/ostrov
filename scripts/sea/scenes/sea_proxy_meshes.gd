@@ -51,6 +51,10 @@ static func get_mesh(kind: String, colors: Array) -> Mesh:
 			m = _recolor(SeaMeshes.sponge(), a, b)
 		"anemone":
 			m = _anemone(a, b)
+		"padina":
+			m = _padina(a, b)
+		"fingers":
+			m = _fingers(a, b)
 		_:
 			m = FishSchool.make_fish_mesh(1.0)
 	_cache[key] = m
@@ -417,4 +421,66 @@ static func _anemone(a: Color, b: Color) -> ArrayMesh:
 			var t := float(i) / 4.0
 			pts.append(p + Vector3(0, h * t, 0) + out * (r * 0.6 + 0.12) * t * t + Vector3(sin(t * 3.0 + k) * 0.015, 0, 0))
 		_tube(st, pts, [0.012, 0.011, 0.01, 0.009, 0.007], [0.1, 0.35, 0.6, 0.85, 1.0], b, a, 4, true)
+	return _end(st)
+
+
+## Падина: веерные полукруглые пластинки с концентрическими полосами (известковые края).
+static func _padina(a: Color, b: Color) -> ArrayMesh:
+	var st := _st()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 81
+	for f in 6:
+		var base := Vector3(rng.randf_range(-0.08, 0.08), 0, rng.randf_range(-0.08, 0.08))
+		var ang := rng.randf() * TAU
+		var side := Vector3(cos(ang), 0, sin(ang))
+		var up := Vector3(rng.randf_range(-0.25, 0.25), 1.0, rng.randf_range(-0.25, 0.25)).normalized()
+		var stem := base + up * 0.04
+		var r := rng.randf_range(0.10, 0.18)
+		var n := 10
+		var rings := 4
+		for ri in rings:
+			var r0 := r * float(ri) / rings
+			var r1 := r * float(ri + 1) / rings
+			var c0 := a.lerp(b, float(ri) / rings)
+			var c1 := a.lerp(b, float(ri + 1) / rings) if ri % 2 == 0 else a.lightened(0.25)
+			for k in n:
+				var t0 := PI * 0.1 + PI * 0.8 * k / n
+				var t1 := PI * 0.1 + PI * 0.8 * (k + 1) / n
+				var w0 := side * cos(t0) + up * sin(t0)
+				var w1 := side * cos(t1) + up * sin(t1)
+				var cup := up.cross(side) * 0.03
+				var p00 := stem + w0 * r0 + cup * (r0 / r)
+				var p01 := stem + w1 * r0 + cup * (r0 / r)
+				var p10 := stem + w0 * r1 + cup * (r1 / r) * 1.6
+				var p11 := stem + w1 * r1 + cup * (r1 / r) * 1.6
+				var f0 := r0 / r
+				var f1 := r1 / r
+				_tri(st, p00, p10, p11, c0, c1, c1, f0, f1, f1)
+				_tri(st, p00, p11, p01, c0, c1, c0, f0, f1, f0)
+	return _end(st)
+
+## «Пальцы» (кодиум и т. п.): мягкие вильчато ветвящиеся бархатистые трубки.
+static func _fingers(a: Color, b: Color) -> ArrayMesh:
+	var st := _st()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 91
+	var stack: Array = []
+	for k in 3:
+		stack.append([Vector3(rng.randf_range(-0.06, 0.06), 0, rng.randf_range(-0.06, 0.06)),
+			Vector3(rng.randf_range(-0.3, 0.3), 1.0, rng.randf_range(-0.3, 0.3)).normalized(), 0, 0.035])
+	while not stack.is_empty():
+		var e: Array = stack.pop_back()
+		var p: Vector3 = e[0]
+		var d: Vector3 = e[1]
+		var lvl: int = e[2]
+		var rad: float = e[3]
+		var len := rng.randf_range(0.14, 0.22)
+		var q := p + d * len
+		var t0 := float(lvl) / 4.0
+		var t1 := float(lvl + 1) / 4.0
+		_tube(st, [p, p.lerp(q, 0.5) + Vector3(0, 0.01, 0), q], [rad, rad * 0.95, rad * 0.9], [t0, (t0 + t1) * 0.5, t1], b, a, 6, lvl >= 2)
+		if lvl < 2:
+			for s in [-1.0, 1.0]:
+				var nd := (d + Vector3(s * 0.45, 0.1, rng.randf_range(-0.3, 0.3))).normalized()
+				stack.append([q, nd, lvl + 1, rad * 0.85])
 	return _end(st)
