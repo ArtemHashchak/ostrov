@@ -705,8 +705,7 @@ static func tree_mesh(v: Dictionary, lod: int) -> ArrayMesh:
 			var a := TAU * float(i) / float(maxi(n, 1))
 			parts.append([coconut_mesh(), Transform3D(Basis(), top + Vector3(cos(a) * 0.22, -0.4, sin(a) * 0.22))])
 	var mesh := combine(parts)
-	if lod == 0:
-		mesh = with_auto_lods(mesh)
+	mesh = with_auto_lods(mesh) # и LOD1: дальние чанки 140–330 м тоже берут упрощённые индексы
 	_mesh_cache[key] = mesh
 	return mesh
 
@@ -730,8 +729,14 @@ static func with_auto_lods(m: ArrayMesh) -> ArrayMesh:
 ## Теневой меш дерева (только для карты теней): ствол 4 грани × 4 звена, крона —
 ## немного крупных карточек/листьев на 3 звена, без корней и кокосов. ~5–10× легче LOD1.
 ## Силуэт тени — тот же (тот же сид), материалы те же (альфа-отсечение листвы).
-static func shadow_tree_mesh(v: Dictionary) -> ArrayMesh:
-	var key := "tree_shadow_%s_%d" % [v["kind"], v["idx"]]
+## single = true (для карты теней): одна поверхность с материалом листвы — ствол
+## берёт UV из сплошь непрозрачного места текстуры (OPAQUE_UV), один вызов на проход.
+## single = false — две поверхности (кора + листва), для видимого дальнего LOD2.
+const OPAQUE_UV := {"palm_frond": Vector2(0.283, 0.32), "mangrove_cluster": Vector2(0.41, 0.426),
+	"broadleaf_cluster": Vector2(0.473, 0.52), "broadleaf_cluster_b": Vector2(0.426, 0.535)}
+
+static func shadow_tree_mesh(v: Dictionary, single: bool = false) -> ArrayMesh:
+	var key := "tree_shadow_%s_%d_%d" % [v["kind"], v["idx"], int(single)]
 	if _mesh_cache.has(key):
 		return _mesh_cache[key]
 	var H: float = v["H"]
@@ -741,9 +746,30 @@ static func shadow_tree_mesh(v: Dictionary) -> ArrayMesh:
 		var h0 := H * float(i) / float(segs)
 		var h1 := H * float(i + 1) / float(segs)
 		_tube(bst, trunk_point(v, h0), trunk_point(v, h1), trunk_radius(v, h0), trunk_radius(v, h1), 4)
-	var mesh := bst.commit()
-	mesh.surface_set_material(0, bark_material(v["bark"]))
 	var cst := SurfaceTool.new(); cst.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var tex_name: String = "palm_frond" if v["kind"] == &"palm" else String(v["tex"])
+	if single:
+		# ствол — в ту же поверхность, UV в непрозрачной точке текстуры листвы
+		var ta := bst.commit_to_arrays()
+		var tv: PackedVector3Array = ta[Mesh.ARRAY_VERTEX]
+		var tn: PackedVector3Array = ta[Mesh.ARRAY_NORMAL]
+		var ti = ta[Mesh.ARRAY_INDEX]
+		var ouv: Vector2 = OPAQUE_UV.get(tex_name, Vector2(0.5, 0.5))
+		var order := PackedInt32Array()
+		if ti is PackedInt32Array and (ti as PackedInt32Array).size() > 0:
+			order = ti
+		else:
+			for q in tv.size():
+				order.append(q)
+		for ix in order:
+			cst.set_color(Color(0, 1, 1))
+			cst.set_normal(tn[ix] if tn.size() > ix else Vector3.UP)
+			cst.set_uv(ouv)
+			cst.add_vertex(tv[ix])
+	var mesh := ArrayMesh.new()
+	if not single:
+		mesh = bst.commit()
+		mesh.surface_set_material(0, bark_material(v["bark"]))
 	var rng := RandomNumberGenerator.new()
 	var mat: Material
 	if v["kind"] == &"palm":
@@ -768,7 +794,7 @@ static func shadow_tree_mesh(v: Dictionary) -> ArrayMesh:
 			_card(cst, p, d, rng.randf_range(2.4, 3.4), rng.randf() * TAU, center, 0.5, 0.8)
 		mat = foliage_material(v["tex"], v.get("tint", Color(0.95, 1.0, 0.92)), 0.07)
 	cst.commit(mesh)
-	mesh.surface_set_material(1, mat)
+	mesh.surface_set_material(mesh.get_surface_count() - 1, mat)
 	_mesh_cache[key] = mesh
 	return mesh
 

@@ -814,6 +814,40 @@ func _blood_cloud(pos: Vector3, strength: float) -> void:
 	get_tree().create_timer(4.5).timeout.connect(p.queue_free)
 
 # ---------------- цикл ----------------
+## Камера над водой: подводная живность (стаи, рифовая жизнь, ячейки, особи пака)
+## видна сквозь прозрачную воду только вблизи — дальность урезается до ABOVE_END,
+## под водой восстанавливается. Было со спавна к центру ≈200 вызовов отрисовки
+## на рыб, которых сверху не видно.
+const ABOVE_END := 38.0
+var _above_cull_acc := 1.0
+var _above_cull_state := false
+
+func _above_water_cull(above: bool) -> void:
+	_above_cull_state = above
+	var roots: Array[Node] = []
+	for n in [life, reef_life, life_cells, get_node_or_null(^"UserSeaActors")]:
+		if n != null and is_instance_valid(n):
+			roots.append(n)
+	for ch in get_children():
+		if ch is FishSchool:
+			roots.append(ch)
+	var stack: Array[Node] = roots
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		var gi := n as GeometryInstance3D
+		if gi == null:
+			continue
+		if above:
+			if not gi.has_meta(&"vr_water"):
+				gi.set_meta(&"vr_water", gi.visibility_range_end)
+			var full: float = gi.get_meta(&"vr_water")
+			gi.visibility_range_end = ABOVE_END if full <= 0.0 else minf(full, ABOVE_END)
+		elif gi.has_meta(&"vr_water"):
+			gi.visibility_range_end = float(gi.get_meta(&"vr_water"))
+			gi.remove_meta(&"vr_water")
+
 func _physics_process(delta: float) -> void:
 	var __pt := PerfStats.begin()
 	_perf_physics(delta)
@@ -838,6 +872,10 @@ func _perf_physics(delta: float) -> void:
 				_wet.append((n as Node3D).global_position)
 	var wy_now := water_y()
 	var cam_above := cam_p.y > wy_now + 0.3
+	_above_cull_acc += delta
+	if _above_cull_acc >= 1.0 or cam_above != _above_cull_state:
+		_above_cull_acc = 0.0
+		_above_water_cull(cam_above)
 	# Дальние акулы тикают реже, у каждой свой накопитель со случайной фазой —
 	# иначе все 100+ дальних акул считались в одном кадре (всплеск).
 	for s in sharks:

@@ -61,7 +61,7 @@ func _set_shadow_proxy(on: bool) -> void:
 	if on and _shadow_mi == null:
 		_shadow_mi = MeshInstance3D.new()
 		_shadow_mi.name = "ShadowProxy"
-		_shadow_mi.mesh = FloraLib.shadow_tree_mesh(variant)
+		_shadow_mi.mesh = FloraLib.shadow_tree_mesh(variant, true)
 		_shadow_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 		_shadow_mi.visibility_range_end = Flora.LOD_DIST
 		_shadow_mi.set_meta(&"no_auto_lod", true)

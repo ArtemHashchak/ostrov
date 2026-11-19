@@ -29,10 +29,10 @@ const TREE_FAR := 650.0
 ## остаются «болванки». LOD2 — тот же меш, что LOD1, крупными чанками для дальних деревьев;
 ## перекрытие LOD1/LOD2 безвредно (одинаковая геометрия), поэтому диапазоны с запасом.
 const TCHUNK := 96.0           # LOD0 (полные меши вариантов); 96 м — вдвое меньше MultiMesh-групп, чем 64
-const FAR_CHUNK := 144.0
+const FAR_CHUNK := 192.0          # кратно TCHUNK: чанк LOD1 целиком внутри чанка LOD2 (центры ≤68 м)
 const SCHUNK := 192.0          # теневые двойники деревьев (лёгкий меш, только в карту теней)
-const LOD1_END := 400.0  # перекрытие с LOD2 ≥ разницы центров чанков
-const LOD2_BEGIN := 250.0
+const LOD1_END := 330.0  # перекрытие с LOD2 ≥ разницы центров чанков (≤68 м при кратных чанках)
+const LOD2_BEGIN := 255.0
 const CCHUNK := 192.0          # чанк коллизий стволов
 const PROMOTE_R := 26.0
 const DEMOTE_R := 40.0
@@ -453,12 +453,16 @@ func _build_trees() -> void:
 		(_ggroups[gk2]["xf"] as Array).append(_xf(rec, false, _far_k(rec)))
 		# теневой двойник: лёгкий меш варианта, крупные чанки, только в карту теней
 		var sck := Vector2i(int(floor(p.x / SCHUNK)), int(floor(p.z / SCHUNK)))
-		var sk2 := "%s_%d|%d|%d" % [rec["kind"], rec["idx"], sck.x, sck.y]
+		# пальмы — по вариантам (наклон ствола заметен в тени на песке), лиственные/мангры/баньяны —
+		# один меш на вид (вариант 0 в масштабе высоты; смещение кроны ≤0.6 м на фоне R 3–7 м)
+		var per_var: bool = rec["kind"] == &"palm"
+		var sk2 := ("%s_%d|%d|%d" % [rec["kind"], rec["idx"], sck.x, sck.y]) if per_var else ("%s|%d|%d" % [rec["kind"], sck.x, sck.y])
 		if not _sgroups.has(sk2):
-			_sgroups[sk2] = {"v": FloraLib.variant(rec["kind"], rec["idx"]), "xf": []}
+			_sgroups[sk2] = {"v": FloraLib.variant(rec["kind"], rec["idx"] if per_var else 0), "xf": []}
 		rec["gs"] = sk2
+		rec["sks"] = 1.0 if per_var else _far_k(rec)
 		rec["si"] = (_sgroups[sk2]["xf"] as Array).size()
-		(_sgroups[sk2]["xf"] as Array).append(_xf(rec))
+		(_sgroups[sk2]["xf"] as Array).append(_xf(rec, false, float(rec["sks"])))
 		# коллизия ствола
 		ck = Vector2i(int(floor(p.x / CCHUNK)), int(floor(p.z / CCHUNK)))
 		if not _colliders.has(ck):
@@ -523,7 +527,7 @@ func _build_trees() -> void:
 		var sxs: Array = sg["xf"]
 		var smm := MultiMesh.new()
 		smm.transform_format = MultiMesh.TRANSFORM_3D
-		smm.mesh = FloraLib.shadow_tree_mesh(sg["v"])
+		smm.mesh = FloraLib.shadow_tree_mesh(sg["v"], true)
 		smm.instance_count = sxs.size()
 		for k in sxs.size():
 			smm.set_instance_transform(k, sxs[k])
@@ -548,7 +552,7 @@ func _set_mm_visible(rec: Dictionary, vis: bool) -> void:
 	(f["mm"] as MultiMesh).set_instance_transform(int(rec["fi"]), _xf(rec, not vis, _far_k(rec)))
 	var gs: Dictionary = _sgroups.get(rec.get("gs", ""), {})
 	if not gs.is_empty():
-		(gs["mm"] as MultiMesh).set_instance_transform(int(rec["si"]), _xf(rec, not vis))
+		(gs["mm"] as MultiMesh).set_instance_transform(int(rec["si"]), _xf(rec, not vis, float(rec.get("sks", 1.0))))
 	var g2: Dictionary = _ggroups.get(rec.get("gg", ""), {})
 	if not g2.is_empty():
 		(g2["mm"] as MultiMesh).set_instance_transform(int(rec["gi"]), _xf(rec, not vis, _far_k(rec)))

@@ -36,6 +36,7 @@ func _ready() -> void:
 		_visual = mi
 	add_child(_visual)
 	var aabb := _aabb_of(_visual)
+	_near_shadows_only(_visual)
 	var k := size / maxf(0.01, aabb.get_longest_axis_size())
 	_visual.scale = Vector3.ONE * k
 	_visual.position = Vector3(-aabb.get_center().x * k, -aabb.position.y * k - 0.12, -aabb.get_center().z * k)
@@ -80,6 +81,34 @@ func _add_veins(box: AABB) -> void:
 	mi.mesh.surface_set_material(0, mat)
 	mi.visibility_range_end = 120.0
 	add_child(mi)
+
+## Тень валуна — только вблизи: сам меш в карту теней не идёт, а теневой двойник
+## (тот же меш, SHADOWS_ONLY) виден до SHADOW_NEAR м. Валунов в стриме сотни
+## (вокруг игрока и ботов), и каждый рисовался во все каскады теней:
+## было ≈260 вызовов отрисовки со спавна.
+const SHADOW_NEAR := 45.0
+
+static func _near_shadows_only(root: Node) -> void:
+	var stack: Array[Node] = [root]
+	var found: Array[MeshInstance3D] = []
+	while not stack.is_empty():
+		var c: Node = stack.pop_back()
+		if c is MeshInstance3D and (c as MeshInstance3D).mesh:
+			found.append(c)
+		for ch in c.get_children():
+			stack.append(ch)
+	for mi in found:
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var tw := MeshInstance3D.new()
+		tw.name = "ShadowNear"
+		tw.mesh = mi.mesh
+		for s in mi.get_surface_override_material_count():
+			tw.set_surface_override_material(s, mi.get_surface_override_material(s))
+		tw.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+		tw.visibility_range_end = SHADOW_NEAR
+		tw.visibility_range_end_margin = 4.0
+		tw.set_meta(&"no_auto_lod", true)
+		mi.add_child(tw)
 
 static func _aabb_of(n: Node) -> AABB:
 	var res := AABB()
