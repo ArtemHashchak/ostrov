@@ -105,6 +105,7 @@ func build(terrain_height: Callable, area: Rect2) -> void:
 	if ResourceLoader.exists(foam_path):
 		_mat.set_shader_parameter(&"foam_tex", load(foam_path))
 	_init_waves()
+	_make_spray()
 	_bake_depth(area)
 	_load_fft()
 	_apply_quality()
@@ -289,7 +290,7 @@ func _init_waves() -> void:
 func _recalc_waves(dt: float) -> void:
 	var sw_ang := swell_dir.angle()
 	var wd_ang := wind_dir.angle()
-	var calm_q := lerpf(0.35, 0.7, storm)
+	var calm_q := lerpf(0.35, 0.92, storm)   # в шторм — острые гребни (≤1 — без петель)
 	for i in MAX_W:
 		var c: Vector4 = COMPONENTS[i]
 		var base := wd_ang if c.w > 0.5 else sw_ang
@@ -304,6 +305,72 @@ func _recalc_waves(dt: float) -> void:
 		_wphase[i] = fposmod(_wphase[i] + _wom[i] * dt, TAU)
 		_arr_a[i] = Vector4(_wdir[i].x, _wdir[i].y, amp, _wk[i])
 		_arr_b[i] = Vector4(_wphase[i], _wq[i], float(_wvtx[i]), 0.0)
+
+# --- водяная пыль с гребней в шторм (GPU-частицы у камеры, CPU — только позиция) ---
+var _spray: GPUParticles3D
+
+func _make_spray() -> void:
+	_spray = GPUParticles3D.new()
+	_spray.name = "StormSpray"
+	_spray.amount = 360
+	_spray.lifetime = 1.4
+	_spray.local_coords = false
+	_spray.emitting = false
+	_spray.visibility_aabb = AABB(Vector3(-60, -10, -60), Vector3(120, 30, 120))
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	pm.emission_box_extents = Vector3(45.0, 0.6, 45.0)
+	pm.direction = Vector3(1, 0.25, 0)
+	pm.spread = 14.0
+	pm.initial_velocity_min = 7.0
+	pm.initial_velocity_max = 15.0
+	pm.gravity = Vector3(0, -5.0, 0)
+	pm.damping_min = 1.0
+	pm.damping_max = 2.0
+	pm.scale_min = 0.5
+	pm.scale_max = 1.6
+	var fade := Gradient.new()
+	fade.set_color(0, Color(1, 1, 1, 0.0))
+	fade.add_point(0.15, Color(1, 1, 1, 0.55))
+	fade.set_color(fade.get_point_count() - 1, Color(1, 1, 1, 0.0))
+	var gt := GradientTexture1D.new()
+	gt.gradient = fade
+	pm.color_ramp = gt
+	_spray.process_material = pm
+	var q := QuadMesh.new()
+	q.size = Vector2(1.6, 0.5)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	m.vertex_color_use_as_albedo = true
+	m.albedo_color = Color(0.86, 0.9, 0.92, 1.0)
+	var rad := GradientTexture2D.new()
+	rad.fill = GradientTexture2D.FILL_RADIAL
+	rad.fill_from = Vector2(0.5, 0.5)
+	rad.fill_to = Vector2(1.0, 0.5)
+	var g2 := Gradient.new()
+	g2.set_color(0, Color(1, 1, 1, 0.7))
+	g2.set_color(1, Color(1, 1, 1, 0.0))
+	rad.gradient = g2
+	m.albedo_texture = rad
+	q.material = m
+	_spray.draw_pass_1 = q
+	add_child(_spray)
+	_spray.top_level = true
+
+func _update_spray(cam_pos: Vector3) -> void:
+	if _spray == null:
+		return
+	var k := smoothstep(0.35, 0.9, storm) * (1.0 if quality >= 1 else 0.0)
+	_spray.emitting = k > 0.01
+	if not _spray.emitting:
+		return
+	_spray.amount_ratio = k
+	var crest_h := water_level + _swell_amp * 0.35
+	_spray.global_position = Vector3(cam_pos.x, crest_h, cam_pos.z) + Vector3(-wind_dir.x, 0.0, -wind_dir.y) * 15.0
+	var pm := _spray.process_material as ParticleProcessMaterial
+	pm.direction = Vector3(wind_dir.x, 0.22, wind_dir.y)
 
 ## Перенести опору фаз к камере (без изменения поля волн).
 func _reanchor(cam: Vector2) -> void:
@@ -363,6 +430,7 @@ func _update(dt: float, cam_pos: Vector3, level: float, scale_waves: float) -> v
 	_smooth_weather(dt, scale_waves)
 	_reanchor(Vector2(cam_pos.x, cam_pos.z))
 	_recalc_waves(dt)
+	_update_spray(cam_pos)
 	var step := inner_step()
 	global_position = Vector3(snappedf(cam_pos.x, step), 0.0, snappedf(cam_pos.z, step))
 	# время для текстур (пена, рябь) — с переносом раз в 2 ч, чтобы не терять точность

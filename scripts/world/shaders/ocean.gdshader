@@ -123,6 +123,17 @@ vec2 wave_grad_px(vec2 p, float amp) {
 	return g * amp;
 }
 
+// Высота аналитических волн в точке (без смещения Герстнера) — для пены за гребнем.
+float wave_h_px(vec2 p) {
+	float h = 0.0;
+	for (int i = 0; i < 8; i++) {
+		vec4 a = w_a[i];
+		if (a.z <= 0.0 || w_b[i].z < 0.5) continue;
+		h += a.z * sin(a.w * dot(a.xy, p - w_origin) - w_b[i].x);
+	}
+	return h;
+}
+
 // Рябь от капель: кольца в ячейках 0.7 м (одна выборка на пиксель, без текстур).
 vec2 rain_rings(vec2 p, float t) {
 	vec2 cell = floor(p / 0.7);
@@ -157,10 +168,10 @@ float shore_foam(vec2 p, float d) {
 	for (int k = 0; k < 3; k++) {
 		float s = fract(u_time / 7.5 + float(k) / 3.0 + slow);
 		float front = mix(1.25 + storm * 1.2, -0.05 - storm * 0.35, s * s * (3.0 - 2.0 * s));   // набег; в шторм — дальше на берег
-		float w = 0.025 + 0.035 * clamp(front, 0.0, 1.2);
+		float w = (0.025 + 0.035 * clamp(front, 0.0, 1.2)) * (1.0 + storm * 2.5);
 		float line = exp(-pow((d - front) / w, 2.0));
 		// линия рождается у отмели, ярче всего у самого берега, гаснет в конце набега
-		float amp = smoothstep(1.3, 0.55, front) * (1.0 - smoothstep(0.8, 1.0, s)) * 0.85;
+		float amp = smoothstep(1.3 + storm * 1.2, 0.55, front) * (1.0 - smoothstep(0.8, 1.0, s)) * mix(0.85, 1.0, storm);
 		float broken = smoothstep(0.5, 0.85, lace_tex + line * 0.2);
 		f += line * amp * broken;
 		// след за линией: редкое кружево, тает
@@ -219,23 +230,45 @@ void fragment() {
 	vec3 col = mix(shallow_color, mid_color, smoothstep(0.3, 4.5, d));
 	col = mix(col, deep_color, smoothstep(4.5, 16.0, d));
 	// шторм: вода темнее и серее (взмученная, под тучами)
-	col = mix(col, vec3(0.05, 0.13, 0.15) * (0.6 + 0.4 * (1.0 - smoothstep(0.0, 6.0, d))), storm * 0.6);
+	col = mix(col, vec3(0.05, 0.15, 0.17) * (0.7 + 0.3 * (1.0 - smoothstep(0.0, 6.0, d))), storm * 0.45);
+	// форма волн читается цветом: гребни светятся бирюзой на просвет, впадины темнее
+	float wave_vis = 0.35 + 0.65 * storm;
+	vec3 n_w = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	vec3 v_w = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
+	float thin = smoothstep(0.1, 0.9, crest) * (0.4 + 0.6 * clamp(1.0 - dot(n_w, v_w), 0.0, 1.0));
+	col = mix(col, vec3(0.08, 0.42, 0.40), thin * 0.55 * wave_vis * smoothstep(1.0, 5.0, d));
+	col *= mix(1.0, 0.62, smoothstep(0.0, -0.8, crest) * wave_vis);
+	// склон к свету чуть светлее (крупная форма волны видна даже под тучами)
+	col *= 1.0 + 0.25 * storm * clamp(n_w.y - 0.85, -0.3, 0.15) * 4.0;
 	// пена у берега и над отмелями
 	float f1 = texture(foam_tex, p * 0.22 + vec2(u_time * 0.03, 0.0)).r;
 	float f2 = texture(foam_tex, p * 0.13 - vec2(0.0, u_time * 0.025)).r;
 	float foam = (d < 1.5 + storm * 1.5 && d > -0.4 - storm * 0.4) ? shore_foam(p, d) : 0.0;
 	// барашки: гребни, где поверхность сжата (якобиан Герстнера), сильнее с ветром
-	float cap = smoothstep(0.45, 0.85, jac + crest * 0.25) * smoothstep(0.35, 0.8, f1 * 0.55 + f2 * 0.55) * smoothstep(0.0, 0.5, crest);
-	foam = max(foam, cap * (0.15 + 0.85 * max(storm, wind_k * 0.6)) * 0.9);
-	// полосы пены вдоль ветра в шторм (сорванная с гребней пена)
+	// барашки: на крутых гребнях, рвутся по ветру (вытянутая текстура), сильнее на подветренном склоне
+	vec2 wpp = vec2(-wind_dir.y, wind_dir.x);
+	float along_w = dot(p, wind_dir);
+	float across_w = dot(p, wpp);
+	float lace1 = texture(foam_tex, vec2(along_w * 0.035 - u_time * 0.03, across_w * 0.11)).r;
+	float lace2 = texture(foam_tex, vec2(along_w * 0.09 - u_time * 0.05, across_w * 0.27) + 0.41).r;
+	float lace = lace1 * 0.6 + lace2 * 0.55;
+	float lee = smoothstep(0.0, -0.25, dot(wg, wind_dir) / max(amp_px, 0.15));   // склон по ветру (спуск гребня)
+	float steep = smoothstep(0.35, 0.8, jac + crest * 0.3);
+	float cap = steep * smoothstep(0.05, 0.6, crest) * mix(0.6, 1.0, lee) * smoothstep(0.45, 0.85, lace + steep * 0.25);
+	foam = max(foam, cap * (0.12 + 0.88 * max(storm, wind_k * 0.6)) * 0.95);
+	// полосы пены вдоль ветра в шторм: тянутся за гребнем (след сорванной пены живёт
+	// 10–25 м с подветренной стороны), тонкое кружево, а не «мазки»
 	if (storm > 0.05) {
-		vec2 wpp = vec2(-wind_dir.y, wind_dir.x);
-		vec2 suv = vec2(dot(p, wind_dir) * 0.012 - u_time * 0.02, dot(p, wpp) * 0.16);
-		float st = texture(foam_tex, suv).r * texture(foam_tex, suv * vec2(2.3, 0.7) + 0.37).r;
-		// только на передних склонах гребней, мягко — длинные рваные полосы, а не «мазки»
-		float on_crest = smoothstep(-0.1, 0.6, crest);
-		float lace = texture(foam_tex, p * 0.31 + vec2(u_time * 0.04, 0.0)).r;
-		foam = max(foam, smoothstep(0.3, 0.75, st) * smoothstep(0.35, 0.7, lace) * on_crest * storm * 0.4 * smoothstep(1.5, 5.0, d));
+		float h_up = wave_h_px(p - wind_dir * 9.0);     // гребень, что прошёл здесь недавно
+		float trail = smoothstep(0.2, 1.4, h_up);
+		float st = texture(foam_tex, vec2(along_w * 0.008 - u_time * 0.012, across_w * 0.35)).r;
+		float st2 = texture(foam_tex, vec2(along_w * 0.02 - u_time * 0.02, across_w * 0.9) + 0.27).r;
+		// крупные пятна (низкая частота, повёрнуты) — полосы рвутся, не идут ровной штриховкой
+		vec2 pr = mat2(vec2(0.83, 0.56), vec2(-0.56, 0.83)) * p;
+		float patchm = smoothstep(0.45, 0.75, texture(foam_tex, pr * 0.0065 + vec2(u_time * 0.002, 0.0)).r);
+		float streak = smoothstep(0.72, 0.95, st * 0.65 + st2 * 0.45) * patchm;
+		float web = smoothstep(0.66, 0.92, lace2 + st2 * 0.3) * trail;
+		foam = max(foam, (streak * 0.4 + web * 0.4) * storm * smoothstep(1.5, 5.0, d));
 	}
 	foam = max(foam, fft_foam * smoothstep(1.5, 4.0, d) * 0.55);
 	col = mix(col, vec3(0.93, 0.96, 0.97), foam);
@@ -250,7 +283,7 @@ void fragment() {
 		ALPHA = mix(0.96, 0.55, win);
 	} else {
 	ALBEDO = col * night_tint;
-	ROUGHNESS = mix(0.05, 0.6, foam);
+	ROUGHNESS = mix(mix(0.05, 0.14, storm), 0.6, foam);
 	METALLIC = 0.0;
 	SPECULAR = 0.55;
 	// прозрачность: на мелководье видно дно
