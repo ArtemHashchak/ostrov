@@ -30,7 +30,7 @@ func _layout(_seed_value: int) -> void:
 	for I in [east, south, north, atoll]:
 		routes.append({"a": main.id, "b": I.id, "gap": strait_gap(main, I)})
 	# пресный пруд в зоне выживания
-	lakes.append({"center": Vector2(-62.0, 86.0), "radius": 7.0, "level": 0.0, "island": main.id, "kind": &"pond"})
+	lakes.append({"center": SandboxZones.SURV_D + Vector2(-62.0, 86.0), "radius": 7.0, "level": 0.0, "island": main.id, "kind": &"pond"})
 	# остов корабля у западного берега
 	var wp := beach_point(main, deg_to_rad(150.0))
 	wreck_spots.append({"pos": wp + Vector2.from_angle(deg_to_rad(150.0)) * 14.0, "yaw": 0.4, "sink": 1.6, "island": main.id})

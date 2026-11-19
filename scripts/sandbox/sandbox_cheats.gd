@@ -11,7 +11,15 @@ const FLY_MAX := 120.0
 var player: Player
 var fly := false
 var god := true
-var infinite := false
+var infinite := true
+var zones: SandboxZones
+var world: World
+## Ветер, заданный ползунком в меню (м/с); < 0 — как у погоды.
+var wind_override := -1.0
+const WEATHER_CYCLE: Array[StringName] = [&"clear", &"cloudy", &"rain", &"storm"]
+const WEATHER_NAMES := {&"clear": "Ясно", &"cloudy": "Облачно", &"rain": "Дождь", &"storm": "Гроза", &"fog": "Туман"}
+const TIME_CYCLE: Array[float] = [7.0, 13.0, 19.0, 23.5]
+const TIME_NAMES: Array[String] = ["Утро", "День", "Закат", "Ночь"]
 var fly_speed := 14.0
 var _snapshot: Dictionary = {}   # id → сколько должно быть (бесконечные предметы)
 var _inf_t := 0.0
@@ -24,7 +32,16 @@ func _input(event: InputEvent) -> void:
 	if player == null or not is_instance_valid(player) or get_tree().paused or player.ui_open:
 		return
 	if event is InputEventKey and (event as InputEventKey).pressed and not (event as InputEventKey).echo:
-		if (event as InputEventKey).physical_keycode == KEY_V:
+		var kc := (event as InputEventKey).physical_keycode
+		if kc == KEY_F5:
+			cycle_weather()
+			get_viewport().set_input_as_handled()
+			return
+		if kc == KEY_F6:
+			cycle_time()
+			get_viewport().set_input_as_handled()
+			return
+		if kc == KEY_V:
 			# V с автоматом в руке — переключение режима огня (CombatController), не полёт
 			var wd := WeaponDef.of(StringName(player.call(&"held_item"))) if player.has_method(&"held_item") else null
 			if wd and wd.fire_modes.size() > 1 and not fly:
@@ -63,13 +80,74 @@ func set_god(on: bool) -> void:
 	_toast("Бессмертие: вкл" if on else "Бессмертие: выкл")
 	changed.emit()
 
-func set_infinite(on: bool) -> void:
+func set_infinite(on: bool, quiet: bool = false) -> void:
 	infinite = on
 	_snapshot.clear()
 	if on and player:
 		_take_snapshot()
-	_toast("Бесконечные предметы: вкл" if on else "Бесконечные предметы: выкл")
+	if zones:
+		zones.infinite_tables = on
+	if not quiet:
+		_toast("Бесконечные предметы: вкл" if on else "Бесконечные предметы: выкл")
 	changed.emit()
+
+# ------------------------------------------------------------ погода и время
+
+func _sky() -> Object:
+	return world.get(&"sky") if world else null
+
+## Погода сразу, без автоматической смены (на полигоне она стоит, пока её не сменят).
+func set_weather(w: StringName) -> void:
+	var sk := _sky()
+	if sk and sk.has_method(&"set_weather"):
+		sk.call(&"set_weather", w, true, false)
+	elif world:
+		world.set_weather(w, true)
+	_toast("Погода: %s" % WEATHER_NAMES.get(w, String(w)))
+	changed.emit()
+
+func current_weather() -> StringName:
+	return world.weather() if world else &"clear"
+
+func cycle_weather() -> void:
+	var i := WEATHER_CYCLE.find(current_weather())
+	set_weather(WEATHER_CYCLE[(i + 1) % WEATHER_CYCLE.size()])
+
+func set_time(h: float) -> void:
+	if world:
+		world.set_time_of_day(h)
+	var i := TIME_CYCLE.find(h)
+	_toast("Время: %02d:%02d%s" % [int(h), int(fmod(h, 1.0) * 60.0), "" if i < 0 else " — " + TIME_NAMES[i]])
+	changed.emit()
+
+func cycle_time() -> void:
+	var h := world.time_of_day() if world else 12.0
+	var nxt := TIME_CYCLE[0]
+	for t in TIME_CYCLE:
+		if t > h + 0.1:
+			nxt = t
+			break
+	set_time(nxt)
+
+## Ветер: v м/с (≥ 0) или −1 — вернуть ветер погоды.
+func set_wind(v: float) -> void:
+	wind_override = v
+	if v < 0.0:
+		var sk := _sky()
+		if sk and sk.has_method(&"set_weather"):
+			sk.call(&"set_weather", current_weather(), true, false)
+	changed.emit()
+
+func _apply_wind() -> void:
+	if wind_override < 0.0:
+		return
+	var sk := _sky()
+	if sk == null:
+		return
+	var cur: Variant = sk.get(&"_cur")
+	if cur is Dictionary:
+		(cur as Dictionary)["wspd"] = wind_override
+		(cur as Dictionary)["wind"] = clampf(wind_override / 6.0, 0.3, 4.0)
 
 func _take_snapshot() -> void:
 	_snapshot.clear()
@@ -97,6 +175,7 @@ func teleport(pos: Vector3, look: Variant = null) -> void:
 func _physics_process(delta: float) -> void:
 	if player == null or not is_instance_valid(player):
 		return
+	_apply_wind()
 	if god:
 		_god()
 	if infinite:

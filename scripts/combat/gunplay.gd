@@ -77,7 +77,7 @@ func update(delta: float) -> Vector2:
 	for i in steps:
 		kick_v += (-d.spring_stiffness * kick - d.spring_damping * kick_v) * h
 		kick += kick_v * h
-		gun_kick_v += (-320.0 * gun_kick - 26.0 * gun_kick_v) * h
+		gun_kick_v += (-320.0 * gun_kick - 31.0 * gun_kick_v) * h   # почти критическое затухание: откат возвращается без «дребезга»
 		gun_kick += gun_kick_v * h
 	heat = move_toward(heat, 0.0, 0.3 * delta)
 	return dl

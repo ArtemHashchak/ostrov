@@ -18,6 +18,8 @@ var _god_cb: CheckBox
 var _inf_cb: CheckBox
 var _time: HSlider
 var _time_lbl: Label
+var _wind: HSlider
+var _wind_lbl: Label
 var _spawn_opt: OptionButton
 var _spawn_ids: Array = []
 var _team_opt: OptionButton
@@ -141,16 +143,43 @@ func _tools_col() -> Control:
 			world.set_time_of_day(x)
 		_time_lbl.text = "Время: %02d:%02d" % [int(x), int(fmod(x, 1.0) * 60.0)])
 	col.add_child(_time)
+	var tr := HBoxContainer.new()
+	col.add_child(tr)
+	for i in SandboxCheats.TIME_CYCLE.size():
+		var h: float = SandboxCheats.TIME_CYCLE[i]
+		var b := Button.new()
+		b.text = SandboxCheats.TIME_NAMES[i]
+		b.pressed.connect(func() -> void:
+			cheats.set_time(h)
+			_time.set_value_no_signal(h)
+			_time_lbl.text = "Время: %02d:%02d" % [int(h), int(fmod(h, 1.0) * 60.0)])
+		tr.add_child(b)
 	var wr := HBoxContainer.new()
 	col.add_child(wr)
-	for e in [[&"clear", "Ясно"], [&"rain", "Дождь"], [&"storm", "Шторм"]]:
+	for w: StringName in SandboxCheats.WEATHER_CYCLE:
 		var b := Button.new()
-		b.text = e[1]
-		b.pressed.connect(func() -> void:
-			if world:
-				world.set_weather(e[0], true)
-				_toast("Погода: " + String(e[1])))
+		b.text = SandboxCheats.WEATHER_NAMES[w]
+		b.pressed.connect(func() -> void: cheats.set_weather(w))
 		wr.add_child(b)
+	_wind_lbl = UITheme.label("Ветер: как у погоды", 14)
+	col.add_child(_wind_lbl)
+	_wind = HSlider.new()
+	_wind.min_value = -1.0
+	_wind.max_value = 30.0
+	_wind.step = 1.0
+	_wind.value = -1.0
+	_wind.custom_minimum_size = Vector2(230, 22)
+	_wind.value_changed.connect(func(x: float) -> void:
+		cheats.set_wind(x)
+		_wind_lbl.text = "Ветер: как у погоды" if x < 0.0 else "Ветер: %d м/с" % int(x))
+	col.add_child(_wind)
+	col.add_child(UITheme.label("F5 — сменить погоду · F6 — время суток", 13, Color(0.8, 0.8, 0.8)))
+	var ra := Button.new()
+	ra.text = "Вернуть убитых животных"
+	ra.pressed.connect(func() -> void:
+		var n := zones.respawn_all()
+		_toast("Возвращено животных: %d" % n))
+	col.add_child(ra)
 	col.add_child(_gap())
 	col.add_child(UITheme.label("Создать у прицела", 15, UITheme.ACCENT, true))
 	_spawn_opt = OptionButton.new()

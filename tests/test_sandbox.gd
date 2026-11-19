@@ -61,10 +61,10 @@ func run() -> void:
 		await shot("%02d_%s" % [i, id])
 		i += 1
 	# крупно: подписи читаются
-	for e in [["92_flora_row", Vector3(-74, 0, -47), Vector3(-74, 0.8, -55)],
-			["93_fauna_pens", Vector3(55, 0, -50), Vector3(55, 0.6, -63)],
-			["94_items_table", Vector3(-12, 0, 12.5), Vector3(-12, 0.9, 16)],
-			["95_build_house", Vector3(-90, 0, -4), Vector3(-92, 1.5, -15)]]:
+	for e in [["92_flora_row", Vector3(-30, 0, -96), Vector3(-30, 0.8, -100)],
+			["93_fauna_pens", Vector3(48, 0, -56), Vector3(48, 0.6, -63)],
+			["94_items_table", Vector3(-28, 0, -91.5), Vector3(-28, 0.9, -88)],
+			["95_build_house", Vector3(-38, 0, -47), Vector3(-43.5, 1.5, -54.7)]]:
 		var at: Vector3 = e[1]
 		at.y = SandboxProps.ground(at.x, at.z) + 0.2
 		var lk: Vector3 = e[2]
@@ -106,7 +106,7 @@ func run() -> void:
 	# клик по карте — перемещение
 	sb.panel.open_panel()
 	await wait_frames(3)
-	var target := Vector2(-60.0, 74.0)
+	var target := Vector2(50.0, -24.0)
 	sb.panel.call(&"_on_map_click", target)
 	await wait(0.5)
 	check(Vector2(p.global_position.x, p.global_position.z).distance_to(target) < 2.0 and not sb.panel.visible,
@@ -157,7 +157,7 @@ func run() -> void:
 	# приручение по запросу: кабан в загоне приручения
 	var boar: Animal = null
 	for e: Dictionary in z._pens:
-		if is_instance_valid(e.a) and (e.c as Vector3).distance_to(Vector3(62, 0, -43)) < 0.5:
+		if is_instance_valid(e.a) and (e.c as Vector3).distance_to(Vector3(63, 0, -63)) < 0.5:
 			boar = e.a
 	if boar:
 		fa.tame(boar, p)

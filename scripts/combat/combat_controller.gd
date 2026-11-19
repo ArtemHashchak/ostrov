@@ -466,6 +466,11 @@ func _update_pose(delta: float) -> void:
 		&"throw":
 			_pose_throw()
 
+## Кривая входа в прицел: smootherstep (нулевые скорость и ускорение на концах).
+static func _ease_ads(x: float) -> float:
+	x = clampf(x, 0.0, 1.0)
+	return x * x * x * (x * (x * 6.0 - 15.0) + 10.0)
+
 func _pose_gun() -> void:
 	var roll := deg_to_rad(-80.0)
 	var pistol := wid == &"pistol" or bool(w.get("pistol", false))
@@ -485,12 +490,17 @@ func _pose_gun() -> void:
 	if wdef:
 		target = Vector3(0.0, 0.0, -wdef.ads_distance)
 	var ads_r := target - Basis.from_euler(ads_rr) * sight_rel
-	var r := hip_r.lerp(ads_r, smoothstep(0.0, 1.0, ads))
-	var rr := hip_rr.lerp(ads_rr, smoothstep(0.0, 1.0, ads))
+	# плавный вход в прицел: «smootherstep» без рывка на концах + лёгкий провал/крен оружия в середине пути
+	var ae := _ease_ads(ads)
+	var r := hip_r.lerp(ads_r, ae)
+	var rr := hip_rr.lerp(ads_rr, ae)
+	var mid := sin(ae * PI)
+	r += Vector3(0.006, -0.012, 0.0) * mid
+	rr.z += deg_to_rad(-4.0) * mid
 	# перезарядка
 	var rp := _reload_progress()
 	if rp < 1.0:
-		var lift := smoothstep(0.0, 0.12, rp) * (1.0 - smoothstep(0.88, 1.0, rp))
+		var lift := smoothstep(0.0, 0.18, rp) * (1.0 - smoothstep(0.8, 1.0, rp))
 		if mag:
 			# магазин: оружие наклонено к себе боком, левая рука меняет магазин
 			r = r.lerp(Vector3(0.08, -0.3, -0.36) if not pistol else Vector3(0.06, -0.26, -0.36), lift)
@@ -536,7 +546,7 @@ func _pose_gun() -> void:
 	var hand_off := Basis.from_euler(lr) * Vector3(0.0, 0.0, -0.075)
 	var l := fh - hand_off + Vector3(0.0, -0.035, 0.0)
 	if rp < 1.0:
-		var lift2 := smoothstep(0.0, 0.12, rp) * (1.0 - smoothstep(0.88, 1.0, rp))
+		var lift2 := smoothstep(0.0, 0.18, rp) * (1.0 - smoothstep(0.8, 1.0, rp))
 		if mag:
 			# рука к магазину → вниз (новый из подсумка) → обратно
 			var mg := _rel_to_arm(hands.right_arm, "Mag")

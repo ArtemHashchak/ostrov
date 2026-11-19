@@ -6,18 +6,29 @@ extends Node3D
 
 const P := preload("res://scripts/sandbox/sandbox_props.gd")
 
+## Компактная раскладка: всё рядом с центром (HUB) — меньше ходьбы, быстрые точки остались.
+const HUB := Vector2(10.0, -80.0)
 ## Зоны: id → {name, c: Vector2 (центр), r: радиус «чистой» области}.
 const ZONES := {
-	&"hub": {"name": "Центр", "c": Vector2(0, 0), "r": 18.0},
-	&"flora": {"name": "Растения и ресурсы", "c": Vector2(-62, -64), "r": 40.0},
-	&"fauna": {"name": "Животные", "c": Vector2(59, -62), "r": 34.0},
-	&"items": {"name": "Предметы", "c": Vector2(0, 24), "r": 22.0},
-	&"range": {"name": "Стрельбище", "c": Vector2(0, 66), "r": 30.0},
-	&"build": {"name": "Стройка", "c": Vector2(-80, 4), "r": 34.0},
-	&"survival": {"name": "Выживание", "c": Vector2(-60, 74), "r": 26.0},
-	&"bots": {"name": "Арена ботов", "c": Vector2(68, 62), "r": 26.0},
-	&"pack": {"name": "Пак моделей", "c": Vector2(40, 8), "r": 18.0},
+	&"hub": {"name": "Центр", "c": Vector2(10, -80), "r": 10.0},
+	&"flora": {"name": "Растения и ресурсы", "c": Vector2(-30, -110), "r": 24.0},
+	&"fauna": {"name": "Животные", "c": Vector2(52, -66), "r": 24.0},
+	&"items": {"name": "Предметы", "c": Vector2(-28, -76), "r": 17.0},
+	&"range": {"name": "Стрельбище", "c": Vector2(10, -60), "r": 12.0},
+	&"build": {"name": "Стройка", "c": Vector2(-30, -40), "r": 20.0},
+	&"survival": {"name": "Выживание", "c": Vector2(46, -26), "r": 20.0},
+	&"bots": {"name": "Арена ботов", "c": Vector2(-62, -60), "r": 15.0},
+	&"pack": {"name": "Пак моделей", "c": Vector2(42, -112), "r": 18.0},
 }
+## Стройка: исходная раскладка (центр (−81, 7)) ужата и перенесена к BUILD_C.
+const BUILD_C := Vector2(-30.0, -40.0)
+## Выживание: сдвиг исходной раскладки (пруд в SandboxArch тоже сдвинут).
+const SURV_D := Vector2(110.0, -98.0)
+## Пирс и мусорный пляж — на северном берегу, ближе к центру.
+const PIER_ANGLE := -PI * 0.5 + 0.25
+const BEACH_ANGLE := -PI * 0.5 - 0.25
+## Через сколько секунд убитое животное/акула появляется снова.
+const RESPAWN_S := 12.0
 
 const FLORA_NAMES := {
 	&"palm": "Кокосовая пальма", &"broadleaf": "Лиственное дерево", &"banyan": "Баньян", &"mangrove": "Мангровое дерево",
@@ -40,7 +51,7 @@ var _ext: Dictionary = {}         # id → Array[Node] (животные, чер
 var _dummies: Array = []          # [{dummy, label, n}]
 var _bridge_info: Dictionary = {}
 var _pens: Array = []             # [{a: Animal, c: Vector3, r: float}] — загоны держат животных
-const FLORA_AREA := Rect2(-100.0, -95.0, 75.0, 50.0)
+const FLORA_AREA := Rect2(-56.0, -126.0, 56.0, 30.0)
 
 func _ready() -> void:
 	process_physics_priority = 50   # после Fauna: поправляем позицию за оградой
@@ -50,25 +61,25 @@ func _ready() -> void:
 ## Записи для SandboxFlora.showcase и зоны без рассадки — вызывать до создания флоры.
 static func flora_layout() -> Array:
 	var out: Array = []
-	var x := -94.0
+	var x := -51.0
 	for i in 5:
-		out.append({"kind": &"palm", "pos": Vector2(x, -86.0), "idx": i})
-		x += 8.0
+		out.append({"kind": &"palm", "pos": Vector2(x, -120.0), "idx": i})
+		x += 6.0
 	for i in 3:
-		out.append({"kind": &"mangrove", "pos": Vector2(x + 2.0, -86.0), "idx": i})
-		x += 8.0
-	x = -94.0
+		out.append({"kind": &"mangrove", "pos": Vector2(x, -120.0), "idx": i})
+		x += 6.0
+	x = -51.0
 	for i in 4:
-		out.append({"kind": &"broadleaf", "pos": Vector2(x, -71.0), "idx": i})
-		x += 9.0
-	out.append({"kind": &"liana", "pos": Vector2(x - 9.0, -71.0)})
+		out.append({"kind": &"broadleaf", "pos": Vector2(x, -110.0), "idx": i})
+		x += 7.0
+	out.append({"kind": &"liana", "pos": Vector2(x - 7.0, -110.0)})
 	for i in 2:
-		out.append({"kind": &"banyan", "pos": Vector2(x + 6.0, -71.0), "idx": i})
-		x += 15.0
+		out.append({"kind": &"banyan", "pos": Vector2(x + 4.0, -110.0), "idx": i})
+		x += 12.0
 	var res: Array[StringName] = [&"bush", &"herb", &"wild_taro", &"wild_maize", &"wild_melon", &"berries", &"cotton",
 		&"stick", &"stone", &"boulder", &"iron_ore", &"sulfur"]
 	for i in res.size():
-		out.append({"kind": res[i], "pos": Vector2(-92.0 + i * 5.0, -55.0)})
+		out.append({"kind": res[i], "pos": Vector2(-50.0 + i * 3.6, -100.0)})
 	return out
 
 static func clear_zones() -> Array:
@@ -76,9 +87,12 @@ static func clear_zones() -> Array:
 	for id: StringName in ZONES:
 		var z: Dictionary = ZONES[id]
 		out.append([Vector3(z.c.x, 0.0, z.c.y), float(z.r)])
-	# дорожка стрельбища до 100 м — без деревьев
-	for zz in [100.0, 125.0, 145.0]:
-		out.append([Vector3(-2.0, 0.0, zz), 16.0])
+	# дорожка стрельбища до 100 м (от центра вглубь острова, +z) — без деревьев
+	for zz in [-45.0, -25.0, -5.0, 15.0, 35.0]:
+		out.append([Vector3(10.0, 0.0, zz), 14.0])
+	# пруд выживания, витрины пака кораллов и морской живности
+	out.append([Vector3(48.0, 0.0, -12.0), 10.0])
+	out.append([Vector3(50.0, 0.0, -88.0), 22.0])
 	return out
 
 # ------------------------------------------------------------ сборка
@@ -128,6 +142,10 @@ func reset_zone(id: StringName) -> void:
 		if is_instance_valid(n):
 			(n as Node).queue_free()
 	_dummies = _dummies.filter(func(d: Dictionary) -> bool: return is_instance_valid(d.dummy) and not (d.dummy as Node).is_queued_for_deletion())
+	_table_items = _table_items.filter(func(e: Dictionary) -> bool: return e.zone != id)
+	_respawns = _respawns.filter(func(e: Dictionary) -> bool: return not (id == &"fauna" and e.kind != &"shark"))
+	if id == &"fauna":
+		_pens.clear()
 	if id == &"flora":
 		var fl := Flora.instance()
 		if fl is SandboxFlora:
@@ -182,20 +200,20 @@ func _place_xf(id: StringName, def_id: StringName, xf: Transform3D, anchor: Dict
 # ------------------------------------------------------------ центр
 
 func _hub(root: Node3D) -> void:
-	P.signpost(root, 0.0, 0.0, "ПОЛИГОН", "F1 или M — меню и быстрое перемещение\nV — полёт · Shift — быстрее · колесо — скорость")
-	var dirs := {&"flora": "Растения", &"fauna": "Животные", &"items": "Предметы и оружие", &"build": "Стройка",
-		&"survival": "Выживание", &"bots": "Арена ботов", &"pack": "Пак моделей"}
+	P.signpost(root, HUB.x, HUB.y, "ПОЛИГОН", "F1 или M — меню · F5 — погода · F6 — время суток\nV — полёт · Shift — быстрее · колесо — скорость")
+	var dirs := {&"flora": "Растения", &"fauna": "Животные", &"items": "Предметы", &"range": "Стрельбище",
+		&"build": "Стройка", &"survival": "Выживание", &"bots": "Арена ботов", &"pack": "Пак моделей"}
 	for id: StringName in dirs:
 		var c: Vector2 = ZONES[id].c
-		var d := c.normalized()
-		var p := d * 7.0
-		P.tag(root, p.x, p.y, "%s  →  %d м" % [dirs[id], int(c.length())], 1.3, 40.0)
-	_stand(&"hub", "Центр", 0.0, -7.0, 0.0, 0.0, 2.6)
+		var d := (c - HUB).normalized()
+		var p := HUB + d * 6.0
+		P.tag(root, p.x, p.y, "%s  →  %d м" % [dirs[id], int((c - HUB).length())], 1.3, 40.0)
+	_stand(&"hub", "Центр", HUB.x, HUB.y - 6.0, HUB.x, HUB.y + 10.0, 1.6)
 
 # ------------------------------------------------------------ растения
 
 func _flora(root: Node3D) -> void:
-	P.signpost(root, -71.0, -44.0, "РАСТЕНИЯ И РЕСУРСЫ", "Рубите, собирайте, копайте — мир не восстанавливается")
+	P.signpost(root, -12.0, -98.0, "РАСТЕНИЯ И РЕСУРСЫ", "Рубите, собирайте, копайте — мир не восстанавливается")
 	for e: Dictionary in flora_layout():
 		var q: Vector2 = e.pos
 		var nm: String = FLORA_NAMES.get(e.kind, String(e.kind))
@@ -205,23 +223,24 @@ func _flora(root: Node3D) -> void:
 			continue
 		var tree: bool = e.kind in [&"palm", &"broadleaf", &"banyan", &"mangrove"]
 		P.tag(root, q.x, q.y + (3.0 if tree else 1.6), nm, 1.0 if tree else 1.0, 30.0)
-	P.tag(root, -71.0, -67.0, "Лиана на дереве — волокно", 1.0, 30.0)
-	_stand(&"flora", "Растения и ресурсы", -62.0, -40.0, -62.0, -66.0, 2.0)
+	P.tag(root, -30.0, -107.0, "Лиана на дереве — волокно", 1.0, 30.0)
+	_stand(&"flora", "Растения и ресурсы", -28.0, -94.0, -28.0, -112.0, 2.0)
 
 # ------------------------------------------------------------ животные
 
 func _fauna(root: Node3D) -> void:
-	P.signpost(root, 47.0, -37.0, "ЖИВОТНЫЕ", "Все виды в загонах · еду можно дать с руки (E)")
+	P.signpost(root, 30.0, -55.0, "ЖИВОТНЫЕ", "Все виды в ряд · еду можно дать с руки (E)\nубитые появляются снова через %d с" % int(RESPAWN_S))
 	var fa := Fauna.instance()
+	# два ряда по 6 загонов вплотную: 10 видов + приручение + стол с кормом
 	var slots: Array[Vector2] = []
-	for row in 3:
-		for col in 4:
-			slots.append(Vector2(45.0 + col * 9.5, -76.0 + row * 10.0))
+	for row in 2:
+		for col in 6:
+			slots.append(Vector2(33.0 + col * 7.5, -74.0 + row * 11.0))
 	for i in SPECIES_ORDER.size():
 		var sp := SPECIES_ORDER[i]
 		var s := slots[i]
 		var small := sp in [&"crab", &"scorpion", &"spider", &"snake", &"iguana"]
-		var r := 2.6 if small else 3.6
+		var r := 2.6 if small else 3.4
 		P.pen(root, s.x, s.y, r)
 		var nm := sp as String
 		if fa:
@@ -229,37 +248,111 @@ func _fauna(root: Node3D) -> void:
 			if a:
 				nm = String(a.cfg.get("name", sp))
 		P.tag(root, s.x, s.y + r + 0.4, nm, 1.5, 30.0)
-	# птицы — стайками над зоной
+	# птицы — стайками над рядами
 	if fa:
 		for i in BIRDS.size():
-			var s := slots[SPECIES_ORDER.size() + i] if SPECIES_ORDER.size() + i < slots.size() else Vector2(80, -50)
-			for a in fa.spawn_flock(BIRDS[i], Vector3(s.x, 0.0, s.y), 3 if BIRDS[i] != &"bat" else 4, 7.0):
-				_own(&"fauna", a)
+			var s := Vector2(40.0 + i * 15.0, -84.0)
+			_flock(fa, BIRDS[i], Vector3(s.x, 0.0, s.y), 3 if BIRDS[i] != &"bat" else 4)
 			P.tag(root, s.x, s.y, ["Попугаи", "Чайки", "Летучие мыши (ночью)"][i], 1.2, 40.0)
-	# стол с кормом для приручения
-	var t := P.table(root, 71.0, -42.0, 3.0)
+	# загон приручения: дикий кабан, рядом стол с кормом
+	var tp := slots[SPECIES_ORDER.size()]
+	P.pen(root, tp.x, tp.y, 3.4)
+	if fa:
+		_penned(fa, &"boar", tp, 3.4)
+	P.tag(root, tp.x, tp.y + 4.0, "Приручение: дайте кабану корм с руки (E)\nили меню F1 → «Приручить у прицела»", 1.5, 30.0)
+	var fp := slots[SPECIES_ORDER.size() + 1]
+	var t := P.table(root, fp.x, fp.y, 3.0)
 	var foods: Array[StringName] = []
 	for id: StringName in [&"banana", &"mango", &"papaya", &"coconut", &"berries", &"seed_taro", &"taro", &"meat_raw", &"fish_raw"]:
 		if Items.get_item(id):
 			foods.append(id)
 	_lay(&"fauna", root, t, foods, 3)
-	P.tag(root, 71.0, -42.0, "Корм для приручения", 1.5, 30.0)
-	# загон приручения: дикий кабан, корм на столе рядом
-	P.pen(root, 62.0, -43.0, 3.6)
-	if fa:
-		_penned(fa, &"boar", Vector2(62.0, -43.0), 3.6)
-	P.tag(root, 62.0, -39.0, "Приручение: дайте кабану корм с руки (E)\nили меню F1 → «Приручить у прицела»", 1.5, 30.0)
-	_stand(&"fauna", "Животные", 60.0, -36.0, 60.0, -62.0, 0.5)
+	P.tag(root, fp.x, fp.y, "Корм для приручения", 1.5, 30.0)
+	_stand(&"fauna", "Животные", 52.0, -54.0, 52.0, -70.0, 0.5)
 
-## Животное в загоне: держится внутри ограды, пока не приручено.
+## Животное в загоне: держится внутри ограды, пока не приручено; убитое появляется снова.
 func _penned(fa: Fauna, sp: StringName, s: Vector2, r: float) -> Animal:
 	var a := fa.spawn(sp, Vector3(s.x, P.ground(s.x, s.y) + 0.3, s.y), r * 0.45)
 	if a:
 		_own(&"fauna", a)
-		_pens.append({"a": a, "c": Vector3(s.x, 0.0, s.y), "r": maxf(0.6, r - 0.5)})
+		var pen := {"a": a, "c": Vector3(s.x, 0.0, s.y), "r": maxf(0.6, r - 0.5)}
+		_pens.append(pen)
+		_track({"kind": &"pen", "sp": sp, "s": s, "r": r, "node": a})
 	return a
 
-func _physics_process(_delta: float) -> void:
+func _flock(fa: Fauna, sp: StringName, c: Vector3, n: int) -> void:
+	for a in fa.spawn_flock(sp, c, n, 7.0):
+		_own(&"fauna", a)
+		_track({"kind": &"bird", "sp": sp, "c": c, "node": a})
+
+# ------------------------------------------------------------ возрождение убитых
+
+## Записи: {kind: pen|bird|shark, node, t (таймер до возрождения, −1 — жив), …}
+var _respawns: Array = []
+
+func _track(e: Dictionary) -> void:
+	e["t"] = -1.0
+	_respawns.append(e)
+
+static func _is_gone(n: Variant) -> bool:
+	if not is_instance_valid(n):
+		return true
+	var o := n as Node
+	if o.is_queued_for_deletion():
+		return true
+	return o.has_method(&"is_dead") and bool(o.call(&"is_dead"))
+
+func _tick_respawn(dt: float) -> void:
+	for e: Dictionary in _respawns:
+		if float(e.t) < 0.0:
+			if _is_gone(e.node):
+				e.t = RESPAWN_S
+			continue
+		e.t = float(e.t) - dt
+		if float(e.t) <= 0.0:
+			_respawn(e)
+
+## Вернуть всех убитых сразу (кнопка в меню F1).
+func respawn_all() -> int:
+	var n := 0
+	for e: Dictionary in _respawns:
+		if _is_gone(e.node):
+			_respawn(e)
+			n += 1
+	return n
+
+func _respawn(e: Dictionary) -> void:
+	e.t = -1.0
+	var old: Variant = e.node
+	if is_instance_valid(old) and not (old as Node).is_queued_for_deletion():
+		(old as Node).queue_free()
+	var fa := Fauna.instance()
+	match e.kind:
+		&"pen":
+			if fa == null:
+				return
+			var s: Vector2 = e.s
+			var a := fa.spawn(e.sp, Vector3(s.x, P.ground(s.x, s.y) + 0.3, s.y), float(e.r) * 0.45)
+			if a:
+				_own(&"fauna", a)
+				_pens.append({"a": a, "c": Vector3(s.x, 0.0, s.y), "r": maxf(0.6, float(e.r) - 0.5)})
+				e.node = a
+		&"bird":
+			if fa == null:
+				return
+			var arr := fa.spawn_flock(e.sp, e.c, 1, 7.0)
+			if not arr.is_empty():
+				_own(&"fauna", arr[0])
+				e.node = arr[0]
+		&"shark":
+			var sea := get_tree().get_first_node_in_group(&"sea") as Sea
+			if sea:
+				var sh := sea.spawn_shark(e.sp, e.c, float(e.ring), int(e.seed) + randi() % 1000)
+				_own(&"sea", sh)
+				e.node = sh
+
+func _physics_process(delta: float) -> void:
+	_tick_respawn(delta)
 	for e: Dictionary in _pens:
 		var a: Variant = e.a
 		if not is_instance_valid(a):
@@ -292,13 +385,38 @@ func _lay(zone: StringName, _root: Node3D, table: StaticBody3D, ids: Array, n: i
 		var lx := -step * (ids.size() - 1) * 0.5 + step * i
 		var w := table.global_transform * Vector3(lx, 0.98, (0.18 if i % 2 == 0 else -0.18))
 		var cnt := mini(n, Inventory.stack_of(id))
-		var pk := ItemPickup.spawn(self, w, [{"id": id, "n": cnt}])
-		if pk:
-			pk.freeze = true
-			pk.freeze_mode = RigidBody3D.FREEZE_MODE_KINEMATIC
-			_own(zone, pk)
-			var l := P.label(pk, w + Vector3(0, 0.3, 0), Items.item_name(id), 30, P.SIGN_COLOR, 10.0)
-			l.pixel_size = 0.0032
+		var e := {"zone": zone, "pos": w, "id": id, "n": cnt, "node": null}
+		_table_items.append(e)
+		_spawn_table_item(e)
+
+## Предметы на столах: взятый предмет сразу появляется снова (если включены бесконечные предметы).
+var infinite_tables := true
+var _table_items: Array = []
+var _table_t := 0.0
+
+func _spawn_table_item(e: Dictionary) -> void:
+	var w: Vector3 = e.pos
+	var pk := ItemPickup.spawn(self, w, [{"id": e.id, "n": e.n}])
+	e.node = pk
+	if pk:
+		pk.freeze = true
+		pk.freeze_mode = RigidBody3D.FREEZE_MODE_KINEMATIC
+		_own(e.zone, pk)
+		var l := P.label(pk, w + Vector3(0, 0.3, 0), Items.item_name(e.id), 30, P.SIGN_COLOR, 10.0)
+		l.pixel_size = 0.0032
+
+func _tick_tables(dt: float) -> void:
+	if not infinite_tables:
+		return
+	_table_t -= dt
+	if _table_t > 0.0:
+		return
+	_table_t = 0.25
+	for e: Dictionary in _table_items:
+		var n: Variant = e.node
+		if n == null or not is_instance_valid(n) or (n as Node).is_queued_for_deletion():
+			if (_roots.has(e.zone) and is_instance_valid(_roots[e.zone])):
+				_spawn_table_item(e)
 
 static func all_items() -> Array[StringName]:
 	var arr: Array[StringName] = []
@@ -319,43 +437,43 @@ const KIND_NAMES := {&"resource": "Ресурсы", &"tool": "Инструмен
 	&"build": "Стройка", &"misc": "Разное", &"ammo": "Боеприпасы", &"medicine": "Лечение"}
 
 func _items(root: Node3D) -> void:
-	P.signpost(root, -9.0, 11.0, "ПРЕДМЕТЫ", "Все предметы игры — подходите и берите (E)")
+	P.signpost(root, -12.0, -64.0, "ПРЕДМЕТЫ", "Все предметы игры — берите (E), на столе они не кончаются")
 	var ids := all_items().filter(func(id: StringName) -> bool: return Items.get_item(id).kind != &"weapon")
 	var per := 8
 	var tables := ceili(ids.size() / float(per))
-	var cols := 5
+	var cols := 3
 	for ti in tables:
 		var col := ti % cols
 		var row := ti / cols
-		var x := -24.0 + col * 12.0
-		var z := 16.0 + row * 5.0
+		var x := -40.0 + col * 12.0
+		var z := -88.0 + row * 4.5
 		var t := P.table(root, x, z, 4.0)
 		var part := ids.slice(ti * per, mini(ids.size(), (ti + 1) * per))
 		_lay(&"items", root, t, part, 1)
-	_stand(&"items", "Предметы", 0.0, 9.0, 0.0, 22.0, 0.5)
+	_stand(&"items", "Предметы", -10.0, -76.0, -28.0, -76.0, 0.5)
 
 func _range(root: Node3D) -> void:
-	P.signpost(root, -15.0, 42.0, "СТРЕЛЬБИЩЕ", "Мишени на 10, 25, 50 и 100 м · гонги, бумага, чучела\nПКМ — прицел · R — перезарядка · V — режим огня")
+	P.signpost(root, -5.0, -70.0, "СТРЕЛЬБИЩЕ", "Мишени на 10, 25, 50 и 100 м · гонги, бумага, чучела\nПКМ — прицел · R — перезарядка · V — режим огня")
 	# стойка с оружием и боеприпасами
 	var weapons := all_items().filter(func(id: StringName) -> bool:
 		var d := Items.get_item(id)
 		return d.kind == &"weapon" or d.kind == &"ammo" or String(id).contains("arrow") or String(id).contains("bolt") \
 			or String(id).contains("bullet") or String(id).contains("powder") or String(id).contains("shot"))
 	var half := ceili(weapons.size() / 2.0)
-	var t1 := P.table(root, -5.0, 38.0, 4.5)
+	var t1 := P.table(root, 5.0, -70.0, 4.5)
 	_lay(&"range", root, t1, weapons.slice(0, half), 20)
-	var t2 := P.table(root, 5.0, 38.0, 4.5)
+	var t2 := P.table(root, 15.0, -70.0, 4.5)
 	_lay(&"range", root, t2, weapons.slice(half), 20)
-	P.tag(root, 0.0, 37.0, "Оружие и боеприпасы", 1.6, 30.0)
+	P.tag(root, 10.0, -71.0, "Оружие и боеприпасы", 1.6, 30.0)
 	# линия стрельбы
 	# дорожка 10/25/50/100 м: бумага, гонги, чучела, образцы поверхностей (SandboxRange)
-	var rg := SandboxRange.build(root, Vector3(0.0, P.ground(0.0, 41.0), 41.0), Vector3.BACK,
+	var rg := SandboxRange.build(root, Vector3(10.0, P.ground(10.0, -67.0), -67.0), Vector3.BACK,
 		func(x: float, z: float) -> float: return P.ground(x, z))
 	for dm: TrainingDummy in rg.dummies:
 		var l := P.label(root, dm.global_position + Vector3.UP * 2.15, "", 44, Color(1.0, 0.6, 0.4), 120.0)
 		_dummies.append({"dummy": dm, "label": l, "n": 0})
-	_dummy(&"range", root, -20.0, 36.0, "Ближний бой")
-	_stand(&"range", "Стрельбище", 0.0, 40.0, 0.0, 70.0, 1.2)
+	_dummy(&"range", root, -4.0, -62.0, "Ближний бой")
+	_stand(&"range", "Стрельбище", 10.0, -68.5, 10.0, -40.0, 1.2)
 
 func _dummy(zone: StringName, root: Node3D, x: float, z: float, title: String) -> void:
 	var d := TrainingDummy.new()
@@ -366,7 +484,8 @@ func _dummy(zone: StringName, root: Node3D, x: float, z: float, title: String) -
 	var l := P.label(root, Vector3(x, P.ground(x, z) + 2.15, z), "", 44, Color(1.0, 0.6, 0.4), 80.0)
 	_dummies.append({"dummy": d, "label": l, "n": 0})
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_tick_tables(delta)
 	for e: Dictionary in _dummies:
 		var d := e.dummy as TrainingDummy
 		if not is_instance_valid(d):
@@ -390,17 +509,19 @@ func _float_number(pos: Vector3, amount: float) -> void:
 # ------------------------------------------------------------ стройка
 
 func _build(root: Node3D) -> void:
-	P.signpost(root, -56.0, -5.0, "СТРОЙКА", "Все постройки: готовые и чертежи · B — меню стройки")
+	var sg := _b(-56.0, -5.0)
+	P.signpost(root, sg.x, sg.y, "СТРОЙКА", "Все постройки: готовые и чертежи · B — меню стройки")
 	var bm := _bm()
 	if bm == null:
 		return
 	# флаг команды и территория
-	var fz := Vector2(-74.0, 26.0)
+	var fz := _b(-74.0, 26.0)
 	var flag := bm.place_flag(0, Vector3(fz.x, P.ground(fz.x, fz.y), fz.y), 0.0)
 	_own(&"build", flag)
 	P.tag(root, fz.x, fz.y, "Флаг команды — возрождение\nтерритория 40 м (видна в режиме стройки)", 3.6)
 	# дом: стены, окно, проём, дверь, крыша
-	var base := Transform3D(Basis(), Vector3(-96.0, P.ground(-96.0, -14.0), -14.0))
+	var hb := _b(-96.0, -14.0)
+	var base := Transform3D(Basis(), Vector3(hb.x, P.ground(hb.x, hb.y), hb.y))
 	var w1 := _place_xf(&"build", &"wall", base)
 	_place_xf(&"build", &"wall_window", base * Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(1.5, 0, -1.5)))
 	var w3 := _place_xf(&"build", &"wall_door", base * Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0, -3.0)))
@@ -413,9 +534,9 @@ func _build(root: Node3D) -> void:
 		var ds := bm.find_socket(&"door", w3.global_position, 3.0)
 		if not ds.is_empty():
 			_place_xf(&"build", &"door", ds.xform)
-	P.tag(root, -96.0, -10.5, "Дом: стены, окно, дверь, крыша", 3.2)
+	_tb(root, -96.0, -10.5, "Дом: стены, окно, дверь, крыша", 3.2)
 	# платформа на сваях + лестница + стена с окном
-	var plat := _place(&"build", &"platform", -84.0, -16.0)
+	var plat := _pb(&"platform", -84.0, -16.0)
 	if plat:
 		var s := bm.find_socket(&"wall", plat.base_xform * Vector3(0, BuildDefs.DECK_H, -1.5), 1.0)
 		if not s.is_empty():
@@ -423,58 +544,75 @@ func _build(root: Node3D) -> void:
 		var st := bm.find_socket(&"stairs", plat.base_xform * Vector3(0, 0, 3.0), 3.0)
 		if not st.is_empty():
 			_place_xf(&"build", &"stairs", st.xform, {}, st.ctx)
-	P.tag(root, -84.0, -11.0, "Платформа, лестница", 3.0)
-	_place(&"build", &"shelter", -72.0, -16.0, 0.4)
-	P.tag(root, -72.0, -13.0, "Шалаш", 2.4)
-	_place(&"build", &"fire_pit", -65.0, -14.0)
-	P.tag(root, -65.0, -14.0, "Каменный очаг", 1.3)
+	_tb(root, -84.0, -11.0, "Платформа, лестница", 3.0)
+	_pb(&"shelter", -72.0, -16.0, 0.4)
+	_tb(root, -72.0, -13.0, "Шалаш", 2.4)
+	_pb(&"fire_pit", -65.0, -14.0)
+	_tb(root, -65.0, -14.0, "Каменный очаг", 1.3)
 	# оборона: частокол с воротами, колья, вышка, фундамент
+	var pq := _b(-98.0, 4.0)
 	for i in 4:
-		var x := -98.0 + i * 3.0
-		var xf := Transform3D(Basis(), Vector3(x, P.ground(x, 4.0), 4.0))
+		var x := pq.x + i * 3.0
+		var xf := Transform3D(Basis(), Vector3(x, P.ground(x, pq.y), pq.y))
 		_place_xf(&"build", &"gate" if i == 2 else &"palisade", xf)
-	P.tag(root, -93.5, 5.5, "Частокол и ворота", 3.4)
-	_place(&"build", &"spikes", -84.0, 6.0)
-	P.tag(root, -84.0, 6.0, "Колья — ловушка", 1.6)
-	var tower := _place(&"build", &"watchtower", -74.0, 6.0)
+	_tb(root, -93.5, 5.5, "Частокол и ворота", 3.4)
+	_pb(&"spikes", -84.0, 6.0)
+	_tb(root, -84.0, 6.0, "Колья — ловушка", 1.6)
+	var tower := _pb(&"watchtower", -74.0, 6.0)
 	if tower:
 		var ts := bm.find_socket(&"stairs", tower.base_xform * Vector3(0, 0, 3.0), 5.0)
 		if not ts.is_empty():
 			_place_xf(&"build", &"stairs", ts.xform, {}, ts.ctx)
-	P.tag(root, -74.0, 2.5, "Сторожевая вышка", 5.6)
-	_place(&"build", &"foundation", -64.0, 5.0)
-	P.tag(root, -64.0, 5.0, "Каменный фундамент — не горит", 1.6)
+	_tb(root, -74.0, 2.5, "Сторожевая вышка", 5.6)
+	_pb(&"foundation", -64.0, 5.0)
+	_tb(root, -64.0, 5.0, "Каменный фундамент — не горит", 1.6)
 	# хранение и верстак
-	var chest := _place(&"build", &"chest", -98.0, 16.0)
+	var chest := _pb(&"chest", -98.0, 16.0)
 	if chest is BuildChest:
 		for e in [[&"stick", 20], [&"stone", 20], [&"rope", 10], [&"coconut", 5]]:
 			if Items.get_item(e[0]):
 				(chest as BuildChest).storage.add(e[0], e[1])
-	P.tag(root, -98.0, 16.0, "Сундук (с вещами)", 1.4)
-	var lh := _place(&"build", &"log_holder", -92.0, 16.0)
+	_tb(root, -98.0, 16.0, "Сундук (с вещами)", 1.4)
+	var lh := _pb(&"log_holder", -92.0, 16.0)
 	if lh is BuildLogHolder:
 		(lh as BuildLogHolder).add_logs(BuildLogHolder.MAX_LOGS)
-	P.tag(root, -92.0, 16.0, "Поленница: 10 брёвен", 1.9)
-	_place(&"build", &"workbench", -86.0, 16.0)
-	P.tag(root, -86.0, 16.0, "Верстак", 1.7)
+	_tb(root, -92.0, 16.0, "Поленница: 10 брёвен", 1.9)
+	_pb(&"workbench", -86.0, 16.0)
+	_tb(root, -86.0, 16.0, "Верстак", 1.7)
 	# чертежи: недостроенные
-	var half := _place(&"build", &"wall", -78.0, 16.0, 0.0, false)
+	var half := _pb(&"wall", -78.0, 16.0, 0.0, false)
 	if half:
 		half.add_material(&"log", 3)
-	P.tag(root, -78.0, 16.0, "Чертёж стены — наполовину", 3.0)
-	_place(&"build", &"palisade", -71.0, 16.0, 0.0, false)
-	P.tag(root, -71.0, 16.0, "Чертёж частокола — пустой", 3.0)
+	_tb(root, -78.0, 16.0, "Чертёж стены — наполовину", 3.0)
+	_pb(&"palisade", -71.0, 16.0, 0.0, false)
+	_tb(root, -71.0, 16.0, "Чертёж частокола — пустой", 3.0)
 	# взрывать и жечь
-	_place(&"build", &"wall", -92.0, 30.0)
-	_place(&"build", &"palisade", -86.0, 30.0)
-	P.tag(root, -89.0, 30.0, "Взорвите динамитом или подожгите", 3.0)
-	var t := P.table(root, -89.0, 25.0, 3.0)
+	_pb(&"wall", -92.0, 30.0)
+	_pb(&"palisade", -86.0, 30.0)
+	_tb(root, -89.0, 30.0, "Взорвите динамитом или подожгите", 3.0)
+	var t := _tab(root, -89.0, 25.0, 3.0)
 	var boom: Array[StringName] = []
 	for id: StringName in [&"dynamite", &"molotov"]:
 		if Items.get_item(id):
 			boom.append(id)
 	_lay(&"build", root, t, boom, 5)
-	_stand(&"build", "Стройка", -52.0, 4.0, -80.0, 4.0, 2.0)
+	_stand(&"build", "Стройка", BUILD_C.x + 22.0, BUILD_C.y + 2.0, BUILD_C.x, BUILD_C.y, 2.0)
+
+## Перенос координат исходной раскладки стройки (центр (−81, 7)) к BUILD_C, чуть плотнее.
+func _b(x: float, z: float) -> Vector2:
+	return BUILD_C + Vector2((x + 81.0) * 0.9, (z - 7.0) * 0.7)
+
+func _pb(def_id: StringName, x: float, z: float, yaw: float = 0.0, finish: bool = true) -> Blueprint:
+	var q := _b(x, z)
+	return _place(&"build", def_id, q.x, q.y, yaw, finish)
+
+func _tb(root: Node3D, x: float, z: float, text: String, h: float = 1.6) -> void:
+	var q := _b(x, z)
+	P.tag(root, q.x, q.y, text, h)
+
+func _tab(root: Node3D, x: float, z: float, length: float = 4.0) -> StaticBody3D:
+	var q := _b(x, z)
+	return P.table(root, q.x, q.y, length)
 
 # ------------------------------------------------------------ мосты
 
@@ -533,14 +671,15 @@ func _chain(zone: StringName, first: Transform3D, n: int, gate_at: int) -> void:
 # ------------------------------------------------------------ выживание
 
 func _survival(root: Node3D) -> void:
-	P.signpost(root, -38.0, 65.0, "ВЫЖИВАНИЕ", "Вода, костёр, копчение, огород, травы")
+	P.signpost(root, -38.0 + SURV_D.x, 65.0 + SURV_D.y, "ВЫЖИВАНИЕ", "Вода, костёр, копчение, огород, травы")
 	var sv := Survival.instance()
 	if sv == null:
 		return
 	var put := func(kit: StringName, x: float, z: float, title: String, h: float = 1.6) -> Node3D:
-		var n := sv.place_structure(null, kit, Vector3(x, P.ground(x, z), z), 0.3)
+		var q := Vector2(x, z) + SURV_D
+		var n := sv.place_structure(null, kit, Vector3(q.x, P.ground(q.x, q.y), q.y), 0.3)
 		_own(&"survival", n)
-		P.tag(root, x, z, title, h)
+		P.tag(root, q.x, q.y, title, h)
 		return n
 	var fire := put.call(&"campfire", -70.0, 64.0, "Костёр с котелком", 1.6) as SvFire
 	if fire:
@@ -558,7 +697,7 @@ func _survival(root: Node3D) -> void:
 	put.call(&"still", -80.0, 72.0, "Опреснитель", 1.6)
 	put.call(&"rain_barrel", -82.0, 78.0, "Дождевая бочка", 1.8)
 	put.call(&"tarp", -78.0, 84.0, "Тент для сбора дождя", 2.4)
-	P.tag(root, -62.0, 86.0, "Пресный пруд — можно пить", 1.2)
+	P.tag(root, -62.0 + SURV_D.x, 86.0 + SURV_D.y, "Пресный пруд — можно пить", 1.2)
 	# огород: все стадии роста
 	var crops: Array[StringName] = [&"taro", &"maize", &"melon", &"berry"]
 	var stages := [0.05, 0.4, 0.75, 1.0]
@@ -570,25 +709,26 @@ func _survival(root: Node3D) -> void:
 			g.growth = stages[i]
 			g.moisture = 1.0
 			g.call(&"_refresh")
-	P.tag(root, -46.75, 68.5, "Огород — единственная возобновляемая еда", 2.1)
+	P.tag(root, -46.75 + SURV_D.x, 68.5 + SURV_D.y, "Огород — единственная возобновляемая еда", 2.1)
 	# дикие травы и растения
 	for i in 3:
 		var kind: StringName = [&"herb", &"berry", &"taro"][i]
-		var x := -52.0 + i * 4.0
+		var x := -52.0 + i * 4.0 + SURV_D.x
+		var wz := 76.0 + SURV_D.y
 		var w := SvWild.new()
 		w.kind = kind
 		sv.structures.add_child(w)
-		w.global_position = Vector3(x, P.ground(x, 76.0) - 0.03, 76.0)
+		w.global_position = Vector3(x, P.ground(x, wz) - 0.03, wz)
 		_own(&"survival", w)
-		P.tag(root, x, 76.0, ["Лечебная трава (яд)", "Дикие ягоды", "Дикое таро"][i], 1.2)
-	_stand(&"survival", "Выживание", -44.0, 58.0, -62.0, 74.0, 0.5)
+		P.tag(root, x, wz, ["Лечебная трава (яд)", "Дикие ягоды", "Дикое таро"][i], 1.2)
+	_stand(&"survival", "Выживание", -44.0 + SURV_D.x, 58.0 + SURV_D.y, -62.0 + SURV_D.x, 74.0 + SURV_D.y, 0.5)
 
 func _beach(root: Node3D) -> void:
 	var sv := Survival.instance()
 	if sv == null or world == null:
 		return
 	var I: Dictionary = world.arch.islands[0]
-	var a0 := Vector2(-60.0, 80.0).angle()
+	var a0 := BEACH_ANGLE
 	var kinds: Array[StringName] = [&"barrel", &"crate", &"bottles", &"net", &"scrap", &"crate"]
 	var names := {&"barrel": "Бочка", &"crate": "Ящик", &"bottles": "Бутылки", &"net": "Сеть", &"scrap": "Металлолом"}
 	var mid := Vector2.ZERO
@@ -629,7 +769,7 @@ func _sea(root: Node3D) -> void:
 	if world == null:
 		return
 	var I: Dictionary = world.arch.islands[0]
-	var a := -PI * 0.5 + 0.25
+	var a := PIER_ANGLE
 	var shore := _dry_beach(I, a)
 	var dir := Vector3(cos(a), 0, sin(a))
 	var start := Vector3(shore.x, 0.0, shore.y) - dir * 3.0
@@ -648,8 +788,10 @@ func _sea(root: Node3D) -> void:
 	var sea := get_tree().get_first_node_in_group(&"sea") as Sea
 	if sea:
 		var c2 := Vector2(end.x, end.z) + Vector2(dir.x, dir.z) * 14.0
-		_own(&"sea", sea.spawn_shark(&"reef", c2, 10.0, 901))
-		_own(&"sea", sea.spawn_shark(&"tiger", c2 + Vector2(dir.x, dir.z) * 12.0, 20.0, 902))
+		for e in [[&"reef", c2, 10.0, 901], [&"tiger", c2 + Vector2(dir.x, dir.z) * 12.0, 20.0, 902]]:
+			var sh := sea.spawn_shark(e[0], e[1], e[2], e[3])
+			_own(&"sea", sh)
+			_track({"kind": &"shark", "sp": e[0], "c": e[1], "ring": e[2], "seed": e[3], "node": sh})
 		sea.call(&"_spawn_school", Vector3(end.x, 0.0, end.z) + dir * 6.0, 3)
 	_point(&"sea", "Море (пирс)", Vector3(end.x, deck + 0.15, end.z) - dir * 2.0, Vector3(end.x, -1.0, end.z) + dir * 14.0)
 

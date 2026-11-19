@@ -82,14 +82,32 @@ func _ready() -> void:
 	cheats.name = "Cheats"
 	add_child(cheats)
 	cheats.player = player
+	cheats.zones = zones
+	cheats.world = world
+	cheats.set_infinite(true, true)   # на полигоне предметы не кончаются (выключается в F1)
 	cheats.teleport(hub.pos, hub.look)
+	# погода на полигоне не меняется сама — только кнопками (F1, F5)
+	var sk: Object = world.get(&"sky")
+	if sk and sk.has_method(&"set_weather"):
+		sk.call(&"set_weather", world.weather(), true, false)
 	var layer := CanvasLayer.new()
 	layer.layer = 12
 	add_child(layer)
 	panel = SandboxPanel.new()
 	layer.add_child(panel)
 	panel.setup(zones, cheats, world, player)
+	var hint := Label.new()
+	hint.name = "SandboxHint"
+	hint.text = "F1 — меню полигона · F5 — погода · F6 — время суток · V — полёт"
+	hint.add_theme_font_size_override(&"font_size", 15)
+	hint.add_theme_color_override(&"font_color", Color(1, 1, 1, 0.75))
+	hint.add_theme_color_override(&"font_outline_color", Color(0, 0, 0, 0.8))
+	hint.add_theme_constant_override(&"outline_size", 4)
+	hint.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	hint.position = Vector2(16, 12)
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(hint)
 	is_built = true
 	ready_to_play.emit()
 	print("[sandbox] готов: точек %d, предметов %d" % [zones.points.size(), Items.items.size()])
-	Events.toast.emit("Полигон: F1 или M — меню и перемещение, V — полёт")
+	Events.toast.emit("Полигон: F1 или M — меню, F5 — погода, F6 — время, V — полёт · предметы бесконечные")
