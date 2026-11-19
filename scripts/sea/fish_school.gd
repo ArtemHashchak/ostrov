@@ -147,7 +147,11 @@ var _skip_n := 0
 func _perf_physics(delta: float) -> void:
 	var cam := get_viewport().get_camera_3d()
 	var dist := cam.global_position.distance_to(_pos) if cam else 0.0
-	if dist > lod_distance:
+	# камера над водой — стаю видно сквозь воду только вблизи (Sea.ABOVE_END)
+	var lim := lod_distance
+	if cam and cam.global_position.y > water_level + 0.3:
+		lim = minf(lim, Sea.ABOVE_END)
+	if dist > lim:
 		visible = false
 		return
 	visible = true

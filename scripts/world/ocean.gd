@@ -1,33 +1,46 @@
 class_name Ocean
 extends MeshInstance3D
-## Океан: сетка, плотная у камеры (1.5 м) и разреженная к горизонту (до 6 км),
-## следует за камерой с привязкой к шагу сетки. Волны — та же формула, что в
-## шейдере ocean.gdshader (wave_height совпадает в радиусе ~250 м от камеры).
+## Океан: сетка, плотная у камеры и разреженная к горизонту (до 6 км), следует за
+## камерой с привязкой к ШАГУ сетки (вершины всегда в одних и тех же точках мира —
+## иначе волна «переливается» при каждом сдвиге камеры).
 ##
-## Дёшево и красиво (по пресету Settings.graphics_quality):
-##  * низкое/среднее — 4 волны Герстнера + рябь из карты нормалей;
-##  * высокое/ультра — поверх них запечённая зацикленная FFT-зыбь (Тессендорф,
-##    tools/bake_ocean_fft.py → assets/ocean/fft_atlas.png): шейдер только
-##    листает кадры текстуры, симуляции во время игры нет. Мелкая зыбь двигает
-##    вершины у камеры (wave_height на CPU читает те же кадры), даёт нормали,
-##    барашки по якобиану.
-##  * число вершин сетки зависит от пресета (GRID_BY_Q).
+## Волны (как в GTA V: устойчивая зыбь + ветровая рябь, без «мигания»):
+##  * зыбь — 4 длинные волны Герстнера (λ 60–160 м, периоды 6–10 с) с общим
+##    направлением (разброс ±20°); две ближайшие по длине дают биения —
+##    «сеты» более высоких волн примерно раз в минуту;
+##  * ветровое волнение — до 4 коротких волн (λ 11–38 м) по направлению ветра;
+##    те, что короче 5 шагов сетки, — только в нормалях (без алиасинга вершин);
+##  * параметры (сила, направление) меняются ПЛАВНО: сглаживание 40–120 с;
+##    фазы считаются на CPU в double и передаются в шейдер (нет потери
+##    точности float со временем);
+##  * высокое/ультра: поверх — запечённая FFT-рябь (λ 1.5–24 м), только в
+##    нормалях фрагмента, повёрнута по ветру; мелкая рябь — карты нормалей.
+##  * шторм: волны ×3–5, барашки по якобиану Герстнера, полосы пены по ветру,
+##    тёмная вода; нагон воды (water_level поднимается в мире — World._surge).
+## wave_height на CPU — та же аналитическая сумма (с поправкой на горизонтальное
+## смещение Герстнера), что сдвигает вершины.
 
 const GRID_BY_Q: Array[int] = [110, 140, 180, 220]
-const FFT_FADE_START := 70.0     # где зыбь в вершинах начинает гаснуть, м
-const FFT_FADE_END := 150.0
-const FFT_AMP := 0.32            # макс. добавка высоты от зыби, м (при wave_scale 1)
+## Сколько волн по пресету (низкое — без коротких ветровых).
+const COMP_BY_Q: Array[int] = [5, 6, 8, 8]
 var GRID := 180
 const INNER := 330.0        # ширина плотной части, м
 const REACH := 6000.0
-const SNAP := 1.5
 
-const WAVES: Array[Vector4] = [
-	Vector4(1.0, 0.3, 0.18, 22.0),
-	Vector4(0.6, 1.0, 0.12, 13.0),
-	Vector4(-0.4, 0.9, 0.07, 7.5),
-	Vector4(0.9, -0.5, 0.05, 4.5),
+## Волны: x — угол от направления (град), y — длина λ (м), z — базовая амплитуда (м),
+## w — 0 зыбь (направление зыби) / 1 ветровая (направление ветра).
+const COMPONENTS: Array[Vector4] = [
+	Vector4(0.0, 160.0, 0.18, 0.0),
+	Vector4(7.0, 128.0, 0.15, 0.0),    # биения с первой: сеты ~раз в 70 с
+	Vector4(-14.0, 92.0, 0.10, 0.0),
+	Vector4(19.0, 61.0, 0.065, 0.0),
+	Vector4(10.0, 38.0, 0.11, 1.0),
+	Vector4(-17.0, 25.0, 0.08, 1.0),
+	Vector4(24.0, 16.5, 0.05, 1.0),
+	Vector4(-22.0, 11.0, 0.03, 1.0),
 ]
+const MAX_W := 8
+const FFT_WIND := Vector2(1.0, 0.35)   # направление ветра, с которым запечена FFT
 
 var water_mean := 0.0
 var water_level := 0.0
@@ -40,9 +53,40 @@ var _area: Rect2
 var quality := 2
 var use_fft := false
 var _fft_meta := {}
-var _fft_h: Array[PackedByteArray] = []   # высоты кадров (B-канал) для wave_height
-var _fft_n := 128
 var _cam_xz := Vector2.ZERO
+var n_comp := 8
+
+# --- погода и ветер (цели и сглаженные значения) ---
+var wind_dir := Vector2(1.0, 0.35).normalized()   # сглаженное направление ветра
+var swell_dir := Vector2(1.0, 0.25).normalized()  # направление зыби (меняется медленнее)
+var wind_speed := 3.0                              # ветер у поверхности, м/с (CONTRACT_WEATHER)
+var storm := 0.0                                    # 0..1
+var rain := 0.0
+var _t_wind_dir := Vector2(1.0, 0.35).normalized()
+var _t_wind_speed := 3.0
+var _t_storm := 0.0
+var _t_rain := 0.0
+var _t_scale := 1.0
+var _swell_amp := 1.0   # множитель зыби (сглажен)
+var _sea_amp := 1.0     # множитель ветрового волнения (сглажен)
+# --- рассчитанные на кадр волны (общие для CPU и шейдера) ---
+var _wdir: Array[Vector2] = []
+var _wk := PackedFloat64Array()
+var _wom := PackedFloat64Array()
+var _wamp := PackedFloat64Array()
+var _wq := PackedFloat64Array()
+var _wphase := PackedFloat64Array()
+var _wvtx := PackedByteArray()
+var _arr_a := PackedVector4Array()
+var _arr_b := PackedVector4Array()
+var _drove := false
+## Опорная точка фаз (рядом с камерой). Фаза волны = k·dir·(p − origin) − φ.
+## При повороте направления поле «вращается» вокруг этой точки — значит, у камеры
+## гребни двигаются медленно (без «бега» волн вдали от начала координат мира).
+## При переносе опоры φ компенсируется — поле не меняется.
+var _origin := Vector2.ZERO
+const ORIGIN_STEP := 160.0
+var _had_drive := false
 
 func build(terrain_height: Callable, area: Rect2) -> void:
 	_depth_fn = terrain_height
@@ -60,10 +104,7 @@ func build(terrain_height: Callable, area: Rect2) -> void:
 	var foam_path := "res://addons/ostrova_water/antz_foam_water/textures/water_foam.png"
 	if ResourceLoader.exists(foam_path):
 		_mat.set_shader_parameter(&"foam_tex", load(foam_path))
-	_mat.set_shader_parameter(&"wave_a", WAVES[0])
-	_mat.set_shader_parameter(&"wave_b", WAVES[1])
-	_mat.set_shader_parameter(&"wave_c", WAVES[2])
-	_mat.set_shader_parameter(&"wave_d", WAVES[3])
+	_init_waves()
 	_bake_depth(area)
 	_load_fft()
 	_apply_quality()
@@ -80,9 +121,11 @@ func _on_graphics_changed() -> void:
 		GRID = GRID_BY_Q[q]
 		mesh = _make_mesh()
 	_apply_quality()
+	_init_waves()
 
 func _apply_quality() -> void:
-	use_fft = quality >= 2 and not _fft_h.is_empty()
+	use_fft = quality >= 2 and not _fft_meta.is_empty()
+	n_comp = COMP_BY_Q[clampi(quality, 0, 3)]
 	_mat.set_shader_parameter(&"use_fft", use_fft)
 	_mat.set_shader_parameter(&"detail_normals", quality >= 1)
 
@@ -103,18 +146,10 @@ func _load_fft() -> void:
 		atlas.decompress()
 	atlas.convert(Image.FORMAT_RGBA8)
 	var n := int(_fft_meta.n)
-	_fft_n = n
 	var cols := int(_fft_meta.cols)
 	var layers: Array[Image] = []
-	_fft_h.clear()
 	for f in int(_fft_meta.frames):
 		var img := atlas.get_region(Rect2i((f % cols) * n, (f / cols) * n, n, n))
-		var data := img.get_data()
-		var hb := PackedByteArray()
-		hb.resize(n * n)
-		for i in n * n:
-			hb[i] = data[i * 4 + 2]
-		_fft_h.append(hb)
 		img.generate_mipmaps()
 		layers.append(img)
 	var arr := Texture2DArray.new()
@@ -123,35 +158,8 @@ func _load_fft() -> void:
 	_mat.set_shader_parameter(&"fft_frames", float(_fft_meta.frames))
 	_mat.set_shader_parameter(&"fft_period", float(_fft_meta.period_s))
 	_mat.set_shader_parameter(&"fft_tile", float(_fft_meta.tile_m))
-	_mat.set_shader_parameter(&"fft_slope", float(_fft_meta.slope) * FFT_AMP / float(_fft_meta.height_m))
-	_mat.set_shader_parameter(&"fft_amp", FFT_AMP)
-	_mat.set_shader_parameter(&"fft_fade", Vector2(FFT_FADE_START, FFT_FADE_END))
-
-## Высота зыби (−1..1, без масштаба) в точке — та же выборка, что в шейдере.
-func _fft_sample(x: float, z: float) -> float:
-	var n := _fft_n
-	var tile := float(_fft_meta.tile_m)
-	var frames := _fft_h.size()
-	var ft := fposmod(time_s / float(_fft_meta.period_s), 1.0) * frames
-	var f0 := int(ft) % frames
-	var f1 := (f0 + 1) % frames
-	var fw := ft - floorf(ft)
-	var fx := fposmod(x / tile, 1.0) * n - 0.5
-	var fy := fposmod(z / tile, 1.0) * n - 0.5
-	var i0 := posmod(int(floorf(fx)), n)
-	var j0 := posmod(int(floorf(fy)), n)
-	var i1 := (i0 + 1) % n
-	var j1 := (j0 + 1) % n
-	var tx := fx - floorf(fx)
-	var ty := fy - floorf(fy)
-	var r := 0.0
-	for k in 2:
-		var hb: PackedByteArray = _fft_h[f0 if k == 0 else f1]
-		var a := lerpf(hb[j0 * n + i0], hb[j0 * n + i1], tx)
-		var b := lerpf(hb[j1 * n + i0], hb[j1 * n + i1], tx)
-		var v := lerpf(a, b, ty) / 255.0 * 2.0 - 1.0
-		r += v * (1.0 - fw if k == 0 else fw)
-	return r
+	# наклон зыби, нормированный так, что 1.0 в текстуре ≈ реальный наклон плитки
+	_mat.set_shader_parameter(&"fft_slope", float(_fft_meta.slope) * 0.32 / float(_fft_meta.height_m))
 
 ## Карта глубин: R — 0..30 м (грубо), G — −1..+3 м (точно, для пены у берега).
 func _bake_depth(area: Rect2) -> void:
@@ -196,6 +204,10 @@ func _bake_row(j: int) -> void:
 		px[i * 4 + 3] = 255
 	_bake_rows[j]["px"] = px
 
+## Шаг плотной части сетки (м); на этот шаг привязана позиция сетки.
+func inner_step() -> float:
+	return INNER * 2.0 / float(GRID)
+
 func _make_mesh() -> ArrayMesh:
 	var n := GRID + 1
 	var verts := PackedVector3Array()
@@ -234,6 +246,105 @@ static func _warp(u: float) -> float:
 		f = half + INNER * t + c * t * t * t
 	return signf(u) * f
 
+
+## Погода/ветер для волн (вызывать каждый кадр до update; без вызова — из wave_scale).
+## dir — направление ветра в плоскости XZ; speed — ветер, м/с (штиль 2–4 … шторм 18–28);
+## storm 0..1; rain 0..1.
+func set_weather_drive(dir: Vector2, speed: float, storm_k: float, rain_k: float) -> void:
+	if dir.length_squared() > 1e-6:
+		_t_wind_dir = dir.normalized()
+		if not _had_drive:   # первый вызов: сразу принять ветер (без поворота на старте)
+			wind_dir = _t_wind_dir
+			swell_dir = _t_wind_dir
+			_had_drive = true
+	_t_wind_speed = speed
+	_t_storm = clampf(storm_k, 0.0, 1.0)
+	_t_rain = clampf(rain_k, 0.0, 1.0)
+	_drove = true
+
+func _init_waves() -> void:
+	_wdir.resize(MAX_W)
+	_wk.resize(MAX_W)
+	_wom.resize(MAX_W)
+	_wamp.resize(MAX_W)
+	_wq.resize(MAX_W)
+	_wvtx.resize(MAX_W)
+	_arr_a.resize(MAX_W)
+	_arr_b.resize(MAX_W)
+	if _wphase.size() != MAX_W:
+		_wphase.resize(MAX_W)
+		for i in MAX_W:   # разные начальные фазы, чтобы гребни не совпадали
+			_wphase[i] = fposmod(i * 2.399963, TAU)
+	var step := inner_step()
+	for i in MAX_W:
+		var c: Vector4 = COMPONENTS[i]
+		_wk[i] = TAU / c.y
+		_wom[i] = sqrt(9.81 * _wk[i])
+		# вершины двигают только волны длиннее ~5 шагов сетки (иначе алиасинг —
+		# «волна меняет направление»); короткие — только в нормалях фрагмента
+		_wvtx[i] = 1 if c.y >= step * 5.0 else 0
+	_recalc_waves(0.0)
+
+## Направления, амплитуды, крутизна — из сглаженной погоды; фазы — интегрирование ω·dt.
+func _recalc_waves(dt: float) -> void:
+	var sw_ang := swell_dir.angle()
+	var wd_ang := wind_dir.angle()
+	var calm_q := lerpf(0.35, 0.7, storm)
+	for i in MAX_W:
+		var c: Vector4 = COMPONENTS[i]
+		var base := wd_ang if c.w > 0.5 else sw_ang
+		var a := base + deg_to_rad(c.x)
+		_wdir[i] = Vector2(cos(a), sin(a))
+		var amp := float(c.z) * (_sea_amp if c.w > 0.5 else _swell_amp)
+		if i >= n_comp:
+			amp = 0.0
+		_wamp[i] = amp
+		# крутизна Q·k·A на волну, сумма ≤ ~0.8 — без петель
+		_wq[i] = clampf(calm_q / maxf(_wk[i] * amp * float(n_comp), 1e-4), 0.0, 1.0) if amp > 0.0 else 0.0
+		_wphase[i] = fposmod(_wphase[i] + _wom[i] * dt, TAU)
+		_arr_a[i] = Vector4(_wdir[i].x, _wdir[i].y, amp, _wk[i])
+		_arr_b[i] = Vector4(_wphase[i], _wq[i], float(_wvtx[i]), 0.0)
+
+## Перенести опору фаз к камере (без изменения поля волн).
+func _reanchor(cam: Vector2) -> void:
+	if cam.distance_to(_origin) < ORIGIN_STEP:
+		return
+	var o := Vector2(snappedf(cam.x, ORIGIN_STEP), snappedf(cam.y, ORIGIN_STEP))
+	var dlt := _origin - o
+	for i in MAX_W:
+		if _wdir.size() > i:
+			_wphase[i] = fposmod(_wphase[i] + _wk[i] * _wdir[i].dot(dlt), TAU)
+	_origin = o
+	if _mat:
+		_mat.set_shader_parameter(&"w_origin", _origin)
+
+func _smooth_weather(dt: float, scale_waves: float) -> void:
+	if not _drove:
+		# без драйвера погоды: шторм и ветер из множителя волн погоды
+		_t_storm = clampf((scale_waves - 1.3) / 1.7, 0.0, 1.0)
+		_t_wind_speed = lerpf(3.0, 24.0, clampf((scale_waves - 0.8) / 2.2, 0.0, 1.0))
+	_t_scale = scale_waves
+	_drove = false
+	var k40 := 1.0 - exp(-dt / 40.0)
+	var k60 := 1.0 - exp(-dt / 60.0)
+	var k120 := 1.0 - exp(-dt / 120.0)
+	wind_speed = lerpf(wind_speed, _t_wind_speed, k40)
+	storm = lerpf(storm, _t_storm, k60)
+	rain = lerpf(rain, _t_rain, 1.0 - exp(-dt / 8.0))
+	wave_scale = lerpf(wave_scale, _t_scale, k60)
+	# ветер поворачивает за ~1–2 мин, зыбь ещё медленнее (за ~4 мин)
+	wind_dir = Vector2.from_angle(lerp_angle(wind_dir.angle(), _t_wind_dir.angle(), k60))
+	swell_dir = Vector2.from_angle(lerp_angle(swell_dir.angle(), wind_dir.angle(), 1.0 - exp(-dt / 240.0)))
+	# медленная «погода моря»: иногда волны заметно выше (периоды 3–6 мин)
+	var slow := 1.0 + 0.22 * sin(time_s / 211.0) + 0.14 * sin(time_s / 97.0 + 1.7)
+	var t_swell := wave_scale * slow * lerpf(1.0, 1.35, storm)
+	var t_sea := clampf(0.25 + wind_speed * 0.16, 0.3, 5.0)   # ясно ~0.8, шторм ~4.8
+	_swell_amp = lerpf(_swell_amp, t_swell, k40)
+	_sea_amp = lerpf(_sea_amp, t_sea, k40)
+	if dt <= 0.0:
+		_swell_amp = t_swell
+		_sea_amp = t_sea
+
 func update(dt: float, cam_pos: Vector3, level: float, scale_waves: float) -> void:
 	var __pt := PerfStats.begin()
 	_update(dt, cam_pos, level, scale_waves)
@@ -249,18 +360,31 @@ var _wave_calls := 0
 func _update(dt: float, cam_pos: Vector3, level: float, scale_waves: float) -> void:
 	time_s += dt
 	water_level = level
-	wave_scale = scale_waves
-	global_position = Vector3(snappedf(cam_pos.x, SNAP), 0.0, snappedf(cam_pos.z, SNAP))
-	_mat.set_shader_parameter(&"u_time", time_s)
+	_smooth_weather(dt, scale_waves)
+	_reanchor(Vector2(cam_pos.x, cam_pos.z))
+	_recalc_waves(dt)
+	var step := inner_step()
+	global_position = Vector3(snappedf(cam_pos.x, step), 0.0, snappedf(cam_pos.z, step))
+	# время для текстур (пена, рябь) — с переносом раз в 2 ч, чтобы не терять точность
+	_mat.set_shader_parameter(&"u_time", fposmod(time_s, 7200.0))
 	_mat.set_shader_parameter(&"water_level", water_level)
 	_mat.set_shader_parameter(&"wave_scale", wave_scale)
+	_mat.set_shader_parameter(&"storm", storm)
+	_mat.set_shader_parameter(&"rain_amount", rain)
+	_mat.set_shader_parameter(&"wind_dir", wind_dir)
+	_mat.set_shader_parameter(&"wind_k", clampf(wind_speed / 25.0, 0.0, 1.0))
+	_mat.set_shader_parameter(&"w_a", _arr_a)
+	_mat.set_shader_parameter(&"w_b", _arr_b)
+	# FFT-рябь повёрнута так, чтобы её «ветер» совпал с текущим
+	var rot := wind_dir.angle() - FFT_WIND.angle()
+	_mat.set_shader_parameter(&"fft_rot", Vector2(cos(rot), sin(rot)))
 	_cam_xz = Vector2(cam_pos.x, cam_pos.z)
 	_mat.set_shader_parameter(&"cam_xz", _cam_xz)
 
 func set_night_tint(c: Color) -> void:
 	_mat.set_shader_parameter(&"night_tint", Vector3(c.r, c.g, c.b))
 
-## Высота поверхности воды в точке (волны + прилив) — как в шейдере.
+## Высота поверхности воды в точке (волны + прилив/нагон) — как сдвигает вершины шейдер.
 func wave_height(x: float, z: float) -> float:
 	_wave_calls += 1
 	var __pt := PerfStats.begin()
@@ -268,24 +392,30 @@ func wave_height(x: float, z: float) -> float:
 	PerfStats.end(&"ocean_wave_h", __pt)
 	return r
 
+## Горизонтальное смещение Герстнера (только волны, что двигают вершины).
+func _gerstner_disp(p: Vector2) -> Vector2:
+	var d := Vector2.ZERO
+	for i in n_comp:
+		if _wvtx[i] == 0 or _wamp[i] <= 0.0:
+			continue
+		var ph: float = _wk[i] * _wdir[i].dot(p - _origin) - _wphase[i]
+		d += _wdir[i] * (_wq[i] * _wamp[i] * cos(ph))
+	return d
+
 func _wave_height(x: float, z: float) -> float:
 	var depth := depth_at(x, z)
 	var shoal := clampf(depth / 3.0, 0.15, 1.0)
-	var h := 0.0
 	var p := Vector2(x, z)
-	for w in WAVES:
-		var d := Vector2(w.x, w.y).normalized()
-		var k := TAU / w.w
-		var om := sqrt(9.81 * k)
-		h += w.z * sin(k * d.dot(p) - om * time_s)
+	# вершина, что после смещения Герстнера оказалась над (x, z): одна итерация
+	var p0 := p - _gerstner_disp(p)
+	var h := 0.0
+	for i in n_comp:
+		if _wvtx[i] == 0:
+			continue
+		h += _wamp[i] * sin(_wk[i] * _wdir[i].dot(p0 - _origin) - _wphase[i])
 	var dist := p.distance_to(_cam_xz)
 	var vfade := 1.0 - smoothstep(260.0, 600.0, dist)
-	h *= vfade
-	if use_fft:
-		var ff := 1.0 - smoothstep(FFT_FADE_START, FFT_FADE_END, dist)
-		if ff > 0.0:
-			h += _fft_sample(x, z) * FFT_AMP * ff
-	return water_level + h * wave_scale * shoal
+	return water_level + h * shoal * vfade
 
 ## Глубина под точкой так же, как её видит шейдер (карта + линейная фильтрация).
 func depth_at(x: float, z: float) -> float:
