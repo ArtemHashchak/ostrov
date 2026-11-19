@@ -1,6 +1,7 @@
 extends TestCase
 ## Лор шоу: дроны-камеры (ShowDrones, модуль SUPPLY) — дрон ведёт игрока, держится
 ## сзади-сверху, объектив смотрит на игрока, следует за ним при перемещении.
+## Возрождение — «дрон-медик» спускается к точке появления и улетает.
 
 var p: Player
 
@@ -60,3 +61,18 @@ func run() -> void:
 	await shot("02_drone_close")
 	p.camera.make_current()
 	cam.queue_free()
+	# возрождение — дрон-медик
+	p.respawn()
+	await wait_frames(2)
+	check(sd.medic_count == 1, "возрождение вызвало дрона-медика")
+	var md := sd.get_node_or_null(^"MedicDrone") as Node3D
+	check(md != null, "дрон-медик в сцене")
+	await wait(1.15)
+	if md and is_instance_valid(md):
+		var rp := p.global_position
+		look(md.global_position)
+		await wait(0.1)
+		check(md.global_position.distance_to(rp) < 5.0, "дрон-медик опустился к игроку (%.1f м)" % md.global_position.distance_to(rp))
+		await shot("03_medic")
+	await wait(3.5)
+	check(sd.get_node_or_null(^"MedicDrone") == null, "дрон-медик улетел и удалён")

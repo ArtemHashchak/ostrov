@@ -6,6 +6,9 @@ extends Node3D
 ## объектив смотрит на цель, мигает красный огонёк «в эфире». Без коллизий: чистый декор.
 ## Перераспределение целей — раз в RETARGET с; дальше FAR м от камеры — дрон скрыт.
 ##
+## Возрождение подаётся как «дрон-медик»: при повторном появлении участника над ним
+## спускается дрон с красным крестом, вспышка — и он улетает (medic_count — для тестов).
+##
 ## API: ShowDrones.instance(), drones (Array[Node3D]), drone_for(ch) -> Node3D, target_of(drone)
 
 const MAX := 4
@@ -20,6 +23,8 @@ var _targets: Dictionary = {}   # drone instance_id -> Node3D
 var _phase: Dictionary = {}     # drone instance_id -> float
 var _retarget_t := 0.0
 var _t := 0.0
+var _seen: Dictionary = {}      # instance_id участников, уже появлявшихся (повтор = возрождение)
+var medic_count := 0
 
 static func instance() -> ShowDrones:
 	var t := Engine.get_main_loop() as SceneTree
@@ -35,6 +40,42 @@ func _ready() -> void:
 		add_child(d)
 		drones.append(d)
 		_phase[d.get_instance_id()] = TAU * float(i) / MAX
+	for ch in get_tree().get_nodes_in_group(&"characters"):
+		_seen[ch.get_instance_id()] = true
+	Events.character_spawned.connect(_on_spawned)
+
+func _on_spawned(ch: Node) -> void:
+	var id := ch.get_instance_id()
+	if not _seen.has(id):
+		_seen[id] = true
+		return
+	if ch is Node3D:
+		medic_drop((ch as Node3D).global_position)
+
+## Дрон-медик: спуск сверху к точке возрождения, вспышка, подъём и исчезновение (~3.5 с).
+func medic_drop(at: Vector3) -> void:
+	medic_count += 1
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(at) > FAR:
+		return
+	var d := build_drone(true)
+	d.name = "MedicDrone"
+	add_child(d)
+	d.global_position = at + Vector3.UP * 14.0
+	var tw := d.create_tween()
+	tw.tween_property(d, "global_position", at + Vector3.UP * 2.4, 1.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_callback(_medic_flash.bind(d))
+	tw.tween_interval(0.6)
+	tw.tween_property(d, "global_position", at + Vector3(2.0, 26.0, 1.0), 1.8).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(d.queue_free)
+
+func _medic_flash(d: Node3D) -> void:
+	if not is_instance_valid(d) or not d.is_inside_tree():
+		return
+	var p := d.global_position
+	CombatFx.flash_light(self, p + Vector3.DOWN * 0.8, Color(0.85, 0.95, 1.0), 6.0, 7.0, 0.5)
+	CombatFx.particles(self, p + Vector3.DOWN * 1.6, 18, 1.2, "smoke", true,
+		CombatFx._ramp([Color(0.8, 0.95, 1.0, 0.9), Color(0.6, 0.85, 1.0, 0.0)]), 0.25, 2.5, 180.0, Vector3.UP, Vector3(0, 0.6, 0))
 
 func drone_for(ch: Node) -> Node3D:
 	for d in drones:
@@ -181,8 +222,19 @@ static func _mat(kind: String) -> StandardMaterial3D:
 		"stripe":
 			m.albedo_color = Color(0.95, 0.42, 0.08)
 			m.roughness = 0.5
+		"medic":
+			m.albedo_color = Color(0.92, 0.93, 0.9)
+			m.roughness = 0.5
+		"cross":
+			m.albedo_color = Color(0.8, 0.06, 0.05)
+			m.roughness = 0.5
 	_mats[kind] = m
 	return m
+
+static func _box(size: Vector3) -> BoxMesh:
+	var b := BoxMesh.new()
+	b.size = size
+	return b
 
 static func _mi(p: Node3D, mesh: Mesh, m: Material, pos: Vector3, rot: Vector3 = Vector3.ZERO, nm: String = "") -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
@@ -198,7 +250,7 @@ static func _mi(p: Node3D, mesh: Mesh, m: Material, pos: Vector3, rot: Vector3 =
 
 ## Квадрокоптер ~0.6 м: корпус, 4 луча с моторами и прозрачными дисками винтов,
 ## подвес с камерой (узел Gimbal, -Z — объектив), оранжевая полоса шоу, красный огонёк.
-static func build_drone() -> Node3D:
+static func build_drone(medic: bool = false) -> Node3D:
 	var d := Node3D.new()
 	var body := BoxMesh.new()
 	body.size = Vector3(0.22, 0.07, 0.3)
@@ -208,7 +260,20 @@ static func build_drone() -> Node3D:
 	_mi(d, top, _mat("body"), Vector3(0, 0.05, 0.02))
 	var stripe := BoxMesh.new()
 	stripe.size = Vector3(0.225, 0.02, 0.06)
-	_mi(d, stripe, _mat("stripe"), Vector3(0, 0.01, -0.1))
+	_mi(d, stripe, _mat("medic" if medic else "stripe"), Vector3(0, 0.01, -0.1))
+	if medic:
+		# красный крест сверху
+		var c1 := BoxMesh.new()
+		c1.size = Vector3(0.12, 0.012, 0.035)
+		var c2 := BoxMesh.new()
+		c2.size = Vector3(0.035, 0.012, 0.12)
+		_mi(d, _box(Vector3(0.15, 0.008, 0.15)), _mat("medic"), Vector3(0, 0.072, 0.02))
+		_mi(d, c1, _mat("cross"), Vector3(0, 0.078, 0.02))
+		_mi(d, c2, _mat("cross"), Vector3(0, 0.078, 0.02))
+		# и снизу — видно с земли
+		_mi(d, _box(Vector3(0.2, 0.006, 0.2)), _mat("medic"), Vector3(0, -0.038, 0.06))
+		_mi(d, c1, _mat("cross"), Vector3(0, -0.043, 0.06))
+		_mi(d, c2, _mat("cross"), Vector3(0, -0.043, 0.06))
 	var arm := BoxMesh.new()
 	arm.size = Vector3(0.03, 0.025, 0.34)
 	var motor := CylinderMesh.new()
