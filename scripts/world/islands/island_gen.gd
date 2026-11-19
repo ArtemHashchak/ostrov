@@ -323,6 +323,10 @@ func _h_karst(I: Dictionary, p: Vector2, ang: float, d: float, inland: float) ->
 	var cell := _n_karst.get_noise_2d(p.x, p.y)       # 0..~1: края ячеек выше
 	var towers := pow(smoothstep(-0.25, 0.55, cell), 1.6)
 	var top := mh * (0.32 + 0.68 * towers) + _n_ridge.get_noise_2d(p.x * 1.5, p.y * 1.5) * 4.0
+	# край известнякового массива: стена встаёт сразу на 55–80 % высоты (как в бухте Халонг),
+	# внутри — башни и воронки; кромка неровная, местами с зубцами.
+	var rim_h := mh * (0.55 + 0.25 * (_n_ridge.get_noise_2d(p.x * 0.6, p.y * 0.6) * 0.5 + 0.5))
+	top = maxf(top, lerpf(rim_h, top, smoothstep(0.1, 0.32, inland)))
 	# отвесная стена: почти сразу от воды
 	var wall := smoothstep(0.0, 0.035, inland)
 	var bench := 0.9 + 0.3 * _n_detail.get_noise_2d(p.x, p.y)        # волноприбойная терраса

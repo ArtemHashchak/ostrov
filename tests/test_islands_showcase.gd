@@ -152,6 +152,8 @@ func run() -> void:
 		"флора: пальм %d, лиственных %d, мангров %d" % [int(fs.get("palm", 0)), int(fs.get("broadleaf", 0)), int(fs.get("mangrove", 0))])
 	# ---- снимки: каждый остров с пляжа и сверху
 	sc.world.set_time_of_day(10.0)
+	sc.set_photo_mode(true)
+	check(not sc.player.hands.visible and not (sc.player.hud as CanvasLayer).visible, "фоторежим прячет руки и HUD")
 	for i in list.size():
 		var e: Dictionary = list[i]
 		sc.go_beach(i)
@@ -160,6 +162,7 @@ func run() -> void:
 		sc.go_air(i)
 		await wait(3.0)
 		await shot("%02d_%s_air" % [i + 1, String(e.type)])
+	check(absf(sc.world.time_of_day() - 10.0) < 0.3, "время на полигоне стоит (%.2f ч после всех снимков)" % sc.world.time_of_day())
 	# ---- водопад вулкана вблизи и грот
 	var vf: Dictionary = {}
 	for f: Dictionary in arch.features:
@@ -201,5 +204,7 @@ func run() -> void:
 	await shot("25_overview")
 	check(sc.overview_on(), "обзор всего ряда включается")
 	sc.set_overview(false)
+	sc.set_photo_mode(false)
 	await wait(0.5)
+	check(sc.player.hands.visible and (sc.player.hud as CanvasLayer).visible, "фоторежим выключается")
 	check(not sc.overview_on() and sc.player.camera.current, "обзор выключается, камера игрока снова главная")

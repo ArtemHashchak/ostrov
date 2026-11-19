@@ -22,6 +22,8 @@ var flora: Flora
 var overview_cam: Camera3D
 var labels: Array[Label3D] = []
 var is_built := false
+var photo := false
+var _hint: Label
 
 static func start(tree: SceneTree) -> void:
 	Game.end_session()
@@ -86,7 +88,7 @@ func _ready() -> void:
 	layer.add_child(panel)
 	panel.setup(self)
 	var hint := Label.new()
-	hint.text = "F1 или M — острова, обзор, погода · F5 — погода · F6 — время · V — полёт · O — обзор ряда"
+	hint.text = "F1 или M — острова, обзор, погода · F5 — погода · F6 — время · V — полёт · O — обзор ряда · H — фоторежим"
 	hint.add_theme_font_size_override(&"font_size", 15)
 	hint.add_theme_color_override(&"font_color", Color(1, 1, 1, 0.75))
 	hint.add_theme_color_override(&"font_outline_color", Color(0, 0, 0, 0.8))
@@ -94,6 +96,10 @@ func _ready() -> void:
 	hint.position = Vector2(16, 12)
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(hint)
+	_hint = hint
+	# Время на полигоне стоит (10:00), меняется только кнопками/F6 — острова сравниваются при одном свете.
+	world.set_time_of_day(10.0)
+	world.set_time_paused(true)
 	is_built = true
 	ready_to_play.emit()
 	print("[islands] готов: островов %d, декор %s, флора %s" % [world.showcase().size(), str(world.decor.stats), str(flora.stats)])
@@ -158,6 +164,28 @@ func _unhandled_input(event: InputEvent) -> void:
 		if (event as InputEventKey).physical_keycode == KEY_O and player and not player.ui_open:
 			set_overview(not overview_on())
 			get_viewport().set_input_as_handled()
+		elif (event as InputEventKey).physical_keycode == KEY_H and player and not player.ui_open:
+			set_photo_mode(not photo)
+			get_viewport().set_input_as_handled()
+
+## Фоторежим: без HUD, рук, подсказок и подписей — чистый вид острова.
+func set_photo_mode(on: bool) -> void:
+	photo = on
+	if player:
+		if player.hands:
+			player.hands.visible = not on
+		for c in player.get_children():
+			if c is CanvasLayer:
+				(c as CanvasLayer).visible = not on
+	var ui := MatchUI.instance()
+	if ui:
+		for c in ui.get_children():
+			if c is CanvasLayer:
+				(c as CanvasLayer).visible = not on
+	if _hint:
+		_hint.visible = not on
+	for l in labels:
+		l.visible = not on
 
 ## Подписи над островами (видно издалека).
 func _labels() -> void:
