@@ -51,7 +51,7 @@ class MB:
 		self.vu2.append(uv2)
 		return len(self.v) - 1
 
-	def card(self, p, up, side, tile, c0, c1, flex0=0.0, flex1=0.0, cross=True):
+	def card(self, p, up, side, tile, c0, c1, flex0=0.0, flex1=0.0, cross=True, u0=0.0, u1=1.0):
 		"""Карточка атласа: квад от p вдоль up (высота=|up|), ширина=|side|; cross — ещё квад поперёк.
 		UV.x = 4 + плитка (0 бахрома, 1 перо, 2 полипы, 3 щетина), UV.y — гибкость, UV2 — 0..1 в плитке."""
 		if self.cards is None:
@@ -61,10 +61,10 @@ class MB:
 		if cross:
 			sides.append(up.normalized().cross(side).normalized() * side.length)
 		for sd in sides:
-			a = cm.add_v(p - sd * 0.5, c0, (4.0 + tile, flex0), (0.0, 1.0))
-			b = cm.add_v(p + sd * 0.5, c0, (4.0 + tile, flex0), (1.0, 1.0))
-			c = cm.add_v(p + sd * 0.5 + up, c1, (4.0 + tile, flex1), (1.0, 0.0))
-			d = cm.add_v(p - sd * 0.5 + up, c1, (4.0 + tile, flex1), (0.0, 0.0))
+			a = cm.add_v(p - sd * 0.5, c0, (4.0 + tile, flex0), (u0, 1.0))
+			b = cm.add_v(p + sd * 0.5, c0, (4.0 + tile, flex0), (u1, 1.0))
+			c = cm.add_v(p + sd * 0.5 + up, c1, (4.0 + tile, flex1), (u1, 0.0))
+			d = cm.add_v(p - sd * 0.5 + up, c1, (4.0 + tile, flex1), (u0, 0.0))
 			cm.face((a, b, c, d))
 		return cm
 
@@ -278,14 +278,14 @@ def gen_table(seed, tiers):
 			mb.face((rows_t[-1][s], rows_b[-1][s], rows_b[-1][s1], rows_t[-1][s1]))
 		# ворс-оболочки (шейдер оставляет точки-кончики)
 		for layer, dz in ((1, 0.03), (2, 0.06)):
-			cs = mb.add_v(Vector((cx, cy, z + 0.035 + dz)), lerp(top2, rim, 0.3 * layer), (2.0 + layer, 0))
+			cs = mb.add_v(Vector((cx, cy, z + 0.035 + dz)), lerp(top2, rim, 0.3 * layer), (2.0 + 0.6 * layer, 0))
 			rows_s = []
 			for k in range(RR):
 				rs = []
 				for s in range(RS):
 					p = mb.v[rows_t[k][s]] + Vector((0, 0, dz))
 					f = (k + 1) / RR
-					rs.append(mb.add_v(p, lerp(lerp(top2, rim, 0.25 * layer), rim, max(0.0, (f - 0.8) / 0.2)), (2.0 + layer, 0)))
+					rs.append(mb.add_v(p, lerp(lerp(top2, rim, 0.25 * layer), rim, max(0.0, (f - 0.8) / 0.2)), (2.0 + 0.6 * layer, 0)))
 				rows_s.append(rs)
 			for s in range(RS):
 				mb.face((cs, rows_s[0][s], rows_s[0][(s + 1) % RS]))
@@ -294,14 +294,14 @@ def gen_table(seed, tiers):
 					s1 = (s + 1) % RS
 					mb.face((rows_s[k][s], rows_s[k + 1][s], rows_s[k + 1][s1], rows_s[k][s1]))
 		# щетина по кромке: карточки наружу-вверх, светлые
-		for s in range(0, RS * 2):
-			a = math.tau * (s + rnd.random()) / (RS * 2)
+		for s in range(0, RS * 3):
+			a = math.tau * (s + rnd.random()) / (RS * 3)
 			p = ring_pt(a, 0.985)
 			out = Vector((math.cos(a), math.sin(a), 0))
 			up = (out * 0.8 + Vector((0, 0, 1))).normalized() * rnd.uniform(0.07, 0.1)
 			mb.card(p, up, _perp(out) * 0.0 + Vector((-math.sin(a), math.cos(a), 0)) * 0.16, 3, top2, rim, cross=False)
 		# щетина пятнами сверху
-		for i in range(int(40 * R)):
+		for i in range(int(95 * R)):
 			f = math.sqrt(rnd.random()) * 0.9
 			a = rnd.random() * math.tau
 			p = ring_pt(a, f) + Vector((0, 0, 0.02))
@@ -353,26 +353,30 @@ def fib_dome(n, el_min=0.15):
 	return out
 
 def gen_staghorn(seed):
-	"""Широкий холм из множества коротких шишковатых веточек (Acropora, preview 30–33):
-	геометрия — короткие ветви в 2 ветвления, «шишки» — карточки щетины на концах."""
+	"""Широкий плотный холм из сотен коротких шишковатых веточек (Acropora, preview 30–33).
+	Геометрия — короткие конусы-побеги из поверхности холма (3 грани, без ветвления — дёшево),
+	объём и «шишки» — крестовые карточки щетины (атлас: веточки с почками) на каждом побеге."""
 	rnd = random.Random(seed)
 	mb = MB()
-	base = hexc("#7A4A50"); mid = hexc("#B07878"); tip = hexc("#EAC0B8")
-	# холм: ветви растут из всей поверхности низкого купола (а не из центра) — густо и широко
-	for i, d in enumerate(fib_dome(125, 0.08)):
-		d = (d + Vector((rnd.uniform(-.15, .15), rnd.uniform(-.15, .15), 0))).normalized()
-		hx = Vector((d.x * 0.95, d.y * 0.95, d.z * 0.45))           # точка на поверхности холма
-		g = (d + Vector((0, 0, 0.7))).normalized()
-		branch_tree(mb, rnd, hx, g, rnd.uniform(0.1, 0.15), 0.028, 0, 1, [mid, mid], tip, 3, (2, 2), 0.7, 0.2, segs=1, taper=0.8, tip_cards=1 if i % 3 == 0 else 0, card_col=mid)
-	core = remesh_blob([((0, 0, 0.0), 0.95, 0.15, seed)], 0.16, "core", lambda p, n: base)
+	base = hexc("#5E3A40"); mid = hexc("#A06C70"); tip = hexc("#EAC4BC")
+	W = rnd.uniform(1.0, 1.15); Hh = 0.75
+	for i, d in enumerate(fib_dome(440, 0.05)):
+		d = (d + Vector((rnd.uniform(-.2, .2), rnd.uniform(-.2, .2), 0))).normalized()
+		bump = 1.0 + 0.18 * noise.noise(d * 2.2 + Vector((seed, 0, 0)))
+		hx = Vector((d.x * W * bump, d.y * W * bump, d.z * Hh * bump))
+		g = (d + Vector((rnd.uniform(-.7, .7), rnd.uniform(-.7, .7), 0.5))).normalized()
+		ln = rnd.uniform(0.13, 0.22)
+		mb.tube([hx - g * 0.04, hx + g * ln], [0.022, 0.011], 3, [mul(mid, 0.75), tip], [0, 0], cap=True, tip_k=0.8)
+	core = remesh_blob([((0, 0, 0.0), 0.9, 0.2, seed)], 0.3, "core", lambda p, n: base)
 	for p in core.v:
-		p.z = max(0.0, p.z * 0.45)
+		p.x *= W; p.y *= W
+		p.z = max(0.0, p.z * Hh * 0.95)
 	_join(mb, core)
-	for i in range(8):   # обломки по краю
+	for i in range(12):   # обломки по краю
 		a = rnd.random() * math.tau
-		p = Vector((math.cos(a) * rnd.uniform(0.95, 1.2), math.sin(a) * rnd.uniform(0.95, 1.2), 0.02))
-		dd = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), 0.15))
-		branch_tree(mb, rnd, p, dd, 0.09, 0.016, 1, 2, [mid, mid], tip, 3, (1, 2), 0.6, 0.0, segs=1)
+		p = Vector((math.cos(a) * rnd.uniform(1.05, 1.35) * W, math.sin(a) * rnd.uniform(1.05, 1.35) * W, 0.02))
+		dd = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), 0.3)).normalized()
+		mb.tube([p, p + dd * 0.12], [0.016, 0.01], 3, [mid, tip], [0, 0], cap=True, tip_k=0.8)
 	bake_shade(mb, 0.45, 0.5)
 	return mb
 
@@ -381,11 +385,11 @@ def gen_corymbose(seed):
 	mb = MB()
 	base = grey(0.5); mid = grey(0.8); tip = grey(0.98)
 	R = 0.5
-	for i, d in enumerate(fib_dome(185, 0.04)):
+	for i, d in enumerate(fib_dome(240, 0.04)):
 		d = (d + Vector((rnd.uniform(-.06, .06), rnd.uniform(-.06, .06), 0))).normalized()
 		start = Vector((d.x * R * 0.45, d.y * R * 0.45, R * 0.15 + d.z * R * 0.35))
 		end = Vector((d.x * R, d.y * R, d.z * R * 0.8 + R * 0.08)) * rnd.uniform(0.88, 0.98)
-		rad = rnd.uniform(0.026, 0.034)
+		rad = rnd.uniform(0.022, 0.03)
 		mb.tube([start, end], [rad * 1.1, rad], 4, [base, tip], [0, 0], ring_noise=0.15, seed=i, tip_k=0.7)
 	core = remesh_blob([((0, 0, R * 0.15), R * 0.6, 0.2, seed)], 0.07, "core", lambda p, n: base)
 	for p in core.v:
@@ -395,27 +399,28 @@ def gen_corymbose(seed):
 	return mb
 
 def gen_lobed(seed, long_fingers=False):
-	"""Отдельные пальцы-лопасти (preview 26–29): толстые бугристые цилиндры со скруглёнными
-	концами на невысоком основании, промежутки между пальцами видны."""
+	"""«Цветная капуста» (Pocillopora/лопастной, preview 26–29): плотный комок из множества
+	коротких толстых изогнутых сплюснутых лопастей с бугристыми концами; основание не видно."""
 	rnd = random.Random(seed)
 	mb = MB()
-	R = 0.38
-	n = 62 if not long_fingers else 46
-	for i, d in enumerate(fib_dome(n, 0.15)):
+	R = 0.34
+	n = 150 if not long_fingers else 110
+	for i, d in enumerate(fib_dome(n, 0.05)):
 		d = (d + Vector((rnd.uniform(-.1, .1), rnd.uniform(-.1, .1), 0))).normalized()
-		st = Vector((d.x * R * 0.7, d.y * R * 0.7, R * 0.15 + d.z * R * 0.4))
-		ln = rnd.uniform(0.09, 0.14) * (1.7 if long_fingers else 1.0)
-		ax = (d + Vector((0, 0, 0.6))).normalized()
-		bend = Vector((rnd.uniform(-.3, .3), rnd.uniform(-.3, .3), 0.1))
-		pts = [st, st + ax * ln * 0.45 + bend * ln * 0.15, st + ax * ln * 0.85 + bend * ln * 0.35, st + ax * ln + bend * ln * 0.4]
-		rad = rnd.uniform(0.045, 0.06) * (0.8 if long_fingers else 1.0)
-		cols = [grey(0.62), grey(0.82), grey(0.92), grey(0.98)]
-		mb.tube(pts, [rad, rad * 1.08, rad * 0.95, rad * 0.62], 6, cols, [0, 0, 0, 0], ring_noise=0.22, seed=i, tip_k=0.45)
-	base = remesh_blob([((0, 0, R * 0.2), R * 0.75, 0.2, seed)], 0.06, "base", lambda p, n: grey(0.58))
+		st = Vector((d.x * R * 0.78, d.y * R * 0.78, R * 0.06 + d.z * R * 0.62))
+		ln = rnd.uniform(0.06, 0.09) * (1.5 if long_fingers else 1.0)
+		ax = (d + Vector((0, 0, 0.25))).normalized()
+		side = _perp(ax)
+		bend = side * rnd.uniform(-.7, .7)
+		pts = [st - ax * 0.03, st + ax * ln * 0.55 + bend * ln * 0.25, st + ax * ln + bend * ln * 0.5]
+		rad = rnd.uniform(0.04, 0.052) * (0.8 if long_fingers else 1.0)
+		cols = [grey(0.62), grey(0.86), grey(0.97)]
+		mb.tube(pts, [rad * 0.9, rad, rad * 0.82], 5, cols, [0, 0, 0], ring_noise=0.3, seed=i, flat=0.6, tip_k=0.6)
+	base = remesh_blob([((0, 0, R * 0.2), R * 0.62, 0.25, seed)], 0.05, "base", lambda p, n: grey(0.62))
 	for p in base.v:
 		p.z = max(p.z, 0.0)
 	_join(mb, base)
-	bake_shade(mb, 0.4, 0.45)
+	bake_shade(mb, 0.4, 0.4)
 	return mb
 
 def gen_foliose(seed, colr):
@@ -524,17 +529,17 @@ def gen_tentacles(mb, rnd, center_fn, n, len_rng, rad, col0, col1, sides=4, segs
 		mb.vu[i] = (1.0, mb.vu[i][1])
 
 def gen_leather(seed):
-	"""Кожистый «Actinia01» (preview 42–45): глубокая волнистая чаша-блюдце с рёбрами,
-	по кромке и сверху — густой короткий мех полипов (щупальца + карточки бахромы)."""
+	"""Кожистый «Actinia01» (preview 42–45): волнистая чаша-блюдце с рёбрами снаружи,
+	по всей верхней поверхности и кромке — густой короткий кремовый мех полипов."""
 	rnd = random.Random(seed)
 	mb = MB()
-	cup0 = hexc("#C09090"); cup1 = hexc("#EED6CC"); fr0 = hexc("#DCD2A0"); fr1 = hexc("#F6F2DA")
-	R = 0.5; H = 0.26
+	cup0 = hexc("#B88A88"); cup1 = hexc("#EED6CC"); fr0 = hexc("#D8CCA0"); fr1 = hexc("#FAF6E4")
+	R = 0.55; H = 0.24
 	lob = rnd.randint(3, 4); ph = rnd.uniform(0, 6)
-	RS, RR = 32, 6
+	RS, RR = 40, 6
 	def cup_pt(a, f):
-		er = R * (1.0 + 0.16 * math.sin(a * lob + ph)) * (0.22 + 0.78 * f)
-		z = H * f ** 1.7 + 0.08 * f ** 2 * math.sin(a * lob * 2 + ph)
+		er = R * (1.0 + 0.14 * math.sin(a * lob + ph)) * (0.2 + 0.8 * f)
+		z = H * f ** 1.6 + 0.09 * f ** 2 * math.sin(a * lob * 2 + ph)
 		return Vector((math.cos(a) * er, math.sin(a) * er, z))
 	rows = []
 	for k in range(RR + 1):
@@ -543,8 +548,8 @@ def gen_leather(seed):
 		for s in range(RS):
 			a = math.tau * s / RS
 			p = cup_pt(a, f)
-			rib = 0.5 + 0.5 * math.sin(a * 30)
-			row.append(mb.add_v(p, lerp(cup0, cup1, f * 0.7 + rib * 0.2), (0, 0)))
+			rib = 0.5 + 0.5 * math.sin(a * 34)
+			row.append(mb.add_v(p, lerp(cup0, cup1, f * 0.6 + rib * 0.25), (0, 0)))
 		rows.append(row)
 	bottom = mb.add_v(Vector((0, 0, 0)), mul(cup0, 0.7), (0, 0))
 	for s in range(RS):
@@ -553,38 +558,31 @@ def gen_leather(seed):
 		for s in range(RS):
 			s1 = (s + 1) % RS
 			mb.face((rows[k][s], rows[k][s1], rows[k + 1][s1], rows[k + 1][s]))
-	ctop = mb.add_v(Vector((0, 0, H * 0.82)), hexc("#B8AC70"), (0, 0))
+	ctop = mb.add_v(Vector((0, 0, H * 0.8)), hexc("#C8BC88"), (0, 0))
 	for s in range(RS):
 		mb.face((ctop, rows[RR][s], rows[RR][(s + 1) % RS]))
+	# мех: короткие толстенькие щупальца-полипы (3 грани) по всей верхней поверхности, гуще к кромке
 	def where(r):
 		a = r.random() * math.tau
-		f = r.uniform(0.86, 1.0) if r.random() < 0.6 else math.sqrt(r.uniform(0.2, 0.86))
+		f = 1.0 - r.random() ** 2.2 * 0.85
 		p = cup_pt(a, 1.0)
-		q = Vector((p.x * f, p.y * f, H * 0.82 + (p.z - H * 0.82) * f))
-		n = Vector((math.cos(a) * 0.8 * f, math.sin(a) * 0.8 * f, 1.0)).normalized()
+		q = Vector((p.x * f, p.y * f, H * 0.8 + (p.z - H * 0.8) * f))
+		n = Vector((math.cos(a) * 0.9 * f, math.sin(a) * 0.9 * f, 1.0)).normalized()
 		return q, n
-	gen_tentacles(mb, rnd, where, 230, (0.07, 0.12), 0.015, fr0, fr1, sides=3, segs=1, curl=0.2, outward=0.3)
-	# мех кромки: карточки бахромы по всей кромке, наружу-вверх
-	for s in range(RS * 3):
-		a = math.tau * (s + rnd.random()) / (RS * 3)
-		p = cup_pt(a, 0.97)
-		out = Vector((math.cos(a), math.sin(a), 0))
-		up = (out * 0.6 + Vector((0, 0, 1))).normalized() * rnd.uniform(0.09, 0.13)
-		mb.card(p, up, Vector((-math.sin(a), math.cos(a), 0)) * 0.13, 0, fr0, fr1, 0.4, 1.0, cross=False)
-
+	gen_tentacles(mb, rnd, where, 300, (0.06, 0.11), 0.012, fr0, fr1, sides=3, segs=1, curl=0.25, outward=0.25, taper=0.3, tip_k=1.0)
 	bake_shade(mb, 0.35, 0.3)
 	return mb
 
 def gen_anemone(seed, colr):
-	"""Актиния с длинными щупальцами (preview 46–48, 55–58): плотная высокая «шапка» волнистых
-	щупалец со скруглёнными кончиками на овальном диске."""
+	"""Актиния с длинными щупальцами (preview 46–48, 55–58): высокая плотная шапка волнистых
+	щупалец со скруглёнными кончиками. Силуэт — 70 трубок, густота — карточки «бахромы»."""
 	rnd = random.Random(seed)
 	mb = MB()
-	c = hexc(colr); dark = mul(c, 0.7)
+	c = hexc(colr); dark = mul(c, 0.7); tipc = lerp(c, hexc("#FFFFFF"), 0.4)
 	RS = 16
 	center = mb.add_v(Vector((0, 0, 0.07)), dark, (0, 0))
-	ring = [mb.add_v(Vector((math.cos(math.tau * s / RS) * 0.4, math.sin(math.tau * s / RS) * 0.24, 0.05)), dark, (0, 0)) for s in range(RS)]
-	ring2 = [mb.add_v(Vector((math.cos(math.tau * s / RS) * 0.44, math.sin(math.tau * s / RS) * 0.28, 0.0)), mul(dark, 0.8), (0, 0)) for s in range(RS)]
+	ring = [mb.add_v(Vector((math.cos(math.tau * s / RS) * 0.42, math.sin(math.tau * s / RS) * 0.26, 0.05)), dark, (0, 0)) for s in range(RS)]
+	ring2 = [mb.add_v(Vector((math.cos(math.tau * s / RS) * 0.46, math.sin(math.tau * s / RS) * 0.3, 0.0)), mul(dark, 0.8), (0, 0)) for s in range(RS)]
 	for s in range(RS):
 		s1 = (s + 1) % RS
 		mb.face((center, ring[s], ring[s1]))
@@ -592,11 +590,11 @@ def gen_anemone(seed, colr):
 	def where(r):
 		a = r.random() * math.tau
 		f = math.sqrt(r.random())
-		q = Vector((math.cos(a) * 0.4 * f, math.sin(a) * 0.24 * f, 0.06))
-		n = Vector((math.cos(a) * (0.1 + 0.55 * f), math.sin(a) * (0.1 + 0.4 * f), 1.7 - f * 0.4)).normalized()
+		q = Vector((math.cos(a) * 0.42 * f, math.sin(a) * 0.26 * f, 0.06))
+		n = Vector((math.cos(a) * (0.1 + 0.6 * f), math.sin(a) * (0.1 + 0.5 * f), 2.4 - f * 0.9)).normalized()
 		return q, n
-	gen_tentacles(mb, rnd, where, 108, (0.3, 0.48), 0.028, c, lerp(c, hexc("#FFFFFF"), 0.35), sides=4, segs=4,
-		curl=0.55, outward=0.25, flex0=0.1, wiggle=0.45, taper=0.2, tip_k=0.9)
+	gen_tentacles(mb, rnd, where, 125, (0.34, 0.55), 0.026, c, tipc, sides=3, segs=3,
+		curl=0.45, outward=0.2, flex0=0.1, wiggle=0.6, taper=0.2, tip_k=1.2)
 	bake_shade(mb, 0.3, 0.35)
 	return mb
 
@@ -623,16 +621,16 @@ def gen_bubble(seed):
 	return mb
 
 def gen_crinoid(seed):
-	"""Морская лилия (preview 53, 65–67): пучок дугой загнутых рук, по каждой — перистые пиннулы
-	(карточки «перо» вдоль руки)."""
+	"""Морская лилия (preview 53, 65–67): густой пучок дугой загнутых рук, по каждой — перистые
+	пиннулы (две карточки «перо» крест-накрест вдоль руки)."""
 	rnd = random.Random(seed)
 	mb = MB()
-	c0 = hexc("#A89010"); c1 = hexc("#E8D838")
-	arms = 30
+	c0 = hexc("#9C8410"); c1 = hexc("#E8D838")
+	arms = 44
 	for i in range(arms):
-		a = math.tau * i / arms + rnd.uniform(-.15, .15)
-		el = rnd.uniform(1.0, 1.5)
-		ln = rnd.uniform(0.32, 0.46)
+		a = math.tau * i / arms + rnd.uniform(-.2, .2)
+		el = rnd.uniform(1.25, 1.65)
+		ln = rnd.uniform(0.45, 0.65)
 		bend = rnd.uniform(1.2, 2.2)
 		pts = []
 		for s in range(8):
@@ -641,7 +639,7 @@ def gen_crinoid(seed):
 			r = ln * t
 			pts.append(Vector((math.cos(a) * r * math.cos(ang) * 1.1, math.sin(a) * r * math.cos(ang) * 1.1, 0.05 + r * math.sin(ang) * 0.9 + 0.14 * t)))
 		flex = [0.1 + 0.9 * (s / 7) for s in range(8)]
-		mb.tube(pts, [0.012, 0.011, 0.01, 0.009, 0.008, 0.006, 0.005, 0.003], 3, [lerp(c0, c1, s / 7) for s in range(8)], flex)
+		mb.tube(pts, [0.011, 0.01, 0.009, 0.008, 0.007, 0.005, 0.004, 0.003], 3, [lerp(c0, c1, s / 7) for s in range(8)], flex)
 		for s in range(0, 7):
 			p = pts[s]; q = pts[s + 1]
 			d = q - p
@@ -650,8 +648,8 @@ def gen_crinoid(seed):
 			side = d.normalized().cross(Vector((math.cos(a), math.sin(a), 0))).normalized()
 			if side.length < 0.1:
 				side = _perp(d.normalized())
-			w = 0.075 * (1.0 - 0.08 * s)
-			mb.card(p, d * 1.15, side * w, 1, c0, c1, flex[s], flex[s + 1], cross=False)
+			w = 0.09 * (1.0 - 0.08 * s)
+			mb.card(p, d * 1.15, side * w, 1, c0, c1, flex[s], flex[s + 1], cross=True)
 	for i in range(len(mb.vu)):
 		if 0 < mb.vu[i][1] and mb.vu[i][0] < 0.5:
 			mb.vu[i] = (1.0, mb.vu[i][1])
@@ -671,56 +669,28 @@ def gen_mound(seed, colr):
 	return mb
 
 def gen_millepora(seed):
-	"""Огненный коралл (preview 77–80): вертикальные толстые пластины-лопасти разной высоты,
-	расходятся от центра, светлые бугристые края с щетиной."""
+	"""Огненный коралл (preview 77–80): широкие сплюснутые лопасти, расходятся веером в стороны и
+	вверх, расширяются к светлым бугристым концам."""
 	rnd = random.Random(seed)
 	mb = MB()
-	c0 = hexc("#B8904A"); c1 = hexc("#D8B068"); tipc = hexc("#F2E8D0")
-	nb = rnd.randint(7, 10)
-	for b in range(nb):
-		a = math.tau * b / nb + rnd.uniform(-.3, .3)
-		dirv = Vector((math.cos(a), math.sin(a), 0))
-		side = Vector((-dirv.y, dirv.x, 0))
-		L = rnd.uniform(0.25, 0.45); Hh = rnd.uniform(0.25, 0.5)
-		th = 0.032
-		NX, NY = 6, 5
-		grid_f = []; grid_b = []
-		for iy in range(NY + 1):
-			ty = iy / NY
-			rf = []; rb = []
-			for ix in range(NX + 1):
-				tx = ix / NX
-				wob = 0.05 * math.sin(tx * 6 + b) * ty
-				edge = 0.55 + 0.45 * math.sin(tx * math.pi) ** 0.5 + 0.08 * math.sin(tx * 7 + b)
-				p = dirv * (0.05 + L * tx) + Vector((0, 0, Hh * ty * edge)) + side * wob
-				cc = lerp(c0, c1, ty)
-				if iy == NY:
-					cc = tipc
-				rf.append(mb.add_v(p + side * th, cc, (0, 0)))
-				rb.append(mb.add_v(p - side * th, cc, (0, 0)))
-			grid_f.append(rf); grid_b.append(rb)
-		for iy in range(NY):
-			for ix in range(NX):
-				mb.face((grid_f[iy][ix], grid_f[iy][ix + 1], grid_f[iy + 1][ix + 1], grid_f[iy + 1][ix]))
-				mb.face((grid_b[iy][ix], grid_b[iy + 1][ix], grid_b[iy + 1][ix + 1], grid_b[iy][ix + 1]))
-		for ix in range(NX):
-			mb.face((grid_f[NY][ix], grid_f[NY][ix + 1], grid_b[NY][ix + 1], grid_b[NY][ix]))
-		for iy in range(NY):
-			mb.face((grid_f[iy][NX], grid_b[iy][NX], grid_b[iy + 1][NX], grid_f[iy + 1][NX]))
-
-	bake_shade(mb, 0.4, 0.35)
+	c0 = hexc("#9C7438"); c1 = hexc("#D0A860"); tipc = hexc("#F4ECD6")
+	for k in range(rnd.randint(5, 7)):
+		a = rnd.random() * math.tau
+		d = Vector((math.cos(a), math.sin(a), rnd.uniform(0.6, 1.1))).normalized()
+		branch_tree(mb, rnd, Vector((rnd.uniform(-.04, .04), rnd.uniform(-.04, .04), 0)), d, 0.17, 0.045, 0, 3,
+			[c0, c1], tipc, 6, (2, 2), 0.9, 0.05, flatten=0.3, segs=2, taper=1.08)
+	bake_shade(mb, 0.35, 0.35)
 	return mb
-
 
 # ------------------------------------------------------------------ сборка
 
 SPEC = [
 	# (тип, вариант, функция, бюджет геометрии LOD0, LOD1, LOD2) — карточки сверх бюджета (≈4 треуг./шт.)
-	("table", 0, lambda: gen_table(11, 1), 2400, 900, 300),
-	("table", 1, lambda: gen_table(12, 2), 2800, 1000, 350),
-	("table", 2, lambda: gen_table(13, 3), 3000, 1100, 400),
-	("staghorn", 0, lambda: gen_staghorn(21), 3600, 1200, 400),
-	("staghorn", 1, lambda: gen_staghorn(22), 3600, 1200, 400),
+	("table", 0, lambda: gen_table(11, 1), 1600, 800, 300),
+	("table", 1, lambda: gen_table(12, 2), 1800, 900, 350),
+	("table", 2, lambda: gen_table(13, 3), 2000, 1000, 400),
+	("staghorn", 0, lambda: gen_staghorn(21), 4150, 1200, 400),
+	("staghorn", 1, lambda: gen_staghorn(22), 4150, 1200, 400),
 	("corymbose", 0, lambda: gen_corymbose(31), 2800, 900, 300),
 	("corymbose", 1, lambda: gen_corymbose(32), 2800, 900, 300),
 	("lobed", 0, lambda: gen_lobed(41), 2900, 900, 300),
@@ -731,16 +701,17 @@ SPEC = [
 	("antler", 1, lambda: gen_antler(62, ["#9A9A9A", "#E0E0DC"]), 1600, 600, 200),
 	("softcoral", 0, lambda: gen_softcoral(71, "#EADCD8", "#E8A030"), 2400, 800, 300),
 	("softcoral", 1, lambda: gen_softcoral(72, "#EAD0D0", "#E87898"), 2400, 800, 300),
-	("leather", 0, lambda: gen_leather(81), 2900, 900, 300),
-	("anemone", 0, lambda: gen_anemone(91, "#F2F0EA"), 4000, 1300, 400),
-	("anemone", 1, lambda: gen_anemone(92, "#DCD0B0"), 4000, 1300, 400),
+	("leather", 0, lambda: gen_leather(81), 3000, 900, 300),
+	("anemone", 0, lambda: gen_anemone(91, "#F2F0EA"), 3200, 1100, 400),
+	("anemone", 1, lambda: gen_anemone(92, "#DCD0B0"), 3200, 1100, 400),
 	("bubble", 0, lambda: gen_bubble(101), 2900, 900, 300),
-	("crinoid", 0, lambda: gen_crinoid(111), 1800, 700, 250),
+	("crinoid", 0, lambda: gen_crinoid(111), 1400, 600, 250),
 	("mound", 0, lambda: gen_mound(121, "#7A5A38"), 700, 250, 100),
 	("mound", 1, lambda: gen_mound(122, "#6A6A3A"), 700, 250, 100),
-	("millepora", 0, lambda: gen_millepora(131), 1600, 600, 200),
-	("millepora", 1, lambda: gen_millepora(132), 1600, 600, 200),
+	("millepora", 0, lambda: gen_millepora(131), 2200, 700, 200),
+	("millepora", 1, lambda: gen_millepora(132), 2200, 700, 200),
 ]
+
 
 def _cards_subset(cm, keep_every):
 	"""Каждая keep_every-я карточка (у карточки 1–2 квада по 4 вершины)."""

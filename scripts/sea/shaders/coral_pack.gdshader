@@ -95,7 +95,7 @@ void fragment() {
 		}
 		vec2 q2 = lpos.xz * pattern_scale * 0.32;
 		float cd = cells(vec3(q2, shell * 7.3));
-		float rad = shell < 1.5 ? 0.36 : 0.24;
+		float rad = shell < 0.9 ? 0.36 : 0.24;
 		if (cd > rad) {
 			discard;
 		}
