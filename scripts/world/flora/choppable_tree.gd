@@ -45,6 +45,37 @@ func setup(v: Dictionary) -> void:
 	coconuts = int(v.get("coconuts", 0))
 	coconuts0 = coconuts
 
+## Дерево, разбуженное вдали от игрока (рядом с ботом): тень рисует лёгкий меш
+## (FloraLib.shadow_tree_mesh), сам детальный меш в карту теней не идёт.
+var shadow_proxy := false
+var _shadow_mi: MeshInstance3D
+
+func _set_shadow_proxy(on: bool) -> void:
+	var mode := GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if on else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	for mi: MeshInstance3D in [_trunk, _crown]:
+		if mi:
+			mi.cast_shadow = mode
+	if _crown and not felled:
+		# вдали от игрока — облегчённая крона (у пальмы та же)
+		_crown.mesh = FloraLib.crown_mesh(variant, 1 if on else 0)
+	if on and _shadow_mi == null:
+		_shadow_mi = MeshInstance3D.new()
+		_shadow_mi.name = "ShadowProxy"
+		_shadow_mi.mesh = FloraLib.shadow_tree_mesh(variant)
+		_shadow_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+		_shadow_mi.visibility_range_end = Flora.LOD_DIST
+		_shadow_mi.set_meta(&"no_auto_lod", true)
+		add_child(_shadow_mi)
+	elif not on and _shadow_mi != null:
+		_shadow_mi.queue_free()
+		_shadow_mi = null
+
+## Игрок подошёл к дереву, разбуженному ботом, — вернуть полную детализацию.
+func set_full_detail() -> void:
+	if shadow_proxy:
+		shadow_proxy = false
+		_set_shadow_proxy(false)
+
 func _ready() -> void:
 	add_to_group(&"choppable")
 	add_to_group(&"trees")
@@ -66,6 +97,8 @@ func _ready() -> void:
 		roots.mesh = rm
 		roots.visibility_range_end = Flora.TREE_VIS_RANGE
 		add_child(roots)
+	if shadow_proxy:
+		_set_shadow_proxy(true)
 	if kind == &"palm":
 		var top := FloraLib.trunk_point(variant, variant["H"])
 		var rng := RandomNumberGenerator.new()
@@ -200,6 +233,7 @@ func fell(by: Node) -> void:
 	_trunk.mesh = FloraLib.trunk_mesh(variant, 0.0, cut_h, 2, 12)
 	_trunk.visibility_range_end = 160.0
 	_crown.visible = false
+	_set_shadow_proxy(false)
 	for c in _coconut_nodes:
 		c.queue_free()
 	var left_coconuts := coconuts

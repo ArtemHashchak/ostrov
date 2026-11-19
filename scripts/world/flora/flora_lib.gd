@@ -727,6 +727,76 @@ static func with_auto_lods(m: ArrayMesh) -> ArrayMesh:
 		return m
 	return out
 
+## Теневой меш дерева (только для карты теней): ствол 4 грани × 4 звена, крона —
+## немного крупных карточек/листьев на 3 звена, без корней и кокосов. ~5–10× легче LOD1.
+## Силуэт тени — тот же (тот же сид), материалы те же (альфа-отсечение листвы).
+static func shadow_tree_mesh(v: Dictionary) -> ArrayMesh:
+	var key := "tree_shadow_%s_%d" % [v["kind"], v["idx"]]
+	if _mesh_cache.has(key):
+		return _mesh_cache[key]
+	var H: float = v["H"]
+	var bst := SurfaceTool.new(); bst.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var segs := 4
+	for i in segs:
+		var h0 := H * float(i) / float(segs)
+		var h1 := H * float(i + 1) / float(segs)
+		_tube(bst, trunk_point(v, h0), trunk_point(v, h1), trunk_radius(v, h0), trunk_radius(v, h1), 4)
+	var mesh := bst.commit()
+	mesh.surface_set_material(0, bark_material(v["bark"]))
+	var cst := SurfaceTool.new(); cst.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var rng := RandomNumberGenerator.new()
+	var mat: Material
+	if v["kind"] == &"palm":
+		rng.seed = int(v["seed"]) + 17
+		var top := trunk_point(v, H)
+		var n: int = v["fronds"]
+		for i in n:
+			var az := float(i) * 2.39996 + rng.randf_range(-0.2, 0.2)
+			var el := lerpf(0.75, -0.15, float(i) / float(n)) + rng.randf_range(-0.12, 0.12)
+			var L: float = (v["frond_len"] as float) * rng.randf_range(0.82, 1.08) * (0.75 if i < 3 else 1.0)
+			_frond_lite(cst, top, az, el, L, rng.randf_range(0.9, 1.6))
+		mat = foliage_material("palm_frond", Color(1, 1, 1), 0.10)
+	else:
+		rng.seed = int(v["seed"]) + 31
+		var center := crown_center(v)
+		var R: float = v["crown_r"]
+		var flat: float = v.get("flat", 1.0)
+		var nc := maxi(16, int(float(v["cards"]) * 0.6))
+		for k in nc:
+			var d := Vector3(rng.randf_range(-1, 1), rng.randf_range(-0.6, 1.0), rng.randf_range(-1, 1)).normalized()
+			var p := center + Vector3(d.x * R, d.y * R * flat * 0.8, d.z * R) * rng.randf_range(0.35, 0.85)
+			_card(cst, p, d, rng.randf_range(2.4, 3.4), rng.randf() * TAU, center, 0.5, 0.8)
+		mat = foliage_material(v["tex"], v.get("tint", Color(0.95, 1.0, 0.92)), 0.07)
+	cst.commit(mesh)
+	mesh.surface_set_material(1, mat)
+	_mesh_cache[key] = mesh
+	return mesh
+
+## Лист пальмы для тени: 3 звена × 1 полоса.
+static func _frond_lite(st: SurfaceTool, top: Vector3, az: float, el: float, L: float, droop: float) -> void:
+	var dir := Vector3(cos(az) * cos(el), sin(el), sin(az) * cos(el)).normalized()
+	var r := dir.cross(Vector3.UP).normalized()
+	if r.length() < 0.3:
+		r = Vector3.RIGHT
+	var segs := 3
+	var prev_a := top
+	var prev_b := top
+	for k in segs + 1:
+		var u := float(k) / float(segs)
+		var p := top + dir * L * u + Vector3.DOWN * droop * L * 0.35 * u * u
+		var w := L * 0.33 * (0.35 + 0.65 * sin(clampf(u * 1.05, 0.0, 1.0) * PI * 0.92 + 0.12)) * 0.5
+		var a := p - r * w
+		var b := p + r * w
+		if k > 0:
+			for q: Array in [[prev_a, a, b], [prev_a, b, prev_b]]:
+				for j in 3:
+					st.set_color(Color(u, 1, 1))
+					st.set_normal(Vector3.UP)
+					st.set_uv(Vector2(u * 0.96 + 0.02, 1.0 if (q[j] == prev_a or q[j] == a) else 0.0))
+					st.add_vertex(q[j])
+		prev_a = a
+		prev_b = b
+
 ## Слить меши по материалам: parts = [[Mesh, Transform3D], ...].
 static func combine(parts: Array) -> ArrayMesh:
 	var by_mat: Dictionary = {} # Material -> SurfaceTool

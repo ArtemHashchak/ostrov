@@ -6,6 +6,7 @@ extends RefCounted
 const TEX := "res://assets/textures/"
 const PH := "res://assets/models/polyhaven/"
 const OBJ := "res://assets/models/polyhaven_obj/"
+const OBJ_TRIS := 3500
 
 static var _mats: Dictionary = {}
 static var _meshes: Dictionary = {}
@@ -270,7 +271,9 @@ static func obj(name: String, cutout: bool = false) -> MeshInstance3D:
 	if not _meshes.has(key):
 		# OBJ импортируется без LOD и кусками по 5–20 поверхностей с одним
 		# материалом: сливаем в одну поверхность и строим LOD один раз.
-		_meshes[key] = MeshOptimizer.merged_with_lods(key, load(p) as Mesh)
+		# сканы полихейвен тяжёлые (таро-калатея 16.7k треуг. на куст 1 м) — базовый уровень
+		# не больше OBJ_TRIS, дальше автоматические LOD
+		_meshes[key] = MeshOptimizer.decimated(key, load(p) as Mesh, OBJ_TRIS)
 	var mi := MeshInstance3D.new()
 	mi.mesh = _meshes[key] as Mesh
 	var mk := "objmat|%s" % name

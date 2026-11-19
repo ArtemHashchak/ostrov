@@ -30,6 +30,7 @@ const TREE_FAR := 650.0
 ## перекрытие LOD1/LOD2 безвредно (одинаковая геометрия), поэтому диапазоны с запасом.
 const TCHUNK := 96.0           # LOD0 (полные меши вариантов); 96 м — вдвое меньше MultiMesh-групп, чем 64
 const FAR_CHUNK := 144.0
+const SCHUNK := 192.0          # теневые двойники деревьев (лёгкий меш, только в карту теней)
 const LOD1_END := 400.0  # перекрытие с LOD2 ≥ разницы центров чанков
 const LOD2_BEGIN := 250.0
 const CCHUNK := 192.0          # чанк коллизий стволов
@@ -121,6 +122,7 @@ var _tree_recs: Array = []
 var _grid: Dictionary = {}        # Vector2i -> Array[rec]
 var _tgroups: Dictionary = {}     # LOD0: "kind_idx|cx|cz" -> {v, mm: MultiMesh, xf: Array}
 var _fgroups: Dictionary = {}     # LOD1: "kind|cx|cz" -> {v (вариант 0), mm, xf} — один меш на вид, масштаб по высоте
+var _sgroups: Dictionary = {}     # тень ближних деревьев: "kind_idx|cx|cz" (SCHUNK) -> {v, mm, xf}
 var _ggroups: Dictionary = {}     # LOD2: то же, крупные чанки FAR_CHUNK
 var _colliders: Dictionary = {}   # Vector2i -> FloraColliders
 var _shapes: Dictionary = {}
@@ -449,6 +451,14 @@ func _build_trees() -> void:
 		rec["gg"] = gk2
 		rec["gi"] = (_ggroups[gk2]["xf"] as Array).size()
 		(_ggroups[gk2]["xf"] as Array).append(_xf(rec, false, _far_k(rec)))
+		# теневой двойник: лёгкий меш варианта, крупные чанки, только в карту теней
+		var sck := Vector2i(int(floor(p.x / SCHUNK)), int(floor(p.z / SCHUNK)))
+		var sk2 := "%s_%d|%d|%d" % [rec["kind"], rec["idx"], sck.x, sck.y]
+		if not _sgroups.has(sk2):
+			_sgroups[sk2] = {"v": FloraLib.variant(rec["kind"], rec["idx"]), "xf": []}
+		rec["gs"] = sk2
+		rec["si"] = (_sgroups[sk2]["xf"] as Array).size()
+		(_sgroups[sk2]["xf"] as Array).append(_xf(rec))
 		# коллизия ствола
 		ck = Vector2i(int(floor(p.x / CCHUNK)), int(floor(p.z / CCHUNK)))
 		if not _colliders.has(ck):
@@ -481,7 +491,9 @@ func _build_trees() -> void:
 			var xs: Array = g["xf"]
 			var mm := MultiMesh.new()
 			mm.transform_format = MultiMesh.TRANSFORM_3D
-			mm.mesh = FloraLib.tree_mesh(g["v"], mini(lod, 1))
+			# LOD2 (250–650 м) — лёгкий меш (~100 треуг. вместо 300–1150 у LOD1): вдали
+			# разница не видна, а экземпляров там тысячи (было ≈240k примитивов на вид к центру)
+			mm.mesh = FloraLib.shadow_tree_mesh(g["v"]) if lod == 2 else FloraLib.tree_mesh(g["v"], lod)
 			mm.instance_count = xs.size()
 			for k in xs.size():
 				mm.set_instance_transform(k, xs[k])
@@ -491,6 +503,9 @@ func _build_trees() -> void:
 			if lod == 0:
 				mmi.visibility_range_end = LOD_DIST
 				mmi.visibility_range_end_margin = 4.0
+				# Тень ближних деревьев рисует дешёвый «теневой двойник» (LOD1, один меш на вид):
+				# детальный LOD0 в карту теней не идёт (было ≈450k примитивов/240 вызовов со спавна).
+				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			elif lod == 1:
 				mmi.visibility_range_begin = LOD_DIST
 				mmi.visibility_range_begin_margin = 4.0
@@ -503,6 +518,24 @@ func _build_trees() -> void:
 			add_child(mmi)
 			g["mm"] = mm
 			mmis += 1
+	for sk3 in _sgroups:
+		var sg: Dictionary = _sgroups[sk3]
+		var sxs: Array = sg["xf"]
+		var smm := MultiMesh.new()
+		smm.transform_format = MultiMesh.TRANSFORM_3D
+		smm.mesh = FloraLib.shadow_tree_mesh(sg["v"])
+		smm.instance_count = sxs.size()
+		for k in sxs.size():
+			smm.set_instance_transform(k, sxs[k])
+		var sh := MultiMeshInstance3D.new()
+		sh.name = "TreesShadow_%s" % String(sk3).replace("|", "_")
+		sh.multimesh = smm
+		sh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+		# дальность — от центра чанка SCHUNK: деревья до LOD_DIST от камеры попадают целиком
+		sh.visibility_range_end = LOD_DIST + SCHUNK * 0.35
+		add_child(sh)
+		sg["mm"] = smm
+		mmis += 1
 	stats["tree_mmi"] = mmis
 	stats["tree_chunks"] = _colliders.size()
 
@@ -513,6 +546,9 @@ func _set_mm_visible(rec: Dictionary, vis: bool) -> void:
 	(g["mm"] as MultiMesh).set_instance_transform(int(rec["mi"]), _xf(rec, not vis))
 	var f: Dictionary = _fgroups[rec["gf"]]
 	(f["mm"] as MultiMesh).set_instance_transform(int(rec["fi"]), _xf(rec, not vis, _far_k(rec)))
+	var gs: Dictionary = _sgroups.get(rec.get("gs", ""), {})
+	if not gs.is_empty():
+		(gs["mm"] as MultiMesh).set_instance_transform(int(rec["si"]), _xf(rec, not vis))
 	var g2: Dictionary = _ggroups.get(rec.get("gg", ""), {})
 	if not g2.is_empty():
 		(g2["mm"] as MultiMesh).set_instance_transform(int(rec["gi"]), _xf(rec, not vis, _far_k(rec)))
@@ -529,6 +565,12 @@ func promote(rec: Dictionary) -> ChoppableTree:
 		return null
 	var t := ChoppableTree.new()
 	t.setup(FloraLib.variant(rec["kind"], rec["idx"]))
+	# детальная тень — только у деревьев рядом с игроком; разбуженные ботами — лёгкая
+	t.shadow_proxy = true
+	for pl in get_tree().get_nodes_in_group(&"player"):
+		if pl is Node3D and (pl as Node3D).global_position.distance_to(rec["pos"]) < 45.0:
+			t.shadow_proxy = false
+			break
 	t.position = rec["pos"]
 	t.rotation.y = float(rec["yaw"])
 	add_child(t)
@@ -638,12 +680,18 @@ func _tick(sync: bool) -> void:
 		for rec in _recs_in(ap, PROMOTE_R):
 			if rec["t"] == T_TREE and int(rec["state"]) == 0 and rec["node"] == null:
 				promote(rec)
-	# 2) нетронутые деревья вдали засыпают
+	# 2) нетронутые деревья вдали засыпают; к разбуженным ботом подошёл игрок — полная детализация
+	var players := get_tree().get_nodes_in_group(&"player")
 	for rec in _promoted.duplicate():
 		var t = rec["node"]
 		if t == null or not is_instance_valid(t):
 			_promoted.erase(rec)
 			continue
+		if (t as ChoppableTree).shadow_proxy:
+			for pl in players:
+				if pl is Node3D and (pl as Node3D).global_position.distance_to(rec["pos"]) < 40.0:
+					(t as ChoppableTree).set_full_detail()
+					break
 		if not (t as ChoppableTree).is_pristine() or _now - float(rec.get("pt", 0.0)) < 8.0:
 			continue
 		var near := false
