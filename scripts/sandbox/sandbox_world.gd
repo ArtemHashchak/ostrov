@@ -3,7 +3,17 @@ extends World
 ## Мир «Полигона»: тот же World (API, рельеф, океан, небо), но своя раскладка
 ## островов (SandboxArch) вместо архипелага матча.
 
+## На полигоне уровень моря держим у номинала: точки, витрины, пирс и камеры
+## расставлены относительно него. Прилива нет; нагон в шторм — лишь до 0.35 м,
+## чтобы гроза (F5) не затапливала зоны, но волны у берега были видны.
+const SANDBOX_SURGE_MAX := 0.35
+
+func _update_surge(dt: float) -> void:
+	var target := SANDBOX_SURGE_MAX * smoothstep(0.25, 1.0, storm_intensity())
+	_surge = lerpf(_surge, target, 1.0 - exp(-dt / 60.0))
+
 func _ready() -> void:
+	tide_amplitude = 0.0
 	add_to_group(&"world")
 	var t0 := Time.get_ticks_msec()
 	arch = SandboxArch.new(seed_value)

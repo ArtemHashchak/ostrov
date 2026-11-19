@@ -481,8 +481,19 @@ func water_level() -> float:
 func is_in_water() -> bool:
 	return water_level() - global_position.y > 0.05
 
+## Поверхность воды в точке (x, z) с волной: прилив + нагон + волны (world.wave_height).
+func water_surface_at(x: float, z: float) -> float:
+	var w := get_tree().get_first_node_in_group(&"world")
+	if w and w.has_method(&"wave_height"):
+		return float(w.call(&"wave_height", x, z))
+	return water_level()
+
 func is_underwater() -> bool:
-	return camera != null and camera.global_position.y < water_level() - 0.06
+	if camera == null:
+		return false
+	var c := camera.global_position
+	# голова под водой: ниже уровня (прилив/нагон) ИЛИ ниже проходящей волны
+	return c.y < water_level() - 0.06 or c.y < water_surface_at(c.x, c.z) - 0.06
 
 func _swim_process(delta: float, wl: float) -> void:
 	_gamepad_look(delta)
