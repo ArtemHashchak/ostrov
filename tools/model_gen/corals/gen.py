@@ -361,14 +361,14 @@ def gen_staghorn(seed):
 	mb = MB()
 	mid = hexc("#8E5A60"); dark = mul(mid, 0.62); tip = hexc("#F0D2C8")
 	W = rnd.uniform(1.15, 1.3)
-	n_tr = 28
+	n_tr = 34
 	for k in range(n_tr):
 		a = math.tau * k / n_tr + rnd.uniform(-0.25, 0.25)
-		r0 = W * math.sqrt(rnd.random()) * 0.7
+		r0 = W * math.sqrt(rnd.random()) * 0.8
 		base = Vector((math.cos(a) * r0, math.sin(a) * r0, 0.0))
 		out = Vector((math.cos(a), math.sin(a), 0.0))
-		d = (out * rnd.uniform(0.55, 1.0) + Vector((0, 0, rnd.uniform(0.45, 0.8)))).normalized()
-		branch_tree(mb, rnd, base, d, rnd.uniform(0.22, 0.3), 0.03, 0, 3, [dark, mid], tip, 3, (2, 3), 0.62, 0.1,
+		d = (out * rnd.uniform(0.15, 0.5) * (r0 / W + 0.3) + Vector((0, 0, 1.0))).normalized()
+		branch_tree(mb, rnd, base, d, rnd.uniform(0.16, 0.22) * (1.15 - 0.5 * r0 / W), 0.03, 0, 3, [dark, mid], tip, 3, (2, 3), 0.7, 0.05,
 			segs=1, taper=0.7)
 	for i in range(22):   # обломки вокруг
 		a = rnd.random() * math.tau
