@@ -33,6 +33,9 @@ const TYPES := {
 		"tints": [Color(0.36, 0.52, 0.26), Color(0.42, 0.56, 0.3), Color(0.5, 0.56, 0.32)]},
 }
 
+## Кораллы по референсу пользователя (CoralPack, docs/CORALS_REF.md); false — старые процедурные.
+static var use_pack_corals := true
+
 var sea: Node = null
 var density: float = 1.0
 var _zones: Array[Dictionary] = []
@@ -41,6 +44,7 @@ var _rng := RandomNumberGenerator.new()
 var _noise := FastNoiseLite.new()
 var _gnoise := FastNoiseLite.new()
 var instances: int = 0
+var _pack := false
 
 func _ready() -> void:
 	add_to_group(&"sea_reefs")
@@ -60,6 +64,7 @@ func build() -> void:
 	_noise.fractal_octaves = 3
 	_gnoise.seed = 517
 	_gnoise.frequency = 0.05
+	_pack = use_pack_corals and CoralPack.available()
 	if sea == null:
 		return
 	for I in sea.call(&"islands"):
@@ -120,11 +125,20 @@ func _island(I: Dictionary) -> void:
 	if placed > 6:
 		_zones.append({"center": zc / placed, "island": int(I.get("id", 0)), "kind": kind, "radius": outer, "corals": placed})
 
+## Описание вида: кораллы пака или старые TYPES (камни и трава — всегда старые).
+func _tdesc(t: StringName) -> Dictionary:
+	if _pack and CoralPack.TYPES.has(t):
+		return CoralPack.TYPES[t]
+	return TYPES[t]
+
 func _pick_type(depth: float) -> StringName:
 	var total := 0.0
 	var opts: Array = []
-	for k in TYPES.keys():
-		var d: Dictionary = TYPES[k]
+	var keys: Array = TYPES.keys()
+	if _pack:
+		keys = CoralPack.TYPES.keys() + [&"rock"]
+	for k in keys:
+		var d: Dictionary = _tdesc(k)
 		if float(d["w"]) <= 0.0 or depth < float(d["dmin"]) or depth > float(d["dmax"]):
 			continue
 		total += float(d["w"])
@@ -133,27 +147,37 @@ func _pick_type(depth: float) -> StringName:
 		return &""
 	var x := _rng.randf() * total
 	for k in opts:
-		x -= float(TYPES[k]["w"])
+		x -= float(_tdesc(k)["w"])
 		if x <= 0.0:
 			return k
 	return opts[-1]
 
 func _add(t: StringName, p: Vector3) -> void:
-	var d: Dictionary = TYPES[t]
-	var key := "%s|%d|%d" % [t, int(floor(p.x / CELL)), int(floor(p.z / CELL))]
+	var d: Dictionary = _tdesc(t)
+	var cx := int(floor(p.x / CELL))
+	var cz := int(floor(p.z / CELL))
+	var key := "%s|%d|%d" % [t, cx, cz]
+	if _pack and CoralPack.TYPES.has(t):
+		# вариант формы — один на ячейку (один MultiMesh на вид и ячейку → вызовов отрисовки не больше)
+		var v := absi(hash(Vector3i(cx, cz, String(t).hash()))) % CoralPack.variants(t)
+		key = "%s|%d|%d|%d" % [t, cx, cz, v]
 	if not _cells.has(key):
 		_cells[key] = {"xf": [], "col": PackedColorArray()}
 	var s := _rng.randf_range(float(d["smin"]), float(d["smax"]))
 	var b := Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * s)
-	if t == &"branch" or t == &"brain" or t == &"rock":
+	if t == &"branch" or t == &"brain" or t == &"rock" or t == &"corymbose" or t == &"lobed" or t == &"mound":
 		# чуть наклонить по склону
 		b = Basis(Vector3(1, 0, 0), _rng.randf_range(-0.12, 0.12)) * b
 	var sink := 0.05 * s if t != &"rock" else 0.12 * s
 	(_cells[key]["xf"] as Array).append(Transform3D(b, p - Vector3(0, sink, 0)))
-	var tints: Array = d["tints"]
-	var tc: Color = tints[_rng.randi() % tints.size()]
-	tc = tc.lightened(_rng.randf_range(-0.08, 0.1))
-	tc.a = _rng.randf()
+	var tc: Color
+	if _pack and CoralPack.TYPES.has(t):
+		tc = CoralPack.pick_tint(t, _rng)
+	else:
+		var tints: Array = d["tints"]
+		tc = tints[_rng.randi() % tints.size()]
+		tc = tc.lightened(_rng.randf_range(-0.08, 0.1))
+		tc.a = _rng.randf()
 	var cols: PackedColorArray = _cells[key]["col"]
 	cols.append(tc)
 	_cells[key]["col"] = cols
@@ -174,10 +198,13 @@ func _emit() -> void:
 	for key in _cells.keys():
 		var parts: PackedStringArray = (key as String).split("|")
 		var t := StringName(parts[0])
-		var d: Dictionary = TYPES[t]
 		var xf: Array = _cells[key]["xf"]
 		var col: PackedColorArray = _cells[key]["col"]
 		instances += xf.size()
+		if parts.size() == 4:
+			_emit_pack(t, int(parts[3]), xf, col, wy)
+			continue
+		var d: Dictionary = TYPES[t]
 		var mat := SeaMeshes.coral_material(float(d["sway"]), wy, 0.9 if t == &"rock" else 0.78)
 		var end_hi := GRASS_END if t == &"grass" else (LO_END if not bool(d["lo"]) else HI_END)
 		if t == &"fan" or t == &"sponge":
@@ -187,12 +214,22 @@ func _emit() -> void:
 			# дальний уровень: только крупные (каждый второй)
 			_mm(t, 1, xf, col, mat, end_hi, LO_END, 2)
 
-func _mm(t: StringName, lod: int, xf: Array, col: PackedColorArray, mat: Material, begin: float, end: float, step_n: int) -> void:
+## Кораллы пака: LOD0 вблизи (с узором и качанием), LOD1 дальше (каждый второй, без узора).
+func _emit_pack(t: StringName, v: int, xf: Array, col: PackedColorArray, wy: float) -> void:
+	var m0 := CoralPack.mesh(t, v, 0)
+	var m1 := CoralPack.mesh(t, v, 1)
+	if m0 == null:
+		return
+	_mm(t, 0, xf, col, CoralPack.material(t, wy, 0), 0.0, HI_END, 1, m0)
+	if m1:
+		_mm(t, 1, xf, col, CoralPack.material(t, wy, 1), HI_END, LO_END, 2, m1)
+
+func _mm(t: StringName, lod: int, xf: Array, col: PackedColorArray, mat: Material, begin: float, end: float, step_n: int, mesh_override: Mesh = null) -> void:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_custom_data = true
 	mm.use_colors = true   # без цветов экземпляров COLOR в шейдере обнуляется (gl_compatibility)
-	mm.mesh = _mesh(t, lod)
+	mm.mesh = mesh_override if mesh_override else _mesh(t, lod)
 	var cnt := int(ceil(xf.size() / float(step_n)))
 	mm.instance_count = cnt
 	var j := 0
