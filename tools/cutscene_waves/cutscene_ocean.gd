@@ -310,6 +310,8 @@ func _recalc_waves(dt: float) -> void:
 
 # --- водяная пыль с гребней в шторм: несколько маленьких GPU-эмиттеров, которые
 # раз в ~0.3 с переставляются на самые крутые гребни у камеры (CPU: 16 точек × до 8 волн).
+## Брызги частицами по умолчанию выключены (пользователю не понравились «белые точки»).
+const SPRAY_ENABLED := false
 const SPRAY_N := 3
 const SPRAY_PROBES := 16
 var _sprays: Array[GPUParticles3D] = []
@@ -318,6 +320,8 @@ var _spray_seed := 0
 var _spray_best := 0.0   # для тестов: сжатие лучшего гребня в пробах
 
 func _make_spray() -> void:
+	if not SPRAY_ENABLED:
+		return
 	var q := QuadMesh.new()
 	q.size = Vector2(0.9, 0.28)
 	var m := StandardMaterial3D.new()
