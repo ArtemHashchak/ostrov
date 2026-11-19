@@ -51,10 +51,14 @@ func _ready() -> void:
 	Events.character_spawned.connect(_on_spawned)
 	Events.match_started.connect(_on_match_started)
 	get_tree().node_added.connect(_on_node_added)
+	# лор шоу: дроны-камеры над участниками
+	var dr := ShowDrones.new()
+	add_child(dr)
 
 func _exit_tree() -> void:
 	SupplyModels.clear_caches()
 	SupplyFx.clear_caches()
+	ShowDrones.clear_caches()
 
 func _on_spawned(ch: Node) -> void:
 	if ch.is_in_group(&"player"):
