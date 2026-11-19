@@ -183,26 +183,37 @@ vec2 rain_rings(vec2 p, float t) {
 // Только там, где вода есть (dl > 0) — на сухой песок пена не рисуется.
 float breaking_foam(vec2 p, float d, float dl) {
 	if (dl <= 0.0) return 0.0;
-	// шум в мировых координатах без поворота (поворот «к берегу» на больших
-	// координатах давал блочную рябь пены)
-	float n1 = texture(foam_tex, p * 0.07 + vec2(u_time * 0.01, 0.0)).r;
-	float n2 = texture(foam_tex, p * 0.19 + vec2(3.7, -u_time * 0.03)).r;
-	float rag = n1 * 0.55 + n2 * 0.6;
-	// обрушение: местная высота волны против глубины (H/d > ~0.6 — гребень ломается)
+	// координаты рядом с камерой (w_origin) — без потери точности на больших X/Z;
+	// шум вытянут ВДОЛЬ гребня (перпендикуляр направлению зыби): пена рвётся
+	// нитями и кружевом, а не круглыми «пятнами»
+	vec2 pr = p - w_origin;
+	vec2 sd = normalize(swell_dir + vec2(0.0001));
+	vec2 tg = vec2(-sd.y, sd.x);
+	float along = dot(pr, tg);
+	float across = dot(pr, sd);
+	float n1 = texture(foam_tex, vec2(along * 0.06, across * 0.55) + vec2(u_time * 0.006, -u_time * 0.02)).r;
+	float n2 = texture(foam_tex, vec2(along * 0.17, across * 1.4) + vec2(3.7, u_time * 0.035)).r;
+	float n3 = texture(foam_tex, vec2(along * 0.45, across * 2.6) + vec2(1.3, -u_time * 0.05)).r;
+	float lace = n1 * 0.5 + n2 * 0.35 + n3 * 0.3;
+	// энергия обрушения: местная высота волны к глубине (H/d > ~0.8 — гребень ломается).
+	// В штиль ломаются только у самой кромки, в шторм — далеко от берега.
 	float a_loc = amp_sum * shoal(d);
-	float brk_zone = smoothstep(0.45, 0.85, 2.0 * a_loc / max(d, 0.15)) * smoothstep(-0.8, -0.1, d);
+	float energy = clamp(a_loc / 0.7, 0.25, 1.0);
+	float brk_zone = smoothstep(0.55, 1.0, 2.0 * a_loc / max(d, 0.15))
+			* (1.0 - smoothstep(0.9 + storm * 3.0, 1.6 + storm * 4.5, d));
 	vec2 c0 = crest_px(p);
-	float brk = smoothstep(0.30, 0.55, c0.x) * smoothstep(-0.05, 0.45, c0.y);
-	brk *= smoothstep(0.32, 0.62, rag + brk * 0.2);
-	// шлейф: гребень прошёл здесь только что (волна идёт к берегу — сэмплы по направлению зыби назад)
-	vec2 c1 = crest_px(p - swell_dir * 1.3);
-	vec2 c2 = crest_px(p - swell_dir * 2.8);
-	float tr = max(smoothstep(0.35, 0.6, c1.x) * 0.6, smoothstep(0.35, 0.6, c2.x) * 0.35);
-	tr *= smoothstep(0.55, 0.85, rag);
-	float f = max(brk, tr) * brk_zone;
-	// тонкая кромка заплеска — ровно по краю воды (dl → 0), двигается вместе с волной
-	float edge = smoothstep(0.0, 0.02, dl) * (1.0 - smoothstep(0.04, 0.12, dl));
-	f = max(f, edge * smoothstep(0.3, 0.7, n2 + 0.15) * 0.7);
+	// тонкая линия по самому гребню (сжатие + верх волны)
+	float line = smoothstep(0.62, 0.9, c0.x) * smoothstep(0.25, 0.7, c0.y);
+	line *= smoothstep(0.42, 0.7, lace);
+	// шлейф: гребень прошёл здесь только что — редкое тающее кружево (нити)
+	vec2 c1 = crest_px(p - sd * 1.4);
+	vec2 c2 = crest_px(p - sd * 3.2);
+	float tr = max(smoothstep(0.55, 0.85, c1.x) * 0.55, smoothstep(0.55, 0.85, c2.x) * 0.3);
+	tr *= smoothstep(0.62, 0.82, n2 * 0.6 + n3 * 0.55);
+	float f = max(line, tr) * brk_zone * energy;
+	// тонкая кромка заплеска — ровно по краю воды (dl → 0), бегает вместе с волной
+	float edge = smoothstep(0.0, 0.015, dl) * (1.0 - smoothstep(0.03, 0.09, dl));
+	f = max(f, edge * smoothstep(0.45, 0.75, lace) * 0.55);
 	return clamp(f, 0.0, 1.0);
 }
 
