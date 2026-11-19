@@ -56,7 +56,9 @@ func run() -> void:
 		sb.panel.go(id)
 		await wait(2.5 if i == 0 else 1.6)
 		var pt: Dictionary = z.points[id]
-		var d := p.global_position.distance_to(pt.pos)
+		# по горизонтали: точки-«балконы» (витрины кораллов) висят над землёй, игрок опускается
+		var pp: Vector3 = pt.pos
+		var d := Vector2(p.global_position.x, p.global_position.z).distance_to(Vector2(pp.x, pp.z))
 		check(d < 3.0, "перемещение «%s» (%.1f м от точки)" % [pt.name, d])
 		await shot("%02d_%s" % [i, id])
 		i += 1
