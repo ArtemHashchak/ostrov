@@ -31,11 +31,15 @@ var _from: Dictionary = {}
 var _blend := 1.0
 var _left := 420.0
 var _auto := true
-var _rain: CPUParticles3D
+var rain_fx: RainFx
+var lightning: LightningFx
+var _rain_snd: AudioStreamPlayer
+var _rain_in_snd: AudioStreamPlayer
+var _wind_snd: AudioStreamPlayer
+var _seed := 4242
 var _rng := RandomNumberGenerator.new()
 var _lightning_t := 10.0
 var _flash := 0.0
-var _thunder: AudioStreamPlayer
 var _underwater := false
 var _env: Environment
 var _cloud_t := 0.0
@@ -51,6 +55,7 @@ var _wetness := 0.0
 
 func setup(start_hour: float = 8.5, seed_value: int = 4242) -> void:
 	_rng.seed = seed_value
+	_seed = seed_value
 	_init_wind(seed_value)
 	sky3d = Sky3D.new()
 	sky3d.name = "Sky3D"
@@ -74,13 +79,16 @@ func setup(start_hour: float = 8.5, seed_value: int = 4242) -> void:
 		Settings.graphics_changed.connect(_apply_quality)
 	_cur = (WEATHERS[&"clear"] as Dictionary).duplicate()
 	_from = _cur.duplicate()
-	_make_rain()
+	rain_fx = RainFx.new()
+	add_child(rain_fx)
+	lightning = LightningFx.new()
+	lightning.name = "Lightning"
+	add_child(lightning)
+	lightning.setup(_seed, _find_sound("thunder"))
+	_rain_snd = _loop_player("RAINVege_ForestRain")
+	_rain_in_snd = _loop_player("RAINInt_ForestCabinRain")
+	_wind_snd = _loop_player("WINDVege_WindTrees")
 	_apply_quality()
-	_thunder = AudioStreamPlayer.new()
-	var th := _find_sound("thunder")
-	if th:
-		_thunder.stream = th
-	add_child(_thunder)
 	_apply(1.0)
 
 ## Окружение Sky3D + наши настройки рендера (SDFGI/SSAO/объёмный туман в Forward+).
@@ -109,8 +117,6 @@ func _apply_quality() -> void:
 		GraphicsQuality.apply_sun(sky3d.sun)
 	if not RenderProfile.is_compat():
 		sky3d.fog_enabled = bool(GraphicsQuality.preset().get("sky_fog", true))
-	if _rain:
-		_rain.amount = [900, 1600, 2600, 3200][clampi(Settings.graphics_quality, 0, 3)]
 
 func _find_sound(key: String) -> AudioStream:
 	for dir_path in ["res://assets/sounds/", "res://assets/sounds/cc0/", "res://assets/sounds/oculus/"]:
@@ -122,30 +128,41 @@ func _find_sound(key: String) -> AudioStream:
 				return load(dir_path + f) as AudioStream
 	return null
 
-func _make_rain() -> void:
-	_rain = CPUParticles3D.new()
-	_rain.name = "Rain"
-	_rain.amount = 2600
-	_rain.lifetime = 1.1
-	_rain.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
-	_rain.emission_box_extents = Vector3(22.0, 0.5, 22.0)
-	_rain.direction = Vector3(0.12, -1.0, 0.05)
-	_rain.spread = 3.0
-	_rain.gravity = Vector3(0.0, -9.8, 0.0)
-	_rain.initial_velocity_min = 16.0
-	_rain.initial_velocity_max = 20.0
-	_rain.local_coords = false
-	var qm := QuadMesh.new()
-	qm.size = Vector2(0.018, 0.55)
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color = Color(0.75, 0.82, 0.9, 0.35)
-	mat.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
-	qm.material = mat
-	_rain.mesh = qm
-	_rain.emitting = false
-	add_child(_rain)
+## Зацикленный фоновый звук (дождь/ветер); громкость правится в _update_sounds.
+func _loop_player(key: String) -> AudioStreamPlayer:
+	var p := AudioStreamPlayer.new()
+	p.name = "Snd_" + key
+	var st := _find_sound(key)
+	if st:
+		st = st.duplicate()
+		if st is AudioStreamOggVorbis:
+			(st as AudioStreamOggVorbis).loop = true
+		elif st is AudioStreamWAV:
+			(st as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
+		p.stream = st
+	p.volume_db = -80.0
+	add_child(p)
+	return p
+
+func _set_loop(p: AudioStreamPlayer, vol: float) -> void:
+	if p == null or p.stream == null:
+		return
+	if vol < 0.02:
+		if p.playing:
+			p.stop()
+		return
+	p.volume_db = linear_to_db(vol)
+	if not p.playing:
+		p.play(randf() * 4.0)
+
+func _update_sounds(_dt: float) -> void:
+	var rain := float(_cur.get("rain", 0.0))
+	var cov := rain_fx != null and rain_fx.covered
+	var u := 0.0 if _underwater else 1.0
+	_set_loop(_rain_snd, rain * 0.75 * u * (0.35 if cov else 1.0))
+	_set_loop(_rain_in_snd, rain * 0.8 * u * (1.0 if cov else 0.0))
+	var wv := clampf((_wind_speed - 5.0) / 20.0, 0.0, 1.0)
+	_set_loop(_wind_snd, wv * 0.8 * u * (0.75 + 0.5 * _gust))
 
 # ------------------------------------------------------------ API
 
@@ -276,9 +293,20 @@ func update(dt: float, cam: Camera3D, water_surface_at_cam: float) -> void:
 		sky3d.sky.process_tick(_cloud_t)
 		_cloud_t = 0.0
 	if cam:
-		_rain.global_position = cam.global_position + Vector3(0.0, 14.0, 0.0)
 		_update_underwater(cam.global_position.y < water_surface_at_cam - 0.05)
-	_update_lightning(dt)
+		var cp := cam.global_position
+		var w := get_parent()
+		var gh := water_surface_at_cam
+		var sea := water_surface_at_cam
+		if w and w.has_method(&"height_at"):
+			gh = maxf(float(w.call(&"height_at", cp.x, cp.z)), water_surface_at_cam)
+			sea = float(w.call(&"water_level")) if w.has_method(&"water_level") else water_surface_at_cam
+		var near_shore := gh - sea < 3.0
+		var light := clampf(0.18 + daylight() * float(_cur.sun) * 1.1, 0.12, 1.0) + _flash * 1.5
+		rain_fx.update(dt, cam, float(_cur.rain), float(_cur.storm), _wind_dir, _wind_speed, light,
+				_underwater, gh, sea, near_shore)
+	_update_lightning(dt, cam)
+	_update_sounds(dt)
 
 func _pick_next() -> StringName:
 	var r := _rng.randf()
@@ -308,29 +336,38 @@ func _apply(_dt: float) -> void:
 	if absf(sky3d.sun_energy - se) > 0.003:
 		sky3d.sun_energy = se
 	var rain := float(_cur.rain)
-	_rain.emitting = rain > 0.05 and not _underwater
-	if _rain.emitting:
-		_rain.speed_scale = 0.8 + 0.4 * clampf(rain, 0.0, 1.0)
+	var storm := float(_cur.get("storm", 0.0))
 	if _env and not _underwater:
 		var dl := daylight()
 		var fog_day := Color(0.72, 0.8, 0.84).lerp(Color(0.55, 0.6, 0.64), clampf(rain, 0.0, 1.0))
+		fog_day = fog_day.lerp(Color(0.36, 0.4, 0.45), smoothstep(0.4, 1.0, storm))
+		# цветокоррекция: в шторм темнее, холоднее, менее насыщенно
+		_env.adjustment_enabled = storm > 0.02 or rain > 0.02
+		_env.adjustment_brightness = 1.0 - 0.14 * storm - 0.04 * rain + _flash * 0.35
+		_env.adjustment_contrast = 1.0 + 0.06 * storm
+		_env.adjustment_saturation = 1.0 - 0.32 * storm - 0.1 * rain
 		var fog_night := Color(0.05, 0.07, 0.1)
 		_env.fog_light_color = fog_night.lerp(fog_day, dl)
 		_env.fog_density = float(_cur.fog)
 		_env.fog_sky_affect = clampf(0.15 + float(_cur.fog) * 14.0, 0.15, 0.85)
 		_env.fog_light_energy = 1.0 + _flash * 3.0
 
-func _update_lightning(dt: float) -> void:
-	_flash = maxf(0.0, _flash - dt * 6.0)
-	if weather != &"storm" or _blend < 0.6:
+func _update_lightning(dt: float, cam: Camera3D) -> void:
+	lightning.update(dt)
+	_flash = lightning.flash
+	var storm := float(_cur.get("storm", 0.0))
+	if storm < 0.6 or _underwater:
 		return
 	_lightning_t -= dt
 	if _lightning_t <= 0.0:
-		_lightning_t = _rng.randf_range(6.0, 18.0)
-		_flash = 1.0
-		if _thunder.stream:
-			_thunder.pitch_scale = _rng.randf_range(0.85, 1.1)
-			_thunder.play()
+		# чем сильнее шторм, тем чаще (раз в 5–25 с)
+		_lightning_t = _rng.randf_range(5.0, 14.0) * lerpf(1.8, 1.0, (storm - 0.6) / 0.4)
+		lightning.do_strike(cam.global_position if cam else Vector3.ZERO, get_parent())
+
+## Принудительная молния (тесты, кат-сцены).
+func force_lightning(cam_pos: Vector3, close: bool = false) -> void:
+	lightning.do_strike(cam_pos, get_parent(), 1.0 if close else 0.0)
+	_flash = lightning.flash
 
 func _update_underwater(under: bool) -> void:
 	if under == _underwater or _env == null:

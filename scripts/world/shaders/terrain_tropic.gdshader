@@ -24,6 +24,7 @@ uniform float sand_top = 1.25;
 uniform float grass_start = 1.75;
 uniform float rock_slope = 0.74;
 uniform float time_s = 0.0;
+global uniform float weather_wetness;  // CONTRACT_WEATHER: сырость после дождя
 uniform vec3 sand_tint : source_color = vec3(1.3, 1.22, 1.04);
 
 varying vec3 wpos;
@@ -109,6 +110,10 @@ void fragment() {
 		col *= mix(vec3(1.0), vec3(0.55, 0.78, 0.82), clamp(depth * 0.18, 0.0, 0.85));
 		col += vec3(0.55, 0.65, 0.55) * caust * 0.35;
 	}
+	// дождь: суша темнеет и блестит (песок/камень сильнее, трава слабее)
+	float rain_wet = weather_wetness * (1.0 - k_sea) * (1.0 - k_wet);
+	float soak = mix(0.62, 0.8, k_grass * (1.0 - k_rock));
+	col *= mix(1.0, soak, rain_wet);
 	ALBEDO = col;
 
 	vec3 n_s = texture(sand_normal, uv).rgb;
@@ -122,5 +127,6 @@ void fragment() {
 	NORMAL_MAP = nm;
 	NORMAL_MAP_DEPTH = mix(1.0, 1.6, k_rock);
 	ROUGHNESS = mix(mix(0.93, 0.6, k_wet * (1.0 - k_grass)), 0.95, max(max(k_grass, k_rock), k_volc));
-	SPECULAR = mix(0.3, 0.45, k_wet * (1.0 - k_grass));
+	ROUGHNESS = mix(ROUGHNESS, mix(0.32, 0.55, k_grass), rain_wet);
+	SPECULAR = mix(mix(0.3, 0.45, k_wet * (1.0 - k_grass)), 0.55, rain_wet * 0.8);
 }
