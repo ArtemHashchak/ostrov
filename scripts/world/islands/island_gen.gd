@@ -75,7 +75,77 @@ func add_typed(type: StringName, center: Vector2, radius: float, max_h: float, p
 		"aspect_dir": float(params.get("aspect_dir", 0.0)), "p": params, "flora_profile": td.flora,
 	}
 	islands.append(I)
+	if type == &"mangrove":
+		_make_creeks(I)
 	return I
+
+## Приливные протоки мангров: от берега внутрь с меандрами и боковыми рукавами,
+## ширина сужается к вершине. I.creeks = [{pts: PackedVector2Array, w0, w1, bmin, bmax}].
+func _make_creeks(I: Dictionary) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(I.id) * 7919 + 11
+	var c: Vector2 = I.center
+	var R: float = I.radius
+	var creeks: Array = []
+	var n := int((I.p as Dictionary).get("creeks", 6))
+	for k in n:
+		var a := (float(k) + rng.randf_range(-0.3, 0.3)) * TAU / float(n)
+		var depth := rng.randf_range(0.55, 0.85)
+		var main := _creek_path(c + Vector2.from_angle(a) * R * 1.08, c + Vector2.from_angle(a + rng.randf_range(-0.5, 0.5)) * R * (1.0 - depth), rng, 7.0)
+		creeks.append({"pts": main, "w0": rng.randf_range(9.0, 14.0), "w1": 2.5})
+		for b in rng.randi_range(1, 2):
+			var at := main[rng.randi_range(2, main.size() - 4)]
+			var out := (at - c).normalized().rotated(rng.randf_range(0.7, 1.4) * (1.0 if rng.randf() < 0.5 else -1.0))
+			var br := _creek_path(at, at + out * R * rng.randf_range(0.15, 0.3), rng, 4.0)
+			creeks.append({"pts": br, "w0": rng.randf_range(4.0, 6.0), "w1": 1.5})
+	for cr: Dictionary in creeks:
+		var pts: PackedVector2Array = cr.pts
+		var mn := pts[0]
+		var mx := pts[0]
+		for q in pts:
+			mn = Vector2(minf(mn.x, q.x), minf(mn.y, q.y))
+			mx = Vector2(maxf(mx.x, q.x), maxf(mx.y, q.y))
+		cr["bmin"] = mn - Vector2(20, 20)
+		cr["bmax"] = mx + Vector2(20, 20)
+	I["creeks"] = creeks
+
+func _creek_path(a: Vector2, b: Vector2, rng: RandomNumberGenerator, wiggle: float) -> PackedVector2Array:
+	## Случайное блуждание к цели: курс поворачивает плавно (меандры), шаг ~6 м.
+	var pts := PackedVector2Array([a])
+	var p := a
+	var heading := (b - a).angle()
+	var turn := 0.0
+	var total := a.distance_to(b)
+	var stepl := 6.0
+	var guard := 0
+	while p.distance_to(b) > stepl and guard < 400:
+		guard += 1
+		var want := (b - p).angle()
+		turn = clampf(turn + rng.randf_range(-0.25, 0.25) * wiggle / 7.0, -0.55, 0.55)
+		var rem := clampf(p.distance_to(b) / maxf(total, 1.0), 0.0, 1.0)
+		heading += angle_difference(heading, want) * lerpf(0.75, 0.16, rem) + turn * 0.35 * rem
+		p += Vector2.from_angle(heading) * stepl
+		pts.append(p)
+		if pts.size() > int(total / stepl * 2.5):
+			break
+	pts.append(b)
+	return pts
+
+## Расстояние до ближайшей протоки и её ширина там: Vector2(dist, width).
+func _creek_dist(I: Dictionary, p: Vector2) -> Vector2:
+	var best := Vector2(1e9, 0.0)
+	for cr: Dictionary in I.get("creeks", []):
+		var mn: Vector2 = cr.bmin
+		var mx: Vector2 = cr.bmax
+		if p.x < mn.x or p.y < mn.y or p.x > mx.x or p.y > mx.y:
+			continue
+		var pts: PackedVector2Array = cr.pts
+		for k in pts.size() - 1:
+			var dd := _seg_dist(p, pts[k], pts[k + 1])
+			if dd < best.x:
+				var t := float(k) / float(pts.size() - 1)
+				best = Vector2(dd, lerpf(float(cr.w0), float(cr.w1), t))
+	return best
 
 # ------------------------------------------------------------ берег
 
@@ -98,7 +168,9 @@ func _coast_r(I: Dictionary, ang: float) -> float:
 	var p: Dictionary = I.p
 	for cv: Variant in p.get("coves", []):
 		var cd: Vector3 = cv     # x — угол, y — полуширина (рад), z — глубина (доля R)
-		var k := 1.0 - smoothstep(cd.y * 0.45, cd.y, absf(angle_difference(ang, cd.x)))
+		# полукруглая бухта: профиль √(1 − x²) по углу, сглаженный у входа
+		var x := absf(angle_difference(ang, cd.x)) / cd.y
+		var k := sqrt(maxf(0.0, 1.0 - x * x)) * smoothstep(1.0, 0.85, x) if x < 1.0 else 0.0
 		r *= 1.0 - cd.z * k
 	return r
 
@@ -170,7 +242,7 @@ func _h_volcanic(I: Dictionary, p: Vector2, _v: Vector2, ang: float, d: float, i
 	var cone := pow(clampf(1.0 - rq, 0.0, 1.0), 1.55)
 	# радиальные гребни и долины (эрозия): угловая волна со сдвигом от шума
 	var warp := _n_hills.get_noise_2d(p.x * 0.5, p.y * 0.5) * 3.2
-	var ridges := absf(sin(ang * 9.0 + warp + rq * 4.0))
+	var ridges := lerpf(1.0, absf(sin(ang * 9.0 + warp + rq * 4.0)), smoothstep(0.12, 0.3, rq))
 	var vdepth := (1.0 - pow(ridges, 0.6)) * (5.0 + 9.0 * smoothstep(0.1, 0.6, inland)) * smoothstep(0.08, 0.35, inland) * (1.0 - smoothstep(0.82, 0.95, inland))
 	var h := BEACH_H + 0.4 + (mh - BEACH_H) * cone
 	h -= vdepth
@@ -227,7 +299,7 @@ func _h_atoll(I: Dictionary, p: Vector2, ang: float, d: float) -> float:
 	var u := (d - ring_in) / (1.0 - ring_in)    # 0 — к лагуне, 1 — к морю
 	var flat := -0.35 + 0.25 * _n_detail.get_noise_2d(p.x * 0.8, p.y * 0.8)
 	var motu_n := _n_coast.get_noise_2d(cos(ang) * 55.0 + 777.0, sin(ang) * 55.0)
-	var motu := smoothstep(0.02, 0.22, motu_n) * _bump(u, 0.12, 0.95) * (1.0 - pass_k)
+	var motu := smoothstep(-0.1, 0.1, motu_n) * smoothstep(0.04, 0.28, u) * (1.0 - smoothstep(0.82, 0.97, u)) * (1.0 - pass_k)
 	var h_motu := BEACH_H + 0.9 + 0.6 * maxf(0.0, _n_dune.get_noise_2d(p.x, p.y))
 	var h := lerpf(flat, h_motu, motu)
 	# к лагуне — песчаный склон, к морю — гребень
@@ -247,8 +319,8 @@ func _h_karst(I: Dictionary, p: Vector2, ang: float, d: float, inland: float) ->
 		return lerpf(_sub(I, p, d, 1.0, 0.05, 0.3), _sub(I, p, d, 0.0, 0.1, 0.6), cove)
 	# верх: ячеистый карст — башни и воронки
 	var cell := _n_karst.get_noise_2d(p.x, p.y)       # 0..~1: края ячеек выше
-	var towers := smoothstep(-0.2, 0.6, cell)
-	var top := mh * (0.62 + 0.38 * towers) + _n_ridge.get_noise_2d(p.x * 1.5, p.y * 1.5) * 4.0
+	var towers := pow(smoothstep(-0.25, 0.55, cell), 1.6)
+	var top := mh * (0.32 + 0.68 * towers) + _n_ridge.get_noise_2d(p.x * 1.5, p.y * 1.5) * 4.0
 	# отвесная стена: почти сразу от воды
 	var wall := smoothstep(0.0, 0.035, inland)
 	var bench := 0.9 + 0.3 * _n_detail.get_noise_2d(p.x, p.y)        # волноприбойная терраса
@@ -271,19 +343,25 @@ func _h_karst(I: Dictionary, p: Vector2, ang: float, d: float, inland: float) ->
 # --- 4. Мангры: низкие кочки, сеть приливных проток, илистые отмели по краю
 # (обнажаются в отлив).
 func _h_mangrove(I: Dictionary, p: Vector2, d: float, inland: float) -> float:
+	var cd := _creek_dist(I, p)
+	var creek := 1.0 - smoothstep(cd.y * 0.35, cd.y * 0.75, cd.x)
 	if d >= 1.0:
-		# широкая илистая отмель
-		var mud := lerpf(-0.2, -1.4, smoothstep(1.0, 1.35, d))
-		return lerpf(mud, SEA_FLOOR, smoothstep(1.35, 1.9, d)) + _n_floor.get_noise_2d(p.x * 2.0, p.y * 2.0) * 0.25
-	var base := 0.15 + 1.05 * smoothstep(0.0, 0.5, inland) + _n_hills.get_noise_2d(p.x, p.y) * 0.45
-	base += 0.6 * smoothstep(0.55, 0.85, _n_ridge.get_noise_2d(p.x * 0.7, p.y * 0.7) * 0.5 + 0.5) * smoothstep(0.2, 0.5, inland)
-	# протоки: ветвистая сеть (две частоты), глубже к морю
-	var c1 := absf(_n_chan.get_noise_2d(p.x, p.y))
-	var c2 := absf(_n_chan.get_noise_2d(p.x * 2.3 + 91.0, p.y * 2.3))
-	var cut := maxf(1.0 - smoothstep(0.02, 0.09, c1), (1.0 - smoothstep(0.015, 0.05, c2)) * 0.8)
-	var chan_floor := lerpf(-1.4, -0.4, smoothstep(0.0, 0.7, inland))
-	var h := lerpf(base, chan_floor, cut * cut * (3.0 - 2.0 * cut))
-	return h + _n_detail.get_noise_2d(p.x * 1.5, p.y * 1.5) * 0.12
+		# широкая илистая отмель (обнажается в отлив), к ней выходят устья проток
+		var mud := lerpf(-0.15, -1.3, smoothstep(1.0, 1.32, d)) + _n_floor.get_noise_2d(p.x * 2.0, p.y * 2.0) * 0.18
+		mud = lerpf(mud, minf(mud, -1.3), creek)
+		return lerpf(mud, SEA_FLOOR, smoothstep(1.32, 1.85, d))
+	# почти плоская суша: у края ~0.3 (заливается в прилив), вглубь до ~1.5, редкие кочки
+	var base := 0.3 + 1.0 * smoothstep(0.0, 0.55, inland) + _n_hills.get_noise_2d(p.x * 0.8, p.y * 0.8) * 0.22
+	base += 0.45 * smoothstep(0.62, 0.8, _n_ridge.get_noise_2d(p.x * 0.6, p.y * 0.6) * 0.5 + 0.5) * smoothstep(0.25, 0.5, inland)
+	# мелкие лужицы-«окна» с илом
+	var pool := smoothstep(0.55, 0.75, _n_karst.get_noise_2d(p.x * 0.5, p.y * 0.5)) * smoothstep(0.15, 0.35, inland)
+	base = lerpf(base, 0.05, pool * 0.8)
+	# протока: дно −1.2 у устья → −0.3 в вершине, илистые бровки
+	var floor_h := lerpf(-1.2, -0.3, clampf(inland * 1.6, 0.0, 1.0))
+	var h := lerpf(base, floor_h, creek * creek * (3.0 - 2.0 * creek))
+	var bank := (1.0 - smoothstep(cd.y * 0.75, cd.y * 1.6, cd.x)) * (1.0 - creek)
+	h = lerpf(h, minf(h, 0.45), bank * 0.6)
+	return h + _n_detail.get_noise_2d(p.x * 1.5, p.y * 1.5) * 0.08
 
 # --- 5. Песчаный кей: невысокий гребень с редкой травой и длинная коса,
 # которую заливает в прилив; вокруг — обширные бирюзовые отмели.
@@ -343,6 +421,8 @@ func _h_hilly(I: Dictionary, p: Vector2, v: Vector2, _ang: float, d: float, inla
 func _h_coral(I: Dictionary, p: Vector2, d: float, inland: float) -> float:
 	if d >= 1.0:
 		var reef_out := float((I.p as Dictionary).get("reef_out", 1.55))
+		var aa := atan2(p.y - (I.center as Vector2).y, p.x - (I.center as Vector2).x)
+		reef_out += 0.22 * _n_coast.get_noise_2d(cos(aa) * 45.0 + 2222.0, sin(aa) * 45.0)
 		# мелкая «бухточка» между берегом и рифом, плоский риф-флэт, гребень, обрыв
 		var moat := lerpf(-0.5, -1.8, _bump(d, 1.0, lerpf(1.0, reef_out, 0.55)))
 		var flat := -0.6 + _n_reef.get_noise_2d(p.x * 1.2, p.y * 1.2) * 0.35
@@ -417,8 +497,11 @@ func biome_weights(x: float, z: float, h: float) -> Color:
 			var top_rock := smoothstep(0.55, 0.8, _n_karst.get_noise_2d(x, z)) * 0.6
 			return Color((1.0 - wall) * smoothstep(0.3, 0.5, moist) * smoothstep(0.06, 0.1, inland), 0.0, maxf(wall, top_rock), 0.0)
 		&"mangrove":
-			var dry := smoothstep(1.3, 1.9, h)
-			return Color(0.4 + 0.4 * dry, 1.0 - dry, 0.0, 0.0)
+			# ил у проток, в «окнах» и по низкому краю; выше — лес
+			var cd := _creek_dist(I, p)
+			var near := 1.0 - smoothstep(cd.y * 0.8, cd.y * 2.2, cd.x)
+			var mud := maxf(maxf(near, 1.0 - smoothstep(0.55, 0.95, h)), 1.0 - smoothstep(0.02, 0.06, inland))
+			return Color((1.0 - mud) * (0.55 + 0.4 * moist), mud, 0.0, 0.0)
 		&"islet":
 			return Color(0.0, 0.0, 1.0, 0.15)
 		&"plateau":

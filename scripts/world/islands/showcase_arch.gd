@@ -9,7 +9,7 @@ const GAP := 330.0
 ## Порядок и параметры: [тип, радиус, высота, параметры, смещение по Z].
 var ORDER: Array = [
 	[&"volcanic", 230.0, 92.0, {"beach_w": 0.055, "coast_amp": 0.13, "stream_ang": deg_to_rad(95.0), "fall_r": 0.5}, 0.0],
-	[&"atoll", 200.0, 2.0, {"coast_amp": 0.07, "ring_in": 0.74, "passes": [deg_to_rad(215.0), deg_to_rad(30.0)]}, 40.0],
+	[&"atoll", 200.0, 2.0, {"coast_amp": 0.07, "ring_in": 0.62, "passes": [deg_to_rad(215.0), deg_to_rad(30.0)]}, 40.0],
 	[&"karst", 140.0, 48.0, {"coast_amp": 0.22, "coves": [Vector3(deg_to_rad(250.0), 0.3, 0.3), Vector3(deg_to_rad(40.0), 0.22, 0.24)]}, -30.0],
 	[&"mangrove", 180.0, 1.9, {"coast_amp": 0.26, "beach_w": 0.0}, 30.0],
 	[&"cay", 70.0, 1.9, {"coast_amp": 0.06, "aspect": 2.6, "aspect_dir": 0.35}, -20.0],
