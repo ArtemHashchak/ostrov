@@ -479,7 +479,9 @@ func _pose_gun() -> void:
 	var hip_r := Vector3(0.2, -0.2, -0.4) if pistol else Vector3(0.16, -0.2, -0.28)
 	# ПКМ: целик точно по центру экрана (WeaponDef — сокет ads_anchor на ads_distance перед камерой)
 	var sight_rel := _rel_to_arm(hands.right_arm, "ads_anchor" if wdef else "Sight")
-	var target := Vector3(0.0, -0.004, -0.5) if pistol else Vector3(0.0, -0.01, -0.33)
+	# мушкет/арбалет: целик на ~0.48 м — правая кисть у шейки приклада не лезет в центр
+	# кадра (было 0.33: кисть в 15 см от глаза закрывала пол-экрана)
+	var target := Vector3(0.0, -0.004, -0.5) if pistol else Vector3(0.0, -0.01, -0.48)
 	if wdef:
 		target = Vector3(0.0, 0.0, -wdef.ads_distance)
 	var ads_r := target - Basis.from_euler(ads_rr) * sight_rel

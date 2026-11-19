@@ -262,7 +262,7 @@ static func _rifle() -> WeaponDef:
 	d.reload_full = 3.0
 	d.ads_fov = 20.0
 	d.ads_time = 0.24
-	d.ads_distance = 0.36
+	d.ads_distance = 0.45   # было 0.36: кисть на рукояти вплотную к глазу
 	d.pistol_pose = false
 	d.sound_shot = "pistol_shot"
 	d.sound_pitch = 0.82

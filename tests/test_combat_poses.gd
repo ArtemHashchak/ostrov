@@ -33,4 +33,30 @@ func run() -> void:
 	await wait(0.8)
 	await shot("05_pistol_ads")
 	Input.action_release(&"aim")
+	for id: StringName in [&"musket", &"crossbow"]:
+		await equip(id)
+		await wait(0.6)
+		await shot("06_%s_hip" % id)
+		Input.action_press(&"aim")
+		await wait(1.0)
+		await shot("07_%s_ads" % id)
+		_dump(id)
+		Input.action_release(&"aim")
+		await wait(0.5)
 	check(true, "позы сняты")
+
+func _dump(id: StringName) -> void:
+	var c := ctrl()
+	var h := p.hands
+	var cam := get_viewport().get_camera_3d()
+	var inv := cam.global_transform.affine_inverse()
+	var out := "[poses] %s wid=%s model=%s" % [id, c.wid, str(c._model)]
+	if c._model:
+		for m: String in ["Sight", "Forend", "Muzzle", "ads_anchor", "forend"]:
+			var n := c._model.find_child(m, true, false) as Node3D
+			if n:
+				out += " %s=%s" % [m, str((inv * n.global_position).snapped(Vector3.ONE * 0.01))]
+	out += " L=%s R=%s pose_l=%s hands.pos=%s" % [str((inv * h.left_arm.global_position).snapped(Vector3.ONE * 0.01)),
+		str((inv * h.right_arm.global_position).snapped(Vector3.ONE * 0.01)), str(h.pose_l.snapped(Vector3.ONE * 0.01)),
+		str((inv * h.global_position).snapped(Vector3.ONE * 0.01))]
+	print(out)
