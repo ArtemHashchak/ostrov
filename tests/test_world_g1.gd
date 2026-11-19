@@ -26,7 +26,13 @@ func run() -> void:
 		var z := rng.randf_range(w.arch.bounds.position.y + 5.0, w.arch.bounds.end.y - 5.0)
 		var q := PhysicsRayQueryParameters3D.create(Vector3(x, 80.0, z), Vector3(x, -60.0, z))
 		var hit := space.intersect_ray(q)
-		if hit.is_empty():
+		# сравниваем только с коллизией рельефа (деревья/камни/постройки G2 тоже на слое 1)
+		var guard := 0
+		while not hit.is_empty() and not (hit.collider as Node).is_in_group(&"terrain") and guard < 8:
+			q.exclude = q.exclude + [hit.rid]
+			hit = space.intersect_ray(q)
+			guard += 1
+		if hit.is_empty() or not (hit.collider as Node).is_in_group(&"terrain"):
 			continue
 		var e := absf((hit.position as Vector3).y - w.height_at(x, z))
 		maxerr = maxf(maxerr, e)
@@ -44,8 +50,16 @@ func run() -> void:
 		var b := w.biome_at(x, z)
 		counts[b] = int(counts.get(b, 0)) + 1
 	print("[test] биомы домашнего острова: ", counts)
-	for b in [&"beach", &"jungle", &"meadow", &"rocky", &"water"]:
+	for b in [&"beach", &"jungle", &"meadow", &"water"]:
 		check(int(counts.get(b, 0)) > 20, "есть биом %s" % b)
+	# скалы: архипелаг G2 (25 островов 9 типов) — у домашнего их мало, ищем по всему архипелагу
+	var rocky := int(counts.get(&"rocky", 0))
+	for k in 6000:
+		var x := rng.randf_range(w.arch.bounds.position.x, w.arch.bounds.end.x)
+		var z := rng.randf_range(w.arch.bounds.position.y, w.arch.bounds.end.y)
+		if w.biome_at(x, z) == &"rocky":
+			rocky += 1
+	check(rocky > 20, "есть биом rocky (%d)" % rocky)
 	check(int(counts.get(&"swamp", 0)) > 3, "есть мангры/болото у лагуны (%d)" % int(counts.get(&"swamp", 0)))
 	# проливы 40–100 м и отмели
 	var isl := w.islands()
