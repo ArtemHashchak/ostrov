@@ -8,7 +8,7 @@ extends Node3D
 const FALL_SPEED := 11.0
 
 ## [ближние капли, брызги, листья, морские брызги] по пресету Низкое..Ультра
-const AMOUNTS := [[1300, 120, 20, 40], [2700, 260, 40, 80], [4800, 480, 70, 140], [7600, 720, 100, 200]]
+const AMOUNTS := [[1300, 50, 20, 40], [2700, 110, 40, 80], [4800, 200, 70, 140], [7600, 300, 100, 200]]
 
 var drops: GPUParticles3D
 var splashes: GPUParticles3D
@@ -145,43 +145,100 @@ func _make_curtain() -> void:
 	add_child(curtain)
 
 func _make_splashes() -> void:
+	# Брызги капель: маленькие «коронки» (дуга из капелек), освещённые как вода, а не
+	# светящиеся точки. Короткая жизнь, мало штук, гаснут с расстоянием (не видны дальше ~7 м).
 	splashes = GPUParticles3D.new()
 	splashes.name = "Splashes"
 	splashes.local_coords = false
-	splashes.lifetime = 0.28
+	splashes.lifetime = 0.22
 	splashes.visibility_aabb = _big_aabb()
 	splashes.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var pm := ParticleProcessMaterial.new()
 	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	pm.emission_box_extents = Vector3(9.0, 0.02, 9.0)
+	pm.emission_box_extents = Vector3(7.0, 0.01, 7.0)
 	pm.direction = Vector3(0, 1, 0)
-	pm.spread = 35.0
-	pm.initial_velocity_min = 0.6
-	pm.initial_velocity_max = 1.4
-	pm.gravity = Vector3(0, -9.8, 0)
-	pm.scale_min = 0.5
-	pm.scale_max = 1.2
+	pm.spread = 0.0
+	pm.initial_velocity_min = 0.0
+	pm.initial_velocity_max = 0.0
+	pm.gravity = Vector3.ZERO
+	pm.scale_min = 0.6
+	pm.scale_max = 1.1
 	var sc := CurveTexture.new()
 	var cv := Curve.new()
-	cv.add_point(Vector2(0, 0.4))
-	cv.add_point(Vector2(0.3, 1.0))
-	cv.add_point(Vector2(1, 0.0))
+	cv.add_point(Vector2(0, 0.35))
+	cv.add_point(Vector2(0.35, 1.0))
+	cv.add_point(Vector2(1, 1.15))
+	cv.max_value = 1.2
 	sc.curve = cv
 	pm.scale_curve = sc
+	var gr := Gradient.new()
+	gr.set_color(0, Color(1, 1, 1, 0.0))
+	gr.add_point(0.15, Color(1, 1, 1, 1.0))
+	gr.set_color(gr.get_point_count() - 1, Color(1, 1, 1, 0.0))
+	var gt := GradientTexture1D.new()
+	gt.gradient = gr
+	pm.color_ramp = gt
 	splashes.process_material = pm
 	var qm := QuadMesh.new()
-	qm.size = Vector2(0.07, 0.05)
+	qm.size = Vector2(0.09, 0.055)
+	qm.center_offset = Vector3(0, 0.0275, 0)
 	_splash_mat = StandardMaterial3D.new()
-	_splash_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	# освещается сценой (ночью тёмное, днём — как вода), без собственной яркости
+	_splash_mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	_splash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_splash_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	_splash_mat.albedo_color = Color(0.85, 0.9, 0.95, 0.45)
-	_splash_mat.albedo_texture = _soft_dot()
-	_splash_mat.disable_fog = true
+	_splash_mat.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
+	_splash_mat.billboard_keep_scale = true
+	_splash_mat.vertex_color_use_as_albedo = true
+	_splash_mat.albedo_color = Color(0.62, 0.68, 0.72, 0.38)
+	_splash_mat.albedo_texture = _crown_tex()
+	_splash_mat.roughness = 0.15
+	_splash_mat.specular = 0.6
+	_splash_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_splash_mat.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
+	_splash_mat.distance_fade_min_distance = 7.0
+	_splash_mat.distance_fade_max_distance = 2.5
 	qm.material = _splash_mat
 	splashes.draw_pass_1 = qm
 	splashes.emitting = false
 	add_child(splashes)
+
+## Коронка брызг: дуга из 7 тонких «капелек-штрихов», расходящихся вверх-в-стороны, и
+## тонкая основа (без круглого ядра — не читается как точка).
+static var _crown_c: Texture2D
+static func _crown_tex() -> Texture2D:
+	if _crown_c:
+		return _crown_c
+	var w := 64
+	var h := 40
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	img.fill(Color(1, 1, 1, 0))
+	for k in 7:
+		var t := (k - 3) / 3.0                       # -1..1
+		var ang := t * 1.0                           # наклон штриха наружу
+		var base := Vector2(32.0 + t * 9.0, h - 3.0)
+		var tip := base + Vector2(sin(ang), -cos(ang)) * (20.0 - absf(t) * 7.0)
+		for s in 40:
+			var q := s / 39.0
+			var pt := base.lerp(tip, q)
+			var rad := lerpf(1.1, 1.6, q)            # капля на кончике чуть толще
+			for yy in range(int(pt.y - 2), int(pt.y + 3)):
+				for xx in range(int(pt.x - 2), int(pt.x + 3)):
+					if xx < 0 or yy < 0 or xx >= w or yy >= h:
+						continue
+					var dd := Vector2(xx + 0.5, yy + 0.5).distance_to(pt)
+					var a := clampf(1.0 - dd / rad, 0.0, 1.0) * lerpf(0.55, 0.9, q)
+					var c := img.get_pixel(xx, yy)
+					if a > c.a:
+						img.set_pixel(xx, yy, Color(1, 1, 1, a))
+	# тонкая основа-«кольцо» сбоку
+	for xx in range(18, 47):
+		var a := 0.35 * (1.0 - absf(xx - 32.0) / 14.0)
+		for yy in [h - 3, h - 2]:
+			var c := img.get_pixel(xx, yy)
+			img.set_pixel(xx, yy, Color(1, 1, 1, maxf(c.a, a)))
+	img.generate_mipmaps()
+	_crown_c = ImageTexture.create_from_image(img)
+	return _crown_c
 
 func _make_leaves() -> void:
 	leaves = GPUParticles3D.new()
@@ -377,7 +434,8 @@ func update(dt: float, cam: Camera3D, rain: float, storm: float, wdir: Vector2, 
 	splashes.global_position = Vector3(cp.x, ground_h + 0.02, cp.z)
 	splashes.emitting = raining and not covered and cp.y - ground_h < 12.0
 	splashes.amount_ratio = clampf(rain, 0.05, 1.0)
-	_splash_mat.albedo_color = Color(0.85 * light, 0.9 * light, 0.95 * light, 0.5)
+	# сцена уже освещает коронки; лишь чуть приглушаем в слабый дождь
+	_splash_mat.albedo_color = Color(0.62, 0.68, 0.72, lerpf(0.22, 0.38, clampf(rain, 0.0, 1.0)))
 	# листья и мусор в шторм
 	var st := smoothstep(0.45, 0.9, storm)
 	var on_land := ground_h > sea_h + 0.5

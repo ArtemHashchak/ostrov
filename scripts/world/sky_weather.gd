@@ -54,6 +54,7 @@ var _wind_dir := Vector2.RIGHT
 var _wind_speed := 3.0
 var _gust := 0.0
 var _wetness := 0.0
+const AMBIENT_BASE := 0.9   # как в RenderProfile
 
 func setup(start_hour: float = 8.5, seed_value: int = 4242) -> void:
 	_rng.seed = seed_value
@@ -364,6 +365,12 @@ func _apply(_dt: float) -> void:
 		var so := clampf(1.0 - 0.9 * float(_cur.rain) - 0.3 * maxf(0.0, float(_cur.cov) - 0.6), 0.08, 1.0)
 		if absf(sky3d.sun.shadow_opacity - so) > 0.01:
 			sky3d.sun.shadow_opacity = so
+	# луна сквозь тучи тоже не даёт резких теней (иначе на песке чёрные «кляксы»)
+	if sky3d.moon:
+		var mo := clampf(1.0 - 0.95 * float(_cur.rain) - 0.9 * float(_cur.get("storm", 0.0))
+				- 0.6 * maxf(0.0, float(_cur.cov) - 0.6), 0.05, 1.0)
+		if absf(sky3d.moon.shadow_opacity - mo) > 0.01:
+			sky3d.moon.shadow_opacity = mo
 	var rain := float(_cur.rain)
 	var storm := float(_cur.get("storm", 0.0))
 	if _env and not _underwater:
@@ -379,12 +386,19 @@ func _apply(_dt: float) -> void:
 		# силуэты волн и островов читались и без молнии (молния — по-прежнему главный «показ»)
 		var overcast := clampf(maxf(maxf(storm, rain * 0.8), (float(_cur.cov) - 0.6) * 1.5), 0.0, 1.0)
 		var nk := (1.0 - dl) * overcast
-		var fog_night := Color(0.05, 0.07, 0.1).lerp(Color(0.12, 0.14, 0.19), overcast)
+		# тучи ночью подсвечены рассеянной луной/далёкими огнями — сине-серая «крыша»,
+		# на её фоне читаются силуэты островов (а не чёрное в чёрном)
+		var fog_night := Color(0.05, 0.07, 0.1).lerp(Color(0.15, 0.18, 0.23), overcast)
 		_env.fog_light_color = fog_night.lerp(fog_day, dl)
-		# небо ночью почти чёрное → рассеянный свет берём частично из «облачного» цвета
-		_env.ambient_light_color = Color(0.16, 0.19, 0.25)
-		_env.ambient_light_sky_contribution = 1.0 - 0.55 * nk
-		_env.fog_density = float(_cur.fog)
+		# небо ночью почти чёрное → рассеянный свет берём из «облачного» цвета и поднимаем
+		# его энергию в пасмурную ночь: волны, пена, песок и силуэты видны без молнии
+		_env.ambient_light_color = Color(0.17, 0.2, 0.26)
+		_env.ambient_light_sky_contribution = 1.0 - 0.75 * nk
+		_env.ambient_light_energy = AMBIENT_BASE + 1.15 * nk
+		# грейд в шторм затемнял ещё и ночь — ночью под тучами его ослабляем
+		_env.adjustment_brightness += 0.1 * storm * nk + 0.06 * nk
+		# погодный туман + граница «Дальности видимости» (дымка густеет до 100 % на её краю)
+		ViewDistance.apply_fog(_env, float(_cur.fog))
 		# в дождь/шторм небо затянуто: дымка заметно перекрывает небо (серое, а не чёрное)
 		_env.fog_sky_affect = clampf(0.15 + float(_cur.fog) * 14.0 + 0.45 * storm + 0.25 * rain, 0.15, 0.9)
 		_env.fog_light_energy = 1.0 + _flash * 1.0
@@ -422,6 +436,7 @@ func _update_underwater(under: bool) -> void:
 	_underwater = under
 	if under:
 		_env.fog_light_color = Color(0.04, 0.28, 0.33)
+		_env.fog_mode = Environment.FOG_MODE_EXPONENTIAL
 		_env.fog_density = 0.09
 		_env.fog_sky_affect = 1.0
 	else:

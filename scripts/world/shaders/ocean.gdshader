@@ -211,9 +211,14 @@ float breaking_foam(vec2 p, float d, float dl) {
 	float tr = max(smoothstep(0.55, 0.85, c1.x) * 0.55, smoothstep(0.55, 0.85, c2.x) * 0.3);
 	tr *= smoothstep(0.62, 0.82, n2 * 0.6 + n3 * 0.55);
 	float f = max(line, tr) * brk_zone * energy;
-	// тонкая кромка заплеска — ровно по краю воды (dl → 0), бегает вместе с волной
-	float edge = smoothstep(0.0, 0.015, dl) * (1.0 - smoothstep(0.03, 0.09, dl));
-	f = max(f, edge * smoothstep(0.45, 0.75, lace) * 0.55);
+	// кромка заплеска: тонкая пузырчатая линия ровно по краю набегающей воды (бегает с волной)
+	// и за ней редкое тающее кружево пузырьков на тонком слое воды — видно и в штиль
+	float edge = smoothstep(0.0, 0.01, dl) * (1.0 - smoothstep(0.035, 0.075, dl));
+	float bub = texture(foam_tex, pr * vec2(0.9, 0.9) + vec2(u_time * 0.03, 0.0)).r;
+	float edge_line = edge * smoothstep(0.32, 0.62, lace * 0.7 + bub * 0.45);
+	float film = smoothstep(0.02, 0.05, dl) * (1.0 - smoothstep(0.08, 0.22, dl));
+	float film_lace = film * smoothstep(0.66, 0.86, bub * 0.6 + n3 * 0.5);
+	f = max(f, max(edge_line * 0.8, film_lace * 0.45));
 	return clamp(f, 0.0, 1.0);
 }
 
@@ -336,11 +341,14 @@ void fragment() {
 	} else {
 	ALBEDO = col * night_tint;
 	ROUGHNESS = mix(mix(0.05, 0.14, storm), 0.6, foam);
+	// тонкий слой набежавшей воды на песке — зеркальный «мокрый блеск»
+	float sheet = 1.0 - smoothstep(0.02, 0.12, dl);
+	SPECULAR = mix(0.55, 0.75, sheet * (1.0 - foam));
 	METALLIC = 0.0;
-	SPECULAR = 0.55;
 	// прозрачность: на мелководье видно дно
 	float a = mix(0.38, 0.97, smoothstep(0.0, 6.0, d));
 	// край воды — там, где кончается ВОЛНА (заплеск бегает по пляжу), а не средний уровень
-	ALPHA = clamp(max(a, foam * 0.95), 0.0, 1.0) * smoothstep(-0.01, 0.07, dl);
+	// пена кромки видна сразу у края (раньше её гасило вместе с прозрачной водой)
+	ALPHA = clamp(max(a * smoothstep(-0.01, 0.07, dl), foam * 0.95 * smoothstep(-0.002, 0.008, dl)), 0.0, 1.0);
 	}
 }
