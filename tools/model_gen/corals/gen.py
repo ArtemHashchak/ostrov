@@ -224,15 +224,15 @@ def gen_table(seed, tiers):
 	mb.tube([Vector((0, 0, 0)), Vector((0.02, 0.0, 0.25)), Vector((0.0, 0.03, 0.4))], [0.14, 0.1, 0.09], 6,
 		[mul(stem_c, 0.6), stem_c, stem_c], [0, 0, 0], cap=False)
 	for t in range(tiers):
-		R = rnd.uniform(1.3, 1.5) * (1.0 - 0.3 * t)
+		R = rnd.uniform(1.65, 1.9) * (1.0 - 0.28 * t)
 		cx = rnd.uniform(-0.3, 0.3) * t; cy = rnd.uniform(-0.3, 0.3) * t
 		z = 0.4 + 0.2 * t + rnd.uniform(-0.03, 0.04)
 		lobes = []
-		nl = rnd.randint(3, 5)
+		nl = rnd.randint(4, 6)
 		for i in range(nl):
 			a = math.tau * i / nl + rnd.uniform(-0.4, 0.4)
-			d = R * rnd.uniform(0.35, 0.55)
-			lobes.append((Vector((math.cos(a) * d, math.sin(a) * d, 0)), R * rnd.uniform(0.45, 0.62)))
+			d = R * rnd.uniform(0.42, 0.6)
+			lobes.append((Vector((math.cos(a) * d, math.sin(a) * d, 0)), R * rnd.uniform(0.38, 0.55)))
 		lobes.append((Vector((0, 0, 0)), R * 0.5))
 		def edge_r(a, lobes=lobes):
 			dvec = Vector((math.cos(a), math.sin(a), 0))
@@ -294,15 +294,15 @@ def gen_table(seed, tiers):
 					s1 = (s + 1) % RS
 					mb.face((rows_s[k][s], rows_s[k + 1][s], rows_s[k + 1][s1], rows_s[k][s1]))
 		# щетина по кромке: карточки наружу-вверх, светлые
-		for s in range(0, RS * 3):
-			a = math.tau * (s + rnd.random()) / (RS * 3)
+		for s in range(0, RS * 2):
+			a = math.tau * (s + rnd.random()) / (RS * 2)
 			p = ring_pt(a, 0.985)
 			out = Vector((math.cos(a), math.sin(a), 0))
 			up = (out * 0.8 + Vector((0, 0, 1))).normalized() * rnd.uniform(0.07, 0.1)
 			u0 = rnd.uniform(0.0, 0.6)
 			mb.card(p, up, Vector((-math.sin(a), math.cos(a), 0)) * 0.12, 3, top2, rim, cross=False, u0=u0, u1=u0 + 0.4)
 		# щетина пятнами сверху
-		for i in range(int(110 * R / (1 + 0.5 * t))):
+		for i in range(int(95 * R / (1 + 0.8 * t))):
 			f = math.sqrt(rnd.random()) * 0.93
 			a = rnd.random() * math.tau
 			p = ring_pt(a, f) + Vector((0, 0, 0.015))
@@ -355,29 +355,28 @@ def fib_dome(n, el_min=0.15):
 	return out
 
 def gen_staghorn(seed):
-	"""Кустовая акропора (preview 30–33): широкий низкий открытый куст из ветвящихся веточек
-	(2 уровня развилок), розовато-коричневые с бледными кончиками, вокруг — обломки."""
+	"""Кустовая акропора (preview 30–33): широкий низкий открытый «бурелом» из переплетённых
+	ветвящихся веточек (3 уровня развилок), розовато-коричневые с бледными кончиками, вокруг — обломки."""
 	rnd = random.Random(seed)
 	mb = MB()
-	base = hexc("#5A363C"); mid = hexc("#9A6468"); tip = hexc("#ECC8C0")
-	W = rnd.uniform(1.25, 1.4); Hh = 0.42
-	for i, d in enumerate(fib_dome(72, 0.08)):
-		d = (d + Vector((rnd.uniform(-.25, .25), rnd.uniform(-.25, .25), 0))).normalized()
-		hx = Vector((d.x * W * 0.8, d.y * W * 0.8, d.z * Hh * 0.6))
-		g = (Vector((d.x, d.y, 0)) * 0.9 + Vector((rnd.uniform(-.3, .3), rnd.uniform(-.3, .3), 0.9))).normalized()
-		branch_tree(mb, rnd, hx, g, rnd.uniform(0.13, 0.18), 0.022, 0, 2, [mul(mid, 0.75), mid], tip, 3, (2, 2), 0.75, 0.18,
-			segs=1, taper=0.72)
-	core = remesh_blob([((0, 0, 0.0), 0.85, 0.2, seed)], 0.32, "core", lambda p, n: base)
-	for p in core.v:
-		p.x *= W * 0.8; p.y *= W * 0.8
-		p.z = max(0.0, p.z * Hh * 0.45)
-	_join(mb, core)
-	for i in range(14):   # обломки вокруг
+	mid = hexc("#8E5A60"); dark = mul(mid, 0.62); tip = hexc("#F0D2C8")
+	W = rnd.uniform(1.15, 1.3)
+	n_tr = 28
+	for k in range(n_tr):
+		a = math.tau * k / n_tr + rnd.uniform(-0.25, 0.25)
+		r0 = W * math.sqrt(rnd.random()) * 0.7
+		base = Vector((math.cos(a) * r0, math.sin(a) * r0, 0.0))
+		out = Vector((math.cos(a), math.sin(a), 0.0))
+		d = (out * rnd.uniform(0.55, 1.0) + Vector((0, 0, rnd.uniform(0.45, 0.8)))).normalized()
+		branch_tree(mb, rnd, base, d, rnd.uniform(0.22, 0.3), 0.03, 0, 3, [dark, mid], tip, 3, (2, 3), 0.62, 0.1,
+			segs=1, taper=0.7)
+	for i in range(22):   # обломки вокруг
 		a = rnd.random() * math.tau
-		p = Vector((math.cos(a) * rnd.uniform(1.0, 1.5) * W, math.sin(a) * rnd.uniform(1.0, 1.5) * W, 0.015))
-		dd = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), 0.25)).normalized()
-		branch_tree(mb, rnd, p, dd, 0.08, 0.014, 1, 2, [mid, mid], tip, 3, (2, 2), 0.7, 0.0, segs=1)
-	bake_shade(mb, 0.45, 0.45)
+		rr = rnd.uniform(0.9, 1.45) * W
+		p = Vector((math.cos(a) * rr, math.sin(a) * rr, 0.012))
+		dd = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), 0.12)).normalized()
+		branch_tree(mb, rnd, p, dd, rnd.uniform(0.06, 0.1), 0.013, 2, 3, [mid, mid], tip, 3, (1, 2), 0.7, 0.0, segs=1)
+	bake_shade(mb, 0.5, 0.5)
 	return mb
 
 def gen_corymbose(seed):
@@ -569,47 +568,49 @@ def gen_leather(seed):
 		q = Vector((p.x * f, p.y * f, H * 0.82 + (p.z - H * 0.82) * f))
 		n = Vector((math.cos(a) * 0.55 * f, math.sin(a) * 0.55 * f, 1.0)).normalized()
 		return q, n
-	gen_tentacles(mb, rnd, where, 380, (0.05, 0.075), 0.012, fr0, fr1, sides=3, segs=1, curl=0.1, outward=0.12, taper=-0.15, tip_k=1.4)
+	# мех: плотный ровный ряд коротких полипов-трубок (без карточек)
+	gen_tentacles(mb, rnd, where, 420, (0.035, 0.055), 0.011, fr0, fr1, sides=3, segs=1, curl=0.1, outward=0.12, taper=-0.15, tip_k=1.4)
 	bake_shade(mb, 0.35, 0.3)
 	return mb
 
 def gen_anemone(seed, colr):
-	"""Актиния с длинными щупальцами (preview 46–48, 55–58): пышная масса сотен тонких волнистых
-	щупалец — поднимаются вверх и закручиваются/свисают наружу, кончики скруглены и чуть толще."""
+	"""Актиния с длинными щупальцами (preview 46–48, 55–58): пышная масса волнистых щупалец —
+	поднимаются вверх и закручиваются наружу/вниз, кончики скруглены. Геометрия (≈90 трубок)
+	+ слой карточек «бахромы» для густоты."""
 	rnd = random.Random(seed)
 	mb = MB()
-	c = hexc(colr); dark = mul(c, 0.72); tipc = lerp(c, hexc("#FFFFFF"), 0.45)
+	c = hexc(colr); dark = mul(c, 0.7); tipc = lerp(c, hexc("#FFFFFF"), 0.5)
+	RX, RY = 0.44, 0.3
 	RS = 16
 	center = mb.add_v(Vector((0, 0, 0.07)), dark, (0, 0))
-	ring = [mb.add_v(Vector((math.cos(math.tau * s / RS) * 0.42, math.sin(math.tau * s / RS) * 0.28, 0.05)), dark, (0, 0)) for s in range(RS)]
-	ring2 = [mb.add_v(Vector((math.cos(math.tau * s / RS) * 0.46, math.sin(math.tau * s / RS) * 0.32, 0.0)), mul(dark, 0.8), (0, 0)) for s in range(RS)]
+	ring = [mb.add_v(Vector((math.cos(math.tau * s / RS) * RX, math.sin(math.tau * s / RS) * RY, 0.05)), dark, (0, 0)) for s in range(RS)]
+	ring2 = [mb.add_v(Vector((math.cos(math.tau * s / RS) * (RX + .04), math.sin(math.tau * s / RS) * (RY + .04), 0.0)), mul(dark, 0.8), (0, 0)) for s in range(RS)]
 	for s in range(RS):
 		s1 = (s + 1) % RS
 		mb.face((center, ring[s], ring[s1]))
 		mb.face((ring[s], ring2[s], ring2[s1], ring[s1]))
 	first = len(mb.v)
-	N = 175
-	for i in range(N):
+	for i in range(150):
 		a = rnd.random() * math.tau
 		f = math.sqrt(rnd.random())
-		p0 = Vector((math.cos(a) * 0.42 * f, math.sin(a) * 0.28 * f, 0.06))
+		p0 = Vector((math.cos(a) * RX * f, math.sin(a) * RY * f, 0.06))
 		out = Vector((math.cos(a), math.sin(a), 0))
-		ln = rnd.uniform(0.3, 0.5) * (1.1 - 0.35 * f)
-		th0 = rnd.uniform(0.05, 0.3) + 0.5 * f          # стартовый наклон от вертикали
-		th1 = th0 + rnd.uniform(0.9, 1.9)               # к концу — заваливается наружу/вниз
+		ln = rnd.uniform(0.32, 0.52) * (1.15 - 0.35 * f)
+		th0 = rnd.uniform(0.0, 0.25) + 0.45 * f
+		th1 = th0 + rnd.uniform(0.8, 2.0)
 		side = Vector((-out.y, out.x, 0))
-		ph = rnd.uniform(0, 6.28)
-		segs = 3
+		ph = rnd.uniform(0, 6.28); wig = rnd.uniform(0.25, 0.5)
+		segs = 4
 		pts = [p0]
 		for sgi in range(1, segs + 1):
 			t = sgi / segs
 			th = th0 + (th1 - th0) * t * t
-			dirv = out * math.sin(th) + Vector((0, 0, 1)) * math.cos(th) + side * 0.35 * math.sin(t * 4.0 + ph)
+			dirv = out * math.sin(th) + Vector((0, 0, 1)) * math.cos(th) + side * wig * math.sin(t * 6.0 + ph)
 			pts.append(pts[-1] + dirv.normalized() * ln / segs)
-		r = rnd.uniform(0.012, 0.016)
-		radii = [r * 1.1, r, r * 0.95, r * 1.12]
-		cols = [lerp(c, dark, 0.3), c, lerp(c, tipc, 0.5), tipc]
-		flex = [0.1, 0.4, 0.75, 1.0]
+		r = rnd.uniform(0.011, 0.015)
+		radii = [r * 1.1, r, r * 0.95, r, r * 1.15]
+		cols = [lerp(c, dark, 0.35), c, lerp(c, tipc, 0.3), lerp(c, tipc, 0.6), tipc]
+		flex = [0.1, 0.35, 0.6, 0.85, 1.0]
 		mb.tube(pts, radii, 3, cols, flex, cap=True, tip_k=1.4)
 	for i in range(first, len(mb.vu)):
 		mb.vu[i] = (1.0, mb.vu[i][1])
@@ -636,7 +637,7 @@ def gen_bubble(seed):
 		q = Vector((math.cos(a) * 0.24 * f, math.sin(a) * 0.24 * f, zmax - 0.03 - 0.07 * f * f))
 		n = Vector((math.cos(a) * f * 0.8, math.sin(a) * f * 0.8, 1.0)).normalized()
 		return q, n
-	gen_tentacles(mb, rnd, where, 300, (0.06, 0.1), 0.011, hexc("#8E8E86"), hexc("#B8B8B0"), sides=3, segs=1, curl=0.25, outward=0.3, tipc=hexc("#FAFAF4"), taper=-0.2, tip_k=1.5)
+	gen_tentacles(mb, rnd, where, 300, (0.05, 0.085), 0.011, hexc("#8E8E86"), hexc("#B8B8B0"), sides=3, segs=1, curl=0.25, outward=0.3, tipc=hexc("#FAFAF4"), taper=-0.2, tip_k=1.5)
 	bake_shade(mb, 0.25, 0.25)
 	return mb
 
@@ -706,9 +707,9 @@ def gen_millepora(seed):
 
 SPEC = [
 	# (тип, вариант, функция, бюджет геометрии LOD0, LOD1, LOD2) — карточки сверх бюджета (≈4 треуг./шт.)
-	("table", 0, lambda: gen_table(11, 1), 1400, 700, 300),
-	("table", 1, lambda: gen_table(12, 2), 1500, 800, 350),
-	("table", 2, lambda: gen_table(13, 3), 1600, 900, 400),
+	("table", 0, lambda: gen_table(11, 1), 2400, 900, 300),
+	("table", 1, lambda: gen_table(12, 2), 2000, 1100, 350),
+	("table", 2, lambda: gen_table(13, 3), 1800, 1300, 400),
 	("staghorn", 0, lambda: gen_staghorn(21), 4000, 1300, 400),
 	("staghorn", 1, lambda: gen_staghorn(22), 4000, 1300, 400),
 	("corymbose", 0, lambda: gen_corymbose(31), 2800, 900, 300),
@@ -721,10 +722,10 @@ SPEC = [
 	("antler", 1, lambda: gen_antler(62, ["#9A9A9A", "#E0E0DC"]), 1600, 600, 200),
 	("softcoral", 0, lambda: gen_softcoral(71, "#EADCD8", "#E8A030"), 2400, 800, 300),
 	("softcoral", 1, lambda: gen_softcoral(72, "#EAD0D0", "#E87898"), 2400, 800, 300),
-	("leather", 0, lambda: gen_leather(81), 3950, 1000, 300),
-	("anemone", 0, lambda: gen_anemone(91, "#F2F0EA"), 3950, 1200, 400),
-	("anemone", 1, lambda: gen_anemone(92, "#DCD0B0"), 3950, 1200, 400),
-	("bubble", 0, lambda: gen_bubble(101), 3950, 1000, 300),
+	("leather", 0, lambda: gen_leather(81), 3400, 1000, 300),
+	("anemone", 0, lambda: gen_anemone(91, "#F2F0EA"), 3600, 1200, 400),
+	("anemone", 1, lambda: gen_anemone(92, "#DCD0B0"), 3600, 1200, 400),
+	("bubble", 0, lambda: gen_bubble(101), 3500, 1000, 300),
 	("crinoid", 0, lambda: gen_crinoid(111), 1400, 600, 250),
 	("mound", 0, lambda: gen_mound(121, "#7A5A38"), 700, 250, 100),
 	("mound", 1, lambda: gen_mound(122, "#6A6A3A"), 700, 250, 100),
