@@ -17,6 +17,9 @@ extends Node
 ##   Combat.hit_zone(target, pos) -> StringName  — &"head" ×2 / &"body" ×1 / &"legs" ×0.75
 ##   Combat.best_weapon(ch) -> StringName      — лучшее оружие из инвентаря (для ботов)
 ##   Combat.aim_dir(origin, target_pos, id)    — направление с упреждением на падение снаряда
+##   Современный огнестрел (WeaponDef: pistol_9mm, rifle): Combat.capacity(ch, id),
+##   Combat.fire_mode(ch, id) / Combat.cycle_fire_mode(ch, id); fire(opts.spread — разброс в °,
+##   opts.muzzle_node — сокет дула для вспышки). Урон с падением по дистанции, трассеры.
 
 signal hit_landed(info: Dictionary)
 
@@ -61,6 +64,8 @@ const WEAPONS := {
 	&"grenade": {"name": "Граната", "type": &"throw", "damage": 120.0, "speed": 16.0, "gravity": 1.0, "spread": 1.2,
 		"cooldown": 1.0, "kind": &"explosion", "radius": 6.0, "fuse": 3.5, "range": 25.0, "bomb": true},
 	&"machete": {"name": "Мачете", "type": &"melee", "damage": 26.0, "reach": 2.3, "kind": &"melee", "cooldown": 0.5, "range": 2.3},
+	# современный пистолет 9 мм — остальные поля из WeaponDef (weapon_def.gd)
+	&"pistol_9mm": {"name": "Пистолет", "type": &"gun", "pistol": true, "modern": true},
 }
 
 const AMMO := {
@@ -73,6 +78,8 @@ const AMMO := {
 
 ## Последние попадания (для тестов/отладки/HUD), не больше 32.
 static var last_hits: Array[Dictionary] = []
+## Последний выстрел современного оружия (WeaponDef): {shooter, weapon, origin, aim, dir, spread, tracer}.
+static var last_shot: Dictionary = {}
 static var _state: Dictionary = {} # instance_id -> {loaded:{}, busy_until, reloading}
 static var _registered := false
 
@@ -94,6 +101,11 @@ func _ensure_actions() -> void:
 		var ev := InputEventKey.new()
 		ev.physical_keycode = KEY_R
 		InputMap.action_add_event(&"reload", ev)
+	if not InputMap.has_action(&"fire_mode"):
+		InputMap.add_action(&"fire_mode")
+		var ev2 := InputEventKey.new()
+		ev2.physical_keycode = KEY_V
+		InputMap.action_add_event(&"fire_mode", ev2)
 
 func _on_spawned(ch: Node) -> void:
 	if ch.is_in_group(&"player"):
@@ -116,7 +128,37 @@ static func register_items() -> void:
 # ======================= API =======================
 
 static func weapon(id: StringName) -> Dictionary:
+	if WeaponDef.has(id):
+		return WeaponDef.merged(id, WEAPONS.get(id, {}))
 	return WEAPONS.get(id, {})
+
+## Ёмкость оружия при перезарядке (у WeaponDef — магазин +1 в патроннике при тактической).
+static func capacity(ch: Object, id: StringName) -> int:
+	var d := WeaponDef.of(id)
+	if d:
+		return d.capacity(rounds(ch, id))
+	return int(weapon(id).get("mag", 1))
+
+## Режим огня (&"auto"/&"semi") современного оружия; у остального — по полю auto.
+static func fire_mode(ch: Object, id: StringName) -> StringName:
+	var d := WeaponDef.of(id)
+	if d == null:
+		return &"auto" if weapon(id).get("auto", false) else &"semi"
+	var m: StringName = (state(ch).get("modes", {}) as Dictionary).get(id, d.fire_modes[0])
+	return m
+
+## Следующий режим огня (V). Возвращает новый режим.
+static func cycle_fire_mode(ch: Object, id: StringName) -> StringName:
+	var d := WeaponDef.of(id)
+	if d == null or d.fire_modes.size() < 2:
+		return fire_mode(ch, id)
+	var st := state(ch)
+	if not st.has("modes"):
+		st["modes"] = {}
+	var i := d.fire_modes.find(fire_mode(ch, id))
+	var m: StringName = d.fire_modes[(i + 1) % d.fire_modes.size()]
+	st.modes[id] = m
+	return m
 
 static func is_weapon(id: StringName) -> bool:
 	return WEAPONS.has(id)
@@ -143,9 +185,12 @@ func _physics_process(delta: float) -> void:
 func _exit_tree() -> void:
 	_has_clock = false
 	last_hits.clear()
+	last_shot = {}
 	_state.clear()
 	CombatFx.clear_caches()
 	CombatModels.clear_caches()
+	GunFx.clear_caches()
+	WeaponDef.clear_caches()
 
 static func state(ch: Object) -> Dictionary:
 	var k := ch.get_instance_id() if ch else 0
@@ -175,7 +220,7 @@ static func can_reload(ch: Object, id: StringName) -> bool:
 	if w.is_empty() or not w.type in [&"gun", &"crossbow"]:
 		return false
 	var st := state(ch)
-	return rounds(ch, id) < int(w.get("mag", 1)) and not is_reloading(ch) and _now() >= float(st.busy_until) and has_ammo(ch, id)
+	return rounds(ch, id) < capacity(ch, id) and not is_reloading(ch) and _now() >= float(st.busy_until) and has_ammo(ch, id)
 
 static func is_ready(ch: Object, id: StringName) -> bool:
 	return _now() >= float(state(ch).busy_until)
@@ -236,17 +281,23 @@ static func start_reload(ch: Object, id: StringName) -> float:
 		return 0.0
 	var st := state(ch)
 	var have := rounds(ch, id)
-	if have >= int(w.get("mag", 1)) or is_reloading(ch) or _now() < float(st.busy_until):
+	var cap := capacity(ch, id)
+	if have >= cap or is_reloading(ch) or _now() < float(st.busy_until):
 		return 0.0
 	if not has_ammo(ch, id):
 		return 0.0
 	var n := 1
 	if w.has("mag"):
 		var avail := ammo_count(ch, id)
-		n = int(w.mag) - have if avail < 0 else mini(int(w.mag) - have, avail)
+		n = cap - have if avail < 0 else mini(cap - have, avail)
 	for a: Dictionary in w.ammo:
 		_take(ch, a.id, int(a.n) * n)
 	var t := float(w.reload)
+	var d := WeaponDef.of(id)
+	if d:
+		# тактическая (патрон в патроннике) — быстрее полной (затвор на задержке)
+		t = d.reload_tactical if have > 0 else d.reload_full
+	st.reload_full = have <= 0
 	st.loaded[id] = (have + n) if w.has("mag") else true
 	st.reload_n = n
 	st.reloading = id
@@ -319,11 +370,25 @@ static func fire(shooter: Node, weapon_id: StringName, origin: Vector3, dir: Vec
 			else:
 				st.loaded[weapon_id] = false
 			ammo_id = &"bolt" if w.type == &"crossbow" else StringName(w.get("proj", &"musket_ball"))
-	st.busy_until = _now() + float(w.cooldown)
+	var base_t := _now()
+	if WeaponDef.has(weapon_id) and float(st.busy_until) > _now() - float(w.cooldown):
+		base_t = float(st.busy_until) # непрерывный огонь: ровный темп, не зависящий от FPS
+	st.busy_until = base_t + float(w.cooldown)
 	var spread := float(w.get("spread_ads" if bool(opts.get("ads", false)) else "spread_hip", 1.0))
+	if opts.has("spread"):
+		spread = float(opts.spread) # игрок: разброс с учётом движения/очереди/прицела (CombatController)
 	if w.type == &"bow":
 		spread *= lerpf(2.2, 1.0, power)
 	var d := _spread_dir(dir, spread)
+	var wd := WeaponDef.of(weapon_id)
+	var tracer := false
+	if wd:
+		var sn: Dictionary = st.get("shot_n", {})
+		st["shot_n"] = sn
+		sn[weapon_id] = int(sn.get(weapon_id, 0)) + 1
+		tracer = wd.tracer_every > 0 and int(sn[weapon_id]) % wd.tracer_every == 0
+		last_shot = {"shooter": shooter, "weapon": weapon_id, "origin": origin, "aim": dir, "dir": d, "spread": spread,
+			"tracer": tracer, "time": _now()}
 	var ad: Dictionary = AMMO.get(ammo_id, {})
 	for k in int(w.get("pellets", 1)):
 		var pd := d if k == 0 else _spread_dir(dir, spread)
@@ -337,17 +402,24 @@ static func fire(shooter: Node, weapon_id: StringName, origin: Vector3, dir: Vec
 		pr.velocity = pd * float(w.speed) * (lerpf(0.45, 1.0, power) if w.type == &"bow" else 1.0)
 		pr.gravity_scale = float(w.gravity)
 		pr.max_range = float(w.range) * 3.0
+		if wd:
+			pr.wdef = wd
+			pr.tracer = tracer and k == 0
+			pr.max_range = wd.max_range
 		_root(shooter).add_child(pr)
 		pr.global_position = origin
 	var mpos: Vector3 = opts.get("muzzle", origin + d * 0.9)
 	match w.type:
 		&"gun":
-			if w.get("modern", false):
+			if wd:
+				GunFx.shot(shooter, mpos, d, wd, opts.get("muzzle_node") as Node3D)
+			elif w.get("modern", false):
 				CombatFx.muzzle_modern(shooter, mpos, d, float(w.flash))
 			else:
 				CombatFx.muzzle(shooter, mpos, d, float(w.flash))
-			CombatFx.sound_at(shooter, String(w.sound), origin, 4.0, 220.0)
-			CombatFx.sound_at(shooter, "flint_click", origin, -8.0)
+			if not wd:
+				CombatFx.sound_at(shooter, String(w.sound), origin, 4.0, 220.0)
+				CombatFx.sound_at(shooter, "flint_click", origin, -8.0)
 		&"crossbow":
 			CombatFx.sound_at(shooter, "crossbow_shot", origin, -2.0)
 		&"bow":
@@ -491,8 +563,8 @@ static func best_weapon(ch: Object, prefer_ranged: bool = true) -> StringName:
 	var inv := _inv(ch)
 	if inv == null:
 		return &""
-	var order: Array[StringName] = [&"rifle", &"shotgun", &"musket", &"crossbow", &"bow", &"pistol", &"spear", &"machete", &"axe_modern", &"club", &"axe_crude"] if prefer_ranged \
-		else [&"machete", &"axe_modern", &"spear", &"club", &"axe_crude", &"shotgun", &"rifle", &"musket", &"crossbow", &"pistol", &"bow"]
+	var order: Array[StringName] = [&"rifle", &"shotgun", &"musket", &"crossbow", &"bow", &"pistol_9mm", &"pistol", &"spear", &"machete", &"axe_modern", &"club", &"axe_crude"] if prefer_ranged \
+		else [&"machete", &"axe_modern", &"spear", &"club", &"axe_crude", &"shotgun", &"rifle", &"pistol_9mm", &"musket", &"crossbow", &"pistol", &"bow"]
 	for id in order:
 		if int(inv.call(&"count", id)) <= 0:
 			continue

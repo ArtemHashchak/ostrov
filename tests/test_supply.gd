@@ -225,7 +225,9 @@ func run() -> void:
 	check(left < 18 and left > 5, "очередь: выпущено %d патронов" % (20 - left))
 	await tap(&"reload")
 	await wait(float(Combat.weapon(&"rifle").reload) + 0.3)
-	check(Combat.rounds(p, &"rifle") == mini(20, left + 10) and p.inventory.count(&"rifle_ammo") == maxi(0, 10 - (20 - left)),
+	# GUNPLAY: тактическая перезарядка — магазин 20 + 1 в патроннике (WeaponDef.chamber)
+	var want := mini(20 + (1 if left > 0 else 0), left + 10)
+	check(Combat.rounds(p, &"rifle") == want and p.inventory.count(&"rifle_ammo") == 10 - (want - left),
 		"дозарядка из запаса: %d в магазине, %d в запасе" % [Combat.rounds(p, &"rifle"), p.inventory.count(&"rifle_ammo")])
 
 	# ---------- ракетница ----------

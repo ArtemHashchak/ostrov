@@ -7,6 +7,10 @@ extends Node
 ##  Молотов/динамит: держать ЛКМ — замах (сила), отпустить — бросок.
 ##  Копьё: ЛКМ — выпад (анимация игрока); держать ПКМ — замах над плечом, ЛКМ — бросок.
 ##  Дубина/топоры — удары игрока (урон из Items).
+##  Современный огнестрел (WeaponDef: пистолет, автомат): ЛКМ — выстрел (авто — держать),
+##    V — режим огня, ПКМ — прицел (ads_anchor в центр экрана, FOV↓, разброс↓), R — перезарядка
+##    (тактическая/полная). Отдача по паттерну с возвратом (Gunplay), пружина камеры, гильзы,
+##    вспышка, дымок нагретого ствола, HUD «в магазине / в запасе», динамический прицел.
 
 var p: Player
 var hands: FPHands
@@ -43,6 +47,17 @@ var _marker_head := false
 var _draw_snd: AudioStreamPlayer3D
 var _noise := FastNoiseLite.new()
 var _t := 0.0
+# --- современный огнестрел (WeaponDef) ---
+var wdef: WeaponDef
+var gp: Gunplay
+var _prev_mode := false
+var _barrel_smoke: CPUParticles3D
+var _slide := 0.0
+var _reload_stage := 0
+var _mag_label: Label
+var _cross: Control
+## Текущий разброс (град) — для HUD и тестов.
+var spread_now := 0.0
 
 func _ready() -> void:
 	p = get_parent() as Player
@@ -73,6 +88,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif event.is_action(&"reload") and t in [&"gun", &"crossbow", &"bow"]:
 		get_viewport().set_input_as_handled()
+	elif wdef and InputMap.has_action(&"fire_mode") and event.is_action(&"fire_mode"):
+		get_viewport().set_input_as_handled()
 
 # ======================= кадр =======================
 
@@ -88,12 +105,27 @@ func _process(delta: float) -> void:
 	var atk_down := atk and not _prev_atk
 	var atk_up := not atk and _prev_atk
 	var rel_down := rel and not _prev_reload
+	var mode := InputMap.has_action(&"fire_mode") and Input.is_action_pressed(&"fire_mode") and active
+	var mode_down := mode and not _prev_mode
+	_prev_mode = mode
 	_prev_atk = atk
 	_prev_aim = aim
 	_prev_reload = rel
 	var want_ads := false
 	if active:
-		match w.type:
+		match &"modern" if wdef else StringName(w.type):
+			&"modern":
+				want_ads = aim and not Combat.is_reloading(p) and not p.sprinting
+				var auto := Combat.fire_mode(p, wid) == &"auto"
+				if atk_down or (atk and auto and Combat.rounds(p, wid) > 0):
+					# очередь: при низком FPS — несколько выстрелов за кадр (темп по часам Combat)
+					var n := 0
+					while _trigger_modern(atk_down and n == 0) and auto and n < 3:
+						n += 1
+				if rel_down:
+					_start_reload()
+				if mode_down:
+					_cycle_mode()
 			&"gun", &"crossbow":
 				want_ads = aim and not Combat.is_reloading(p) and not p.sprinting
 				# SUPPLY: автомат — очередь, пока зажата ЛКМ
@@ -116,7 +148,18 @@ func _process(delta: float) -> void:
 		_winding = false
 		draw = move_toward(draw, 0.0, delta * 4.0)
 		windup = 0.0
-	ads = move_toward(ads, 1.0 if want_ads else 0.0, delta * (6.0 if want_ads else 8.0))
+	if wdef:
+		ads = move_toward(ads, 1.0 if want_ads else 0.0, delta / maxf(wdef.ads_time, 0.05) * (1.0 if want_ads else 1.3))
+	else:
+		ads = move_toward(ads, 1.0 if want_ads else 0.0, delta * (6.0 if want_ads else 8.0))
+	if gp:
+		spread_now = gp.spread(smoothstep(0.0, 1.0, ads), Vector2(p.velocity.x, p.velocity.z).length() / Player.RUN_SPEED,
+			p.is_on_floor(), p.crouching)
+		var dl := gp.update(delta)
+		if dl != Vector2.ZERO:
+			var yaw: float = p.get(&"_yaw")
+			var pitch: float = p.get(&"_pitch")
+			p.set_look(yaw + dl.y, clampf(pitch + dl.x, deg_to_rad(-88.0), deg_to_rad(88.0)))
 	var zoom := float(w.get("zoom", 0.0)) if wid != &"" else 0.0
 	p.fov_zoom = zoom * smoothstep(0.0, 1.0, ads)
 	_throw_anim = move_toward(_throw_anim, 0.0, delta / 0.45)
@@ -134,6 +177,8 @@ func _sync_weapon() -> void:
 		_unequip()
 		wid = id
 		w = Combat.weapon(id)
+		wdef = WeaponDef.of(id)
+		gp = Gunplay.new(wdef) if wdef else null
 		_equip()
 	if wid != &"" and (_model == null or not is_instance_valid(_model) or _model.is_queued_for_deletion()):
 		_find_model()
@@ -165,6 +210,11 @@ func _unequip() -> void:
 		_arrow_fp.queue_free()
 		_arrow_fp = null
 	_clear_flame()
+	if is_instance_valid(_barrel_smoke):
+		_barrel_smoke.queue_free()
+	_barrel_smoke = null
+	gp = null
+	wdef = null
 	if _draw_snd:
 		_draw_snd.queue_free()
 		_draw_snd = null
@@ -203,8 +253,51 @@ func _aim_dir() -> Vector3:
 	return -cam.global_basis.z
 
 func _muzzle_pos() -> Vector3:
-	var m := _model.find_child("Muzzle", true, false) as Node3D if _model else null
+	var m := WeaponDef.socket(_model, &"muzzle")
 	return m.global_position if m else _eye() + _aim_dir() * 0.8
+
+## Сокет модели в руке: muzzle / ejection_port / ads_anchor / mag / forend.
+func socket(socket_name: StringName) -> Node3D:
+	return WeaponDef.socket(_model, socket_name)
+
+# ---------- современный огнестрел ----------
+
+func _trigger_modern(pressed: bool) -> bool:
+	if not Combat.is_ready(p, wid) or Combat.is_reloading(p):
+		return false
+	if Combat.rounds(p, wid) <= 0:
+		if pressed:
+			CombatFx.sound_at(p, wdef.sound_dry, _eye(), -6.0)
+			_start_reload()
+		return false
+	var mz := socket(&"muzzle")
+	var ok := Combat.fire(p, wid, _eye(), _aim_dir(), {"ads": ads > 0.7, "spread": spread_now,
+		"muzzle": mz.global_position if mz else _eye() + _aim_dir() * 0.8, "muzzle_node": mz})
+	if not ok:
+		return false
+	gp.on_shot(smoothstep(0.0, 1.0, ads))
+	_fire_anim = 1.0
+	_slide = 1.0
+	_eject()
+	return true
+
+## Гильза и газы из окна выброса.
+func _eject() -> void:
+	var port := socket(&"ejection_port")
+	var b := cam.global_basis
+	var xf := port.global_transform if port else Transform3D(b, _eye() + b * Vector3(0.12, -0.1, -0.35))
+	GunFx.eject_casing(p, xf, b.x, b.y, b.z, p.velocity, wdef)
+	GunFx.port_gas(p, xf.origin, b.x, wdef.smoke)
+
+func _cycle_mode() -> void:
+	if wdef.fire_modes.size() < 2:
+		return
+	var m := Combat.cycle_fire_mode(p, wid)
+	CombatFx.sound_at(p, wdef.sound_mode, _eye() + Vector3.DOWN * 0.3, -10.0)
+	Events.toast.emit("Режим огня: %s" % mode_name(m))
+
+static func mode_name(m: StringName) -> String:
+	return "автоматический" if m == &"auto" else "одиночный"
 
 func _trigger() -> void:
 	if not Combat.is_ready(p, wid):
@@ -221,7 +314,7 @@ func _start_reload() -> void:
 	if Combat.is_reloading(p):
 		return
 	if w.has("mag"):
-		if Combat.rounds(p, wid) >= int(w.mag):
+		if Combat.rounds(p, wid) >= Combat.capacity(p, wid):
 			return
 	elif Combat.is_loaded(p, wid):
 		return
@@ -235,6 +328,10 @@ func _start_reload() -> void:
 		return
 	_reload_len = t
 	_reload_snd = false
+	_reload_stage = 0
+	if wdef:
+		CombatFx.sound_at(p, wdef.sound_reload, _eye() + Vector3.DOWN * 0.4, -16.0) # магазин из шахты
+		return
 	if w.has("mag"):
 		CombatFx.sound_at(p, "hit_metal", _eye() + Vector3.DOWN * 0.4, -14.0)
 		return
@@ -342,7 +439,9 @@ func _sway() -> Vector3:
 
 ## Положение маркера модели относительно правой руки (в её локальных осях).
 func _rel_to_arm(arm: Node3D, marker_name: String) -> Vector3:
-	var m := _model.find_child(marker_name, true, false) as Node3D if _model else null
+	var m := WeaponDef.socket(_model, StringName(marker_name.to_snake_case()))
+	if m == null and _model:
+		m = _model.find_child(marker_name, true, false) as Node3D
 	if m == null:
 		return Vector3(0.0, 0.05, -0.2)
 	return arm.transform.affine_inverse() * hands.to_local(m.global_position)
@@ -378,9 +477,11 @@ func _pose_gun() -> void:
 	if _model:
 		_model.basis = Basis.from_euler(ads_rr).inverse()
 	var hip_r := Vector3(0.2, -0.2, -0.4) if pistol else Vector3(0.16, -0.2, -0.28)
-	# ПКМ: целик точно по центру экрана
-	var sight_rel := _rel_to_arm(hands.right_arm, "Sight")
+	# ПКМ: целик точно по центру экрана (WeaponDef — сокет ads_anchor на ads_distance перед камерой)
+	var sight_rel := _rel_to_arm(hands.right_arm, "ads_anchor" if wdef else "Sight")
 	var target := Vector3(0.0, -0.004, -0.5) if pistol else Vector3(0.0, -0.01, -0.33)
+	if wdef:
+		target = Vector3(0.0, 0.0, -wdef.ads_distance)
 	var ads_r := target - Basis.from_euler(ads_rr) * sight_rel
 	var r := hip_r.lerp(ads_r, smoothstep(0.0, 1.0, ads))
 	var rr := hip_rr.lerp(ads_rr, smoothstep(0.0, 1.0, ads))
@@ -392,7 +493,7 @@ func _pose_gun() -> void:
 			# магазин: оружие наклонено к себе боком, левая рука меняет магазин
 			r = r.lerp(Vector3(0.08, -0.3, -0.36) if not pistol else Vector3(0.06, -0.26, -0.36), lift)
 			rr = rr.lerp(Vector3(deg_to_rad(18.0), deg_to_rad(-25.0), roll + deg_to_rad(35.0)), lift)
-			if not _reload_snd and rp > 0.7:
+			if not _reload_snd and rp > 0.7 and not wdef:
 				_reload_snd = true
 				CombatFx.sound_at(p, "dry_click", _eye() + Vector3.DOWN * 0.3, -4.0)
 		elif w.type == &"gun":
@@ -407,7 +508,12 @@ func _pose_gun() -> void:
 			# (приклад держим подальше от камеры — иначе он закрывает пол-экрана)
 			r = r.lerp(Vector3(0.1, -0.42, -0.5), lift)
 			rr = rr.lerp(Vector3(deg_to_rad(-22.0), deg_to_rad(-10.0), roll), lift)
-	if _fire_anim > 0.0:
+	if gp:
+		# откат и подброс оружия — пружина Gunplay (в прицеле слабее)
+		var kk := gp.gun_kick * lerpf(1.0, 0.6, ads)
+		r += Vector3(0.0, 0.004, wdef.kick_back) * kk
+		rr.x += deg_to_rad(wdef.kick_rot) * kk
+	elif _fire_anim > 0.0:
 		rr.x += deg_to_rad(float(w.get("recoil", 2.0)) * 1.2) * _fire_anim * _fire_anim
 	hands.pose_r = r
 	hands.pose_rr = rr
@@ -539,6 +645,8 @@ func _update_parts() -> void:
 		var bolt := _model.get_node_or_null(^"Bolt") as Node3D
 		if bolt:
 			bolt.visible = loaded and rp > 0.9
+	elif wdef and _model:
+		_update_modern_parts()
 	elif wid in [&"musket", &"pistol"]:
 		var rp2 := _reload_progress()
 		if Combat.is_loaded(p, wid) and rp2 > 0.92:
@@ -546,6 +654,42 @@ func _update_parts() -> void:
 		var ramrod := _model.get_node_or_null(^"Ramrod") as Node3D if _model else null
 		if ramrod:
 			ramrod.visible = rp2 < 0.3 or rp2 > 0.85
+
+## Затвор/кожух, магазин при перезарядке, дымок ствола, звуки перезарядки по стадиям.
+func _update_modern_parts() -> void:
+	var dt := get_process_delta_time()
+	var empty := Combat.rounds(p, wid) <= 0 and not Combat.is_reloading(p)
+	_slide = move_toward(_slide, 0.0, dt / 0.06)
+	var sl := _model.get_node_or_null(^"Slide") as Node3D
+	var rp := _reload_progress()
+	var full := bool(Combat.state(p).get("reload_full", false))
+	if sl:
+		# кожух откатывается на выстреле; пустой — стоит на затворной задержке до конца полной перезарядки
+		var back := sin(_slide * PI) * 0.026
+		if empty or (Combat.is_reloading(p) and full and rp < 0.85):
+			back = 0.022
+		sl.position.z = back
+	var mg := _model.get_node_or_null(^"Magazine") as Node3D
+	if mg:
+		var away := smoothstep(0.12, 0.3, rp) * (1.0 - smoothstep(0.5, 0.72, rp)) if rp < 1.0 else 0.0
+		mg.position = Vector3(0.0, -0.3, 0.06) * away
+		mg.visible = away < 0.95
+	if Combat.is_reloading(p):
+		if _reload_stage == 0 and rp > 0.62:
+			_reload_stage = 1
+			CombatFx.sound_at(p, "dry_click", _eye() + Vector3.DOWN * 0.3, -4.0) # магазин встал
+		elif _reload_stage == 1 and rp > 0.86 and full:
+			_reload_stage = 2
+			CombatFx.sound_at(p, wdef.sound_reload, _eye() + Vector3.DOWN * 0.3, -12.0) # затвор
+	# дымок нагретого ствола после очереди
+	if gp:
+		var mz := socket(&"muzzle")
+		if not is_instance_valid(_barrel_smoke) and mz:
+			_barrel_smoke = GunFx.barrel_smoke(mz)
+		if is_instance_valid(_barrel_smoke):
+			var since := gp.t - gp.last_shot_t
+			_barrel_smoke.emitting = gp.heat > 0.25 and since > 0.15
+			_barrel_smoke.color = Color(1, 1, 1, clampf(gp.heat, 0.0, 1.0))
 
 func _set_cock(cocked: bool) -> void:
 	var c := _model.find_child("Cock", true, false) as Node3D if _model else null
@@ -563,7 +707,9 @@ func _update_camera_fx(delta: float) -> void:
 	_kick = _kick.lerp(Vector2.ZERO, clampf(delta * 9.0, 0.0, 1.0))
 	_shake = move_toward(_shake, 0.0, delta * 1.2)
 	var s := _shake * _shake
-	cam.rotation = Vector3(_kick.x + _noise.get_noise_1d(_t * 90.0) * 0.03 * s, _kick.y + _noise.get_noise_1d(_t * 90.0 + 50.0) * 0.03 * s, 0.0)
+	var gk := gp.kick if gp else Vector3.ZERO
+	cam.rotation = Vector3(_kick.x + gk.x + _noise.get_noise_1d(_t * 90.0) * 0.03 * s,
+		_kick.y + gk.y + _noise.get_noise_1d(_t * 90.0 + 50.0) * 0.03 * s, gk.z)
 	cam.h_offset = _noise.get_noise_1d(_t * 70.0 + 20.0) * 0.05 * s
 	cam.v_offset = _noise.get_noise_1d(_t * 70.0 + 80.0) * 0.05 * s
 
@@ -587,6 +733,25 @@ func _build_ui() -> void:
 	_ammo_label.add_theme_color_override(&"font_shadow_color", Color(0, 0, 0, 0.8))
 	_ammo_label.add_theme_font_size_override(&"font_size", 18)
 	_ui.add_child(_ammo_label)
+	# GUNPLAY: «в магазине / в запасе» крупно и динамический прицел по разбросу
+	_mag_label = Label.new()
+	_mag_label.anchor_left = 1.0
+	_mag_label.anchor_right = 1.0
+	_mag_label.anchor_top = 1.0
+	_mag_label.anchor_bottom = 1.0
+	_mag_label.offset_left = -360.0
+	_mag_label.offset_right = -24.0
+	_mag_label.offset_top = -176.0
+	_mag_label.offset_bottom = -122.0
+	_mag_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_mag_label.add_theme_color_override(&"font_color", Color(0.97, 0.95, 0.88))
+	_mag_label.add_theme_color_override(&"font_shadow_color", Color(0, 0, 0, 0.85))
+	_mag_label.add_theme_font_size_override(&"font_size", 40)
+	_ui.add_child(_mag_label)
+	_cross = SpreadCross.new()
+	_cross.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_cross.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.add_child(_cross)
 	_marker = HitMarker.new()
 	_marker.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -601,8 +766,25 @@ func _update_ui(_delta: float) -> void:
 	if _ammo_label == null:
 		return
 	_ui.visible = p.alive and not p.ui_open
+	_mag_label.text = ""
+	var sc := _cross as SpreadCross
+	sc.px = -1.0
+	sc.queue_redraw()
 	if wid == &"" or w.type == &"melee":
 		_ammo_label.text = ""
+		return
+	if wdef:
+		var mag := Combat.rounds(p, wid)
+		var reserve := BuildEnv.inv_count(p, wdef.ammo_id)
+		_mag_label.text = "%d / %d" % [mag, reserve]
+		_mag_label.modulate = Color(1.0, 0.45, 0.35) if mag == 0 else (Color(1.0, 0.85, 0.5) if mag <= int(wdef.mag_size * 0.25) else Color.WHITE)
+		var st2 := "перезарядка…" if Combat.is_reloading(p) else ("пусто — R" if mag == 0 and reserve > 0 else ("нет патронов" if mag == 0 else ""))
+		var modes := "" if wdef.fire_modes.size() < 2 else "  [%s — V]" % ("АВТО" if Combat.fire_mode(p, wid) == &"auto" else "ОДИН.")
+		_ammo_label.text = "%s%s\nв магазине / в запасе (%s)%s" % [w.name, modes, Items.item_name(wdef.ammo_id), ("  · " + st2) if st2 != "" else ""]
+		# прицел: зазор по разбросу (в прицеле — не нужен)
+		if cam and ads < 0.5:
+			var half_h := get_viewport().get_visible_rect().size.y * 0.5
+			sc.px = tan(deg_to_rad(spread_now)) / tan(deg_to_rad(cam.fov * 0.5)) * half_h
 		return
 	var txt := String(w.name)
 	match w.type:
@@ -619,6 +801,20 @@ func _update_ui(_delta: float) -> void:
 		&"throw":
 			txt += " — %d шт.  %s" % [BuildEnv.inv_count(p, wid), "ПКМ — замах, ЛКМ — бросок" if wid == &"spear" else "держи ЛКМ — замах"]
 	_ammo_label.text = txt
+
+
+## Четыре чёрточки вокруг центра — зазор = текущий разброс (px < 0 — скрыт).
+class SpreadCross:
+	extends Control
+	var px := -1.0
+	func _draw() -> void:
+		if px < 0.0:
+			return
+		var c := size * 0.5
+		var g := clampf(px, 4.0, 160.0)
+		for d: Vector2 in [Vector2.RIGHT, Vector2.LEFT, Vector2.UP, Vector2.DOWN]:
+			draw_line(c + d * (g + 1.0), c + d * (g + 9.0), Color(0, 0, 0, 0.5), 3.0, true)
+			draw_line(c + d * g, c + d * (g + 8.0), Color(1, 0.98, 0.92, 0.85), 1.5, true)
 
 
 class HitMarker:
