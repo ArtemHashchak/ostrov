@@ -19,6 +19,7 @@ const ZONES := {
 	&"survival": {"name": "Выживание", "c": Vector2(46, -26), "r": 20.0},
 	&"bots": {"name": "Арена ботов", "c": Vector2(-62, -60), "r": 15.0},
 	&"pack": {"name": "Пак моделей", "c": Vector2(42, -112), "r": 18.0},
+	&"style": {"name": "Полка стиля", "c": Vector2(9, -106), "r": 12.0},
 }
 ## Стройка: исходная раскладка (центр (−81, 7)) ужата и перенесена к BUILD_C.
 const BUILD_C := Vector2(-30.0, -40.0)
@@ -102,7 +103,7 @@ func setup(w: World) -> void:
 
 func build_all() -> void:
 	for id: StringName in [&"hub", &"flora", &"fauna", &"items", &"range", &"build", &"bridge", &"survival", &"beach",
-			&"sea", &"reef", &"bots", &"pack"]:
+			&"sea", &"reef", &"bots", &"pack", &"style"]:
 		build_zone(id)
 		await get_tree().process_frame
 	_add_island_points()
@@ -133,6 +134,7 @@ func build_zone(id: StringName) -> void:
 			SandboxSeaPack.build_sea(self, root)
 			SandboxCorals.build(self, root, ZONES[&"pack"].c)      # кораллы по референсу пользователя
 			SandboxCorals.build_sea(self, root)
+		&"style": SandboxStyleShelf.build(self, root, ZONES[&"style"].c)   # полка стиля: все модели пака при одном свете
 
 ## Вернуть зону к начальному виду (деревья в зоне растений не восстанавливаются).
 func reset_zone(id: StringName) -> void:

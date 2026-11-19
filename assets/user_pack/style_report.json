@@ -1,0 +1,332 @@
+[
+ {
+  "model": "animals/animal_shark_great_white.glb",
+  "scale": 0.141130314382919,
+  "materials": [
+   {
+    "material": "Grey",
+    "class": "shark_skin",
+    "density_px_m": 534,
+    "density": "в норме",
+    "y_med_before": 0.0637,
+    "y_p95_before": 0.8412,
+    "sat_before": 0.0541,
+    "baked_before": 0.9243,
+    "baked_after": 0.9243,
+    "y_med_after": 0.0693,
+    "y_p95_after": 0.6192,
+    "sat_after": 0.0541,
+    "rough_before": 0.443,
+    "metal_before": 0.0,
+    "rough_after": 0.443,
+    "metal_after": 0.0,
+    "detail": "denticle, период 3.2 px (6 мм), сила 0.10"
+   },
+   {
+    "material": "Gums",
+    "class": "special_keep",
+    "note": "без изменений (глаза/зубы/дёсны)"
+   },
+   {
+    "material": "Teeth",
+    "class": "special_keep",
+    "note": "без изменений (глаза/зубы/дёсны)"
+   },
+   {
+    "material": "Eyes",
+    "class": "special_keep",
+    "note": "без изменений (глаза/зубы/дёсны)"
+   }
+  ]
+ },
+ {
+  "model": "items/item_shell_junonia.glb",
+  "scale": 1.002570105055375,
+  "materials": [
+   {
+    "material": "MAT_JunoniaShell",
+    "class": "mollusc_shell",
+    "density_px_m": 2980,
+    "density": "в норме",
+    "y_med_before": 0.392,
+    "y_p95_before": 0.4832,
+    "sat_before": 0.4925,
+    "baked_before": 0.246,
+    "baked_after": 0.2136,
+    "y_med_after": 0.3664,
+    "y_p95_after": 0.4926,
+    "sat_after": 0.4922,
+    "rough_before": 0.255,
+    "metal_before": 0.0,
+    "rough_after": 0.255,
+    "metal_after": 0.0,
+    "detail": "ridges, период 6.0 px (2 мм), сила 0.12"
+   }
+  ]
+ },
+ {
+  "model": "items/item_dried_fish.glb",
+  "scale": 1.0031506440999838,
+  "materials": [
+   {
+    "material": "M_Fabric",
+    "class": "fabric_rope",
+    "density_px_m": 1964,
+    "density": "в норме",
+    "y_med_before": 0.1298,
+    "y_p95_before": 0.4108,
+    "sat_before": 0.2077,
+    "baked_before": 0.1646,
+    "baked_after": 0.1365,
+    "y_med_after": 0.1325,
+    "y_p95_after": 0.3966,
+    "sat_after": 0.2072,
+    "rough_before": 0.804,
+    "metal_before": 0.0,
+    "rough_after": 0.804,
+    "metal_after": 0.0
+   },
+   {
+    "material": "M_Metal",
+    "class": "metal_rusty",
+    "density_px_m": 2604,
+    "density": "в норме",
+    "y_med_before": 0.2195,
+    "y_p95_before": 0.2705,
+    "sat_before": 0.0,
+    "baked_before": 0.0467,
+    "baked_after": 0.0467,
+    "y_med_after": 0.2195,
+    "y_p95_after": 0.2705,
+    "sat_after": 0.0,
+    "rough_before": 0.329,
+    "metal_before": 0.8,
+    "rough_after": 0.35,
+    "metal_after": 0.8
+   },
+   {
+    "material": "M_DriedFishAtlas",
+    "class": "dried_organic",
+    "density_px_m": 237,
+    "density": "НИЖЕ нормы (усилена микродеталь)",
+    "y_med_before": 0.1272,
+    "y_p95_before": 0.4021,
+    "sat_before": 0.202,
+    "baked_before": 0.1588,
+    "baked_after": 0.1378,
+    "y_med_after": 0.128,
+    "y_p95_after": 0.3992,
+    "sat_after": 0.2,
+    "rough_before": 0.42,
+    "metal_before": 0.0,
+    "rough_after": 0.62,
+    "metal_after": 0.0,
+    "detail": "пропущена: черта 8 мм = 1.9 px (< 3 px)"
+   }
+  ]
+ },
+ {
+  "model": "trees/tree_palm_coconut_user.glb",
+  "scale": 1.0050371045805386,
+  "materials": [
+   {
+    "material": "Coconut",
+    "class": "foliage",
+    "color_y_before": 0.1286,
+    "color_y_after": 0.1286,
+    "color_sat_before": 0.6075,
+    "color_sat_after": 0.5607,
+    "rough_before": 0.6,
+    "rough_after": 0.6
+   },
+   {
+    "material": "FrondStem",
+    "class": "foliage",
+    "color_y_before": 0.1836,
+    "color_y_after": 0.13,
+    "color_sat_before": 0.5385,
+    "color_sat_after": 0.5385,
+    "rough_before": 1.0,
+    "rough_after": 0.72
+   },
+   {
+    "material": "Leaflet",
+    "class": "foliage",
+    "color_y_before": 0.2081,
+    "color_y_after": 0.13,
+    "color_sat_before": 0.5946,
+    "color_sat_after": 0.5766,
+    "rough_before": 0.7,
+    "rough_after": 0.7
+   },
+   {
+    "material": "Bark",
+    "class": "bark",
+    "density_px_m": 623,
+    "density": "в норме",
+    "y_med_before": 0.0764,
+    "y_p95_before": 0.1137,
+    "sat_before": 0.2174,
+    "baked_before": 0.1179,
+    "baked_after": 0.0963,
+    "y_med_after": 0.0765,
+    "y_p95_after": 0.1092,
+    "sat_after": 0.2174,
+    "rough_before": 1.0,
+    "rough_after": 0.94,
+    "detail": "fibres, период 6.2 px (10 мм), сила 0.12"
+   }
+  ]
+ },
+ {
+  "model": "animals/crab/crab_user.glb",
+  "scale": 1.0001194611349193,
+  "materials": [
+   {
+    "material": "crab",
+    "class": "crustacean",
+    "density_px_m": 912,
+    "density": "в норме",
+    "uv_used": 0.401,
+    "y_med_before": 0.1425,
+    "y_p95_before": 0.3649,
+    "sat_before": 0.3662,
+    "baked_before": 0.3787,
+    "baked_after": 0.2998,
+    "y_med_after": 0.1435,
+    "y_p95_after": 0.3332,
+    "sat_after": 0.3652,
+    "rough_before": 0.365,
+    "metal_before": 0.0,
+    "rough_after": 0.38,
+    "metal_after": 0.0,
+    "detail": "bumps, период 3.6 px (4 мм), сила 0.18"
+   }
+  ]
+ },
+ {
+  "model": "seaweed/seaweed_algae_atlas.png",
+  "materials": [
+   {
+    "material": "seaweed_algae_atlas.png",
+    "class": "algae",
+    "y_med_before": 0.1338,
+    "y_p95_before": 0.3196,
+    "sat_before": 0.6288,
+    "baked_before": 0.6,
+    "baked_after": 0.6,
+    "y_med_after": 0.134,
+    "y_p95_after": 0.3198,
+    "sat_after": 0.6154
+   }
+  ]
+ },
+ {
+  "model": "sea/fish_discus.res",
+  "scale": 0.9999999376860584,
+  "materials": [
+   {
+    "material": "fish_discus",
+    "class": "fish_scales",
+    "density_px_m": 1554,
+    "density": "в норме",
+    "uv_used": 0.282,
+    "y_med_before": 0.043,
+    "y_p95_before": 0.6923,
+    "sat_before": 0.3889,
+    "baked_before": 1.4764,
+    "baked_after": 1.2691,
+    "y_med_after": 0.0599,
+    "y_p95_after": 0.6504,
+    "sat_after": 0.3158,
+    "note": "у морских видов шейдер берёт только альбедо: шероховатость/микродеталь задаёт шейдер вида"
+   }
+  ]
+ },
+ {
+  "model": "sea/fish_redfish.res",
+  "scale": 1.000000026490954,
+  "materials": [
+   {
+    "material": "fish_redfish",
+    "class": "fish_scales",
+    "density_px_m": 858,
+    "density": "в норме",
+    "uv_used": 0.365,
+    "y_med_before": 0.2739,
+    "y_p95_before": 0.5759,
+    "sat_before": 0.4683,
+    "baked_before": 0.459,
+    "baked_after": 0.4002,
+    "y_med_after": 0.276,
+    "y_p95_after": 0.5367,
+    "sat_after": 0.4676,
+    "note": "у морских видов шейдер берёт только альбедо: шероховатость/микродеталь задаёт шейдер вида"
+   }
+  ]
+ },
+ {
+  "model": "sea/fish_tropical_spotted.res",
+  "scale": 0.9999999602635748,
+  "materials": [
+   {
+    "material": "fish_tropical_spotted",
+    "class": "fish_scales",
+    "density_px_m": 2108,
+    "density": "в норме",
+    "uv_used": 1.0,
+    "y_med_before": 0.2994,
+    "y_p95_before": 0.6207,
+    "sat_before": 0.3167,
+    "baked_before": 0.3009,
+    "baked_after": 0.2635,
+    "y_med_after": 0.2994,
+    "y_p95_after": 0.6095,
+    "sat_after": 0.3129,
+    "note": "у морских видов шейдер берёт только альбедо: шероховатость/микродеталь задаёт шейдер вида"
+   }
+  ]
+ },
+ {
+  "model": "sea/shark_pack8.res",
+  "scale": 0.9999999105930394,
+  "materials": [
+   {
+    "material": "shark_pack8",
+    "class": "shark_skin",
+    "density_px_m": 569,
+    "density": "в норме",
+    "uv_used": 1.0,
+    "y_med_before": 0.0469,
+    "y_p95_before": 0.5611,
+    "sat_before": 0.093,
+    "baked_before": 1.0818,
+    "baked_after": 1.0818,
+    "y_med_after": 0.0704,
+    "y_p95_after": 0.6201,
+    "sat_after": 0.0833,
+    "note": "у морских видов шейдер берёт только альбедо: шероховатость/микродеталь задаёт шейдер вида"
+   }
+  ]
+ },
+ {
+  "model": "sea/octopus.res",
+  "materials": [
+   {
+    "material": "octopus",
+    "class": "cephalopod",
+    "note": "текстура-заглушка 64x64 — цвет задаёт шейдер вида (params color_a/color_b), не трогаем"
+   }
+  ]
+ },
+ {
+  "model": "sea/squid_biolum.res",
+  "materials": [
+   {
+    "material": "squid_biolum",
+    "class": "cephalopod",
+    "note": "текстура-заглушка 64x64 — цвет задаёт шейдер вида (params color_a/color_b), не трогаем"
+   }
+  ]
+ }
+]

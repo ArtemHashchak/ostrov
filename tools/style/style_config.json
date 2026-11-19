@@ -1,0 +1,50 @@
+{
+  "_comment": "Единый визуальный ряд пака пользователя. Классы материалов: цели альбедо (линейная яркость Y, медиана по используемым текселям), максимум насыщенности, сила снятия запечённого света, диапазон шероховатости, металл, микродеталь (размер черты в метрах, сила). Цели — по таблицам PBR-альбедо реальных материалов (см. ASSETS.md / STYLE.md).",
+  "classes": {
+    "shark_skin":    {"y": [0.07, 0.16], "y_max": 0.62, "sat_max": 0.16, "delight": 0.0,  "rough": [0.38, 0.55], "metal": 0, "detail": {"kind": "denticle", "size": 0.006, "amp": 0.10}},
+    "fish_scales":   {"y": [0.06, 0.32], "y_max": 0.75, "sat_max": 0.62, "delight": 0.15, "rough": [0.28, 0.45], "metal": 0, "detail": {"kind": "scales",  "size": 0.012, "amp": 0.22}},
+    "crustacean":    {"y": [0.05, 0.20], "y_max": 0.62, "sat_max": 0.62, "delight": 0.25, "rough": [0.38, 0.58], "metal": 0, "detail": {"kind": "bumps",   "size": 0.004, "amp": 0.18}},
+    "cephalopod":    {"y": [0.06, 0.24], "y_max": 0.65, "sat_max": 0.55, "delight": 0.2,  "rough": [0.30, 0.45], "metal": 0, "detail": {"kind": "pores",   "size": 0.006, "amp": 0.15}},
+    "mollusc_shell": {"y": [0.12, 0.42], "y_max": 0.80, "sat_max": 0.50, "delight": 0.15, "rough": [0.22, 0.42], "metal": 0, "detail": {"kind": "ridges",  "size": 0.002, "amp": 0.12}},
+    "dried_organic": {"y": [0.07, 0.24], "y_max": 0.55, "sat_max": 0.42, "delight": 0.2,  "rough": [0.62, 0.82], "metal": 0, "detail": {"kind": "wrinkle", "size": 0.008, "amp": 0.20}},
+    "fabric_rope":   {"y": [0.08, 0.30], "y_max": 0.65, "sat_max": 0.35, "delight": 0.2,  "rough": [0.78, 0.94], "metal": 0, "detail": null},
+    "metal_rusty":   {"y": [0.12, 0.35], "y_max": 0.75, "sat_max": 0.30, "delight": 0.0,  "rough": [0.35, 0.65], "metal": "keep", "detail": null},
+    "bark":          {"y": [0.05, 0.14], "y_max": 0.40, "sat_max": 0.35, "delight": 0.2,  "rough": [0.80, 0.94], "metal": 0, "detail": {"kind": "fibres",  "size": 0.010, "amp": 0.12}},
+    "foliage":       {"y": [0.05, 0.13], "y_max": 0.40, "sat_max": 0.58, "delight": 0.0,  "rough": [0.55, 0.72], "metal": 0, "detail": null},
+    "algae":         {"y": [0.04, 0.16], "y_max": 0.45, "sat_max": 0.62, "delight": 0.0,  "rough": [0.35, 0.55], "metal": 0, "detail": null},
+    "special_keep":  {"keep": true}
+  },
+  "density": {
+    "_comment": "Плотность текселей, px/м: [мин, макс]. Выше макс — текстура уменьшается (не ниже 256 px), ниже мин — отмечается в отчёте.",
+    "animal_large": [350, 1100],
+    "animal_small": [600, 2600],
+    "item":         [700, 3600],
+    "prop":         [250, 2600],
+    "tree":         [250, 1100]
+  },
+  "glb": [
+    {"path": "animals/animal_shark_great_white.glb", "game_size": 4.5, "density": "animal_large",
+     "materials": {"Grey": "shark_skin", "Gums": "special_keep", "Teeth": "special_keep", "Eyes": "special_keep"}},
+    {"path": "items/item_shell_junonia.glb", "game_size": 0.1, "density": "item",
+     "materials": {"MAT_JunoniaShell": "mollusc_shell"}},
+    {"path": "items/item_dried_fish.glb", "game_size": 0.74, "density": "prop",
+     "materials": {"M_Fabric": "fabric_rope", "M_Metal": "metal_rusty", "M_DriedFishAtlas": "dried_organic"}},
+    {"path": "trees/tree_palm_coconut_user.glb", "game_size": 8.6, "density": "tree",
+     "materials": {"Bark": "bark", "Leaflet": "foliage", "FrondStem": "foliage", "Coconut": "foliage"}}
+  ],
+  "png_models": [
+    {"name": "crab", "mesh": "animals/crab/crab_user.glb", "game_size": 0.566, "density": "animal_small", "class": "crustacean",
+     "albedo": "animals/crab/crab_albedo.png", "orm": "animals/crab/crab_orm.png", "normal": "animals/crab/crab_normal.png"}
+  ],
+  "sea_res": [
+    {"path": "sea/fish_discus.res",           "class": "fish_scales", "game_size": 0.22, "density": "animal_small"},
+    {"path": "sea/fish_redfish.res",          "class": "fish_scales", "game_size": 0.45, "density": "animal_small"},
+    {"path": "sea/fish_tropical_spotted.res", "class": "fish_scales", "game_size": 0.30, "density": "animal_small"},
+    {"path": "sea/shark_pack8.res",           "class": "shark_skin",  "game_size": 3.2,  "density": "animal_large"},
+    {"path": "sea/octopus.res",               "class": "cephalopod",  "game_size": 0.9,  "density": "animal_small"},
+    {"path": "sea/squid_biolum.res",          "class": "cephalopod",  "game_size": 0.9,  "density": "animal_small"}
+  ],
+  "atlas": [
+    {"path": "seaweed/seaweed_algae_atlas.png", "class": "algae"}
+  ]
+}

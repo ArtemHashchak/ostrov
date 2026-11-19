@@ -3,7 +3,12 @@ extends SceneTree
 ##   godot --headless --path <проект> -s res://tools/sea_atlas.gd -- <spec.json>
 ## spec.json — массив заданий:
 ##   {"src": "res://…/fish.glb", "out": "res://assets/user_pack/sea/fish.res",
-##    "rotate_y": 135, "length": 0.22, "tex": 512, "tint": "#ffffff"}
+##    "rotate_y": 135, "length": 0.22, "tex": 512, "tint": "#ffffff",
+##    "drop": ["Material_011"], "colors": {"Material_009": "#141414"}}
+## drop — материалы, выбрасываемые целиком (прозрачные/стеклянные в исходнике); colors — заменить
+## текстуру материала ровным цветом; invert_alpha {"Material_014": "#e6d6c6"} — маска плавника
+## в исходнике инвертирована (в Blender альфа шла через ColorRamp): альфа = 1 − альфа, цвет — заданный
+## (остаются лучи, перепонка исчезает). Одинаковые текстуры делят одну ячейку атласа.
 ## Что делает: все поверхности всех мешей (в позе покоя, без костей) сливаются в одну;
 ## альбедо каждой поверхности ужимается в свою ячейку атласа (UV переносятся в ячейку, повтор UV
 ## сворачивается через fract); модель поворачивается лицом в −Z, центрируется и масштабируется так,
@@ -38,27 +43,57 @@ func _job(spec: Dictionary) -> bool:
 				var xf := _xf(mi, root)
 				for s in mi.mesh.get_surface_count():
 					var mat := mi.get_active_material(s)
-					parts.append({"arrays": mi.mesh.surface_get_arrays(s), "xf": xf, "tex": _albedo(mat), "col": _color(mat)})
+					parts.append({"arrays": mi.mesh.surface_get_arrays(s), "xf": xf, "tex": _albedo(mat), "col": _color(mat), "name": _mname(mat)})
 	elif res is Mesh:
 		for s in (res as Mesh).get_surface_count():
 			var mat2 := (res as Mesh).surface_get_material(s)
-			parts.append({"arrays": (res as Mesh).surface_get_arrays(s), "xf": Transform3D.IDENTITY, "tex": _albedo(mat2), "col": _color(mat2)})
+			parts.append({"arrays": (res as Mesh).surface_get_arrays(s), "xf": Transform3D.IDENTITY, "tex": _albedo(mat2), "col": _color(mat2), "name": _mname(mat2)})
 	if parts.is_empty():
 		push_error("sea_atlas: нет мешей в " + String(spec.src))
 		return false
-	# --- атлас: сетка cols × cols
+	# --- материалы: выброс (прозрачные/стеклянные в исходнике — Transparent/Glass BSDF, которые
+	# glTF теряет и импорт делает белыми непрозрачными) и подмена цвета по имени материала
+	var drop: Array = spec.get("drop", [])
+	var recolor: Dictionary = spec.get("colors", {})
+	var inv_alpha: Dictionary = spec.get("invert_alpha", {})
+	var kept: Array = []
+	for pt: Dictionary in parts:
+		if drop.has(pt.name):
+			print("sea_atlas: выброшен материал ", pt.name)
+			continue
+		if recolor.has(pt.name):
+			pt.tex = null
+			pt.col = Color(String(recolor[pt.name]))
+		if inv_alpha.has(pt.name) and pt.tex != null:
+			pt.tex = _invert_alpha(pt.tex, Color(String(inv_alpha[pt.name])))
+		kept.append(pt)
+	parts = kept
+	# --- атлас: одинаковые текстуры (OBJ, где все материалы ссылаются на один файл) делят одну
+	# ячейку — иначе текстура дублируется и каждая копия ужимается в разы (мыло на теле)
 	var tex_max := int(spec.get("tex", 512))
 	var n := parts.size()
-	var cols := int(ceil(sqrt(float(n))))
+	var cell_of: Array[int] = []
+	var keys: Array = []
+	var cell_src: Array = []   # [{tex|col}]
+	for pt: Dictionary in parts:
+		var key: Variant = _img_key(pt.tex) if pt.tex != null else str(pt.col)
+		var ci := keys.find(key)
+		if ci < 0:
+			ci = keys.size()
+			keys.append(key)
+			cell_src.append(pt)
+		cell_of.append(ci)
+	var cells := keys.size()
+	var cols := int(ceil(sqrt(float(cells))))
 	var cell := maxi(16, tex_max / cols)
 	var atlas := Image.create(cell * cols, cell * cols, false, Image.FORMAT_RGBA8)
 	atlas.fill(Color(0.6, 0.6, 0.6, 1.0))
-	for i in n:
-		var img: Image = parts[i].tex
+	for i in cells:
+		var img: Image = cell_src[i].tex
 		var c := Vector2i(i % cols, i / cols) * cell
 		if img == null:
 			var fill := Image.create(cell, cell, false, Image.FORMAT_RGBA8)
-			fill.fill(parts[i].col)
+			fill.fill(cell_src[i].col)
 			atlas.blit_rect(fill, Rect2i(Vector2i.ZERO, Vector2i(cell, cell)), c)
 		else:
 			var im := img.duplicate() as Image
@@ -88,7 +123,7 @@ func _job(spec: Dictionary) -> bool:
 				ix[k] = k
 		before += ix.size() / 3
 		var base := verts.size()
-		var org := Vector2(i % cols, i / cols) / float(cols)
+		var org := Vector2(cell_of[i] % cols, cell_of[i] / cols) / float(cols)
 		for k in v.size():
 			verts.append(rot * (xf * v[k]))
 			norms.append((rot * (xf.basis * (nr[k] if k < nr.size() else Vector3.UP))).normalized())
@@ -124,10 +159,10 @@ func _job(spec: Dictionary) -> bool:
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mesh.surface_set_material(0, mat)
 	mesh.set_meta(&"after_tris", idx.size() / 3)
-	mesh.set_meta(&"atlas_cells", n)
+	mesh.set_meta(&"atlas_cells", cells)
 	mesh.set_meta(&"before_tris", int(spec.get("before_tris", before)))
 	var err := ResourceSaver.save(mesh, String(spec.out), ResourceSaver.FLAG_COMPRESS)
-	print("sea_atlas: %s → %s, %d треуг., атлас %d×%d (%d ячеек), err=%d" % [spec.src, spec.out, idx.size() / 3, atlas.get_width(), atlas.get_height(), n, err])
+	print("sea_atlas: %s → %s, %d треуг., атлас %d×%d (%d ячеек на %d частей), err=%d" % [spec.src, spec.out, idx.size() / 3, atlas.get_width(), atlas.get_height(), cells, n, err])
 	if root:
 		root.free()
 	return err == OK
@@ -155,3 +190,32 @@ func _color(mat: Material) -> Color:
 	if mat is BaseMaterial3D:
 		return (mat as BaseMaterial3D).albedo_color
 	return Color(0.7, 0.7, 0.7)
+
+
+func _mname(mat: Material) -> String:
+	return mat.resource_name if mat else ""
+
+
+## Ключ «одинаковости» текстуры: сравниваем уменьшенную несжатую копию (одна и та же картинка
+## после импорта может прийти в разных форматах/с мипмапами).
+func _img_key(img: Image) -> String:
+	var im := img.duplicate() as Image
+	if im.is_compressed():
+		im.decompress()
+	im.clear_mipmaps()
+	im.convert(Image.FORMAT_RGBA8)
+	im.resize(32, 32, Image.INTERPOLATE_BILINEAR)
+	return "%dx%d:%s" % [img.get_width(), img.get_height(), im.get_data().hex_encode().md5_text()]
+
+
+func _invert_alpha(src: Image, col: Color) -> Image:
+	var im := src.duplicate() as Image
+	if im.is_compressed():
+		im.decompress()
+	im.clear_mipmaps()
+	im.convert(Image.FORMAT_RGBA8)
+	for y in im.get_height():
+		for x in im.get_width():
+			var a := 1.0 - im.get_pixel(x, y).a
+			im.set_pixel(x, y, Color(col.r, col.g, col.b, a))
+	return im

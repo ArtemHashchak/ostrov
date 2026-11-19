@@ -76,6 +76,7 @@ func setup(start_hour: float = 8.5, seed_value: int = 4242) -> void:
 	_env = sky3d.environment
 	if _env:
 		_apply_render_profile(_env)
+		StyleGrade.apply(_env, sky3d)   # единая цветокоррекция и автоэкспозиция (единый визуальный ряд)
 	_apply_quality()
 	if not Settings.graphics_changed.is_connected(_apply_quality):
 		Settings.graphics_changed.connect(_apply_quality)
@@ -370,7 +371,7 @@ func _apply(_dt: float) -> void:
 		var fog_day := Color(0.72, 0.8, 0.84).lerp(Color(0.55, 0.6, 0.64), clampf(rain, 0.0, 1.0))
 		fog_day = fog_day.lerp(Color(0.36, 0.4, 0.45), smoothstep(0.4, 1.0, storm))
 		# цветокоррекция: в шторм темнее, холоднее, менее насыщенно
-		_env.adjustment_enabled = storm > 0.02 or rain > 0.02
+		_env.adjustment_enabled = storm > 0.02 or rain > 0.02 or StyleGrade.active(_env)
 		_env.adjustment_brightness = 1.0 - 0.1 * storm - 0.03 * rain + _flash * 0.12
 		_env.adjustment_contrast = 1.0 + 0.06 * storm
 		_env.adjustment_saturation = 1.0 - 0.32 * storm - 0.1 * rain
