@@ -58,11 +58,14 @@ func _ready() -> void:
 	add_child(ShowHost.new())
 	# и записки прошлых сезонов у остовов кораблей
 	add_child(SeasonNotes.new())
+	# мачты-громкоговорители и камеры наблюдения (декор)
+	add_child(ShowProps.new())
 
 func _exit_tree() -> void:
 	SupplyModels.clear_caches()
 	SupplyFx.clear_caches()
 	ShowDrones.clear_caches()
+	ShowProps.clear_caches()
 
 func _on_spawned(ch: Node) -> void:
 	if ch.is_in_group(&"player"):

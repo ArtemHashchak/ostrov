@@ -1,6 +1,7 @@
 extends TestCase
 ## Лор шоу: записки прошлых сезонов — бутылки у остовов кораблей (SeasonNotes в SUPPLY).
 ## Игрок подходит, E — читает записку (панель с текстом, счёт), Esc — закрывает.
+## Плюс декор шоу (ShowProps): мачты-громкоговорители на Вулкане/общих островах, камеры у берегов.
 
 var p: Player
 
@@ -78,3 +79,39 @@ func run() -> void:
 	check(not sn.is_open(), "Esc закрывает записку")
 	if get_tree().paused:
 		get_tree().paused = false
+	# декор шоу
+	var sp := ShowProps.instance()
+	check(sp != null, "декор шоу есть (SUPPLY)")
+	if sp == null:
+		return
+	print("[notes] мачт %d, камер %d" % [sp.masts.size(), sp.cams.size()])
+	check(sp.masts.size() >= 4, "мачты-громкоговорители расставлены (%d)" % sp.masts.size())
+	check(sp.cams.size() >= 20, "камеры у берегов (%d)" % sp.cams.size())
+	var m := sp.masts[0]
+	var mp := m.global_position
+	var st := Vector3.INF
+	for k in 16:
+		var a := TAU * k / 16.0
+		var q := mp + Vector3(cos(a), 0, sin(a)) * 11.0
+		var h := BuildEnv.height_at(q.x, q.z)
+		if h > BuildEnv.water_level() + 0.3:
+			st = Vector3(q.x, h + 0.1, q.z)
+			break
+	if st != Vector3.INF:
+		p.global_position = st
+		p.velocity = Vector3.ZERO
+		await wait(0.8)
+		look(mp + Vector3.UP * 5.0)
+		await wait(0.5)
+		await shot("03_mast")
+	var c := sp.cams[0]
+	var cp := c.global_position
+	var cam := Camera3D.new()
+	scene.add_child(cam)
+	var fwd := -c.global_transform.basis.z
+	cam.global_position = cp + fwd * 3.0 + Vector3.UP * 1.9
+	cam.look_at(cp + Vector3.UP * 1.6)
+	cam.make_current()
+	await wait(0.4)
+	await shot("04_cam")
+	cam.queue_free()
