@@ -12,7 +12,7 @@ var cam: Camera3D
 
 ## LOD0 вместе с карточками: обычные ≤ ~3k, «герои» (столовая, кустовая, актиния) ≤ ~4.2k.
 const BUDGET0 := {&"table": 4000, &"staghorn": 4200, &"corymbose": 3000, &"lobed": 3000, &"foliose": 3000,
-	&"antler": 3000, &"softcoral": 3000, &"leather": 3000, &"anemone": 4000, &"bubble": 3000, &"crinoid": 3000,
+	&"antler": 3000, &"softcoral": 3000, &"leather": 4000, &"anemone": 4000, &"bubble": 4000, &"crinoid": 3000,
 	&"mound": 900, &"millepora": 3000}
 
 func run() -> void:
@@ -85,6 +85,19 @@ func run() -> void:
 			cam.look_at(c, Vector3.UP)
 			await wait_frames(4)
 			await shot("%s_v%d" % [t, v])
+
+	# ---------- лопастной: все цвета палитры рядом (как на референсе preview 26–27) ----------
+	for c in holder.get_children():
+		c.free()
+	var ltints: Array = CoralPack.TYPES[&"lobed"].tints
+	for i in ltints.size():
+		var mm := _one(&"lobed", i % CoralPack.variants(&"lobed"), (ltints[i] as Color).srgb_to_linear(), -100.0)
+		mm.position = Vector3((i - (ltints.size() - 1) * 0.5) * 0.8, 0.0, (i % 2) * 0.5)
+		holder.add_child(mm)
+	cam.position = Vector3(0.0, 1.6, 2.6)
+	cam.look_at(Vector3(0, 0.15, 0.2), Vector3.UP)
+	await wait_frames(4)
+	await shot("lobed_colors")
 
 	# ---------- общий риф (все виды вперемешку), вид сверху-сбоку и «под водой» ----------
 	for c in holder.get_children():

@@ -216,8 +216,8 @@ func _emit() -> void:
 
 ## Кораллы пака: LOD0 вблизи (узор, карточки, качание), LOD1 средняя дистанция (половина карточек),
 ## LOD2 вдали — только у крупных (мелкие вдали не читаются, а вызовы отрисовки стоят).
-const PACK_LOD0_END := 45.0
-const PACK_LOD1_END := 100.0
+const PACK_LOD0_END := 28.0
+const PACK_LOD1_END := 65.0
 const PACK_BIG := [&"table", &"staghorn", &"corymbose", &"lobed", &"mound", &"foliose"]
 
 func _emit_pack(t: StringName, v: int, xf: Array, col: PackedColorArray, wy: float) -> void:
@@ -229,9 +229,9 @@ func _emit_pack(t: StringName, v: int, xf: Array, col: PackedColorArray, wy: flo
 	var big := t in PACK_BIG
 	_mm(t, 0, xf, col, CoralPack.material(t, wy, 0), 0.0, PACK_LOD0_END, 1, m0)
 	if m1:
-		_mm(t, 1, xf, col, CoralPack.material(t, wy, 1), PACK_LOD0_END, PACK_LOD1_END if big else 80.0, 1, m1)
+		_mm(t, 1, xf, col, CoralPack.material(t, wy, 1), PACK_LOD0_END, PACK_LOD1_END if big else 50.0, 1 if big else 2, m1)
 	if big and m2:
-		_mm(t, 2, xf, col, CoralPack.material(t, wy, 2), PACK_LOD1_END, LO_END, 2, m2)
+		_mm(t, 2, xf, col, CoralPack.material(t, wy, 2), PACK_LOD1_END, LO_END, 3, m2)
 
 func _mm(t: StringName, lod: int, xf: Array, col: PackedColorArray, mat: Material, begin: float, end: float, step_n: int, mesh_override: Mesh = null) -> void:
 	var mm := MultiMesh.new()
