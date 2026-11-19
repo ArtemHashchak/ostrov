@@ -143,6 +143,9 @@ static func instance() -> Flora:
 func _enter_tree() -> void:
 	_inst = self
 
+func _exit_tree() -> void:
+	stop_all_sfx()
+
 func _ready() -> void:
 	name = "Flora"
 	add_to_group(&"flora")
@@ -947,6 +950,14 @@ static func count_of(ch: Node, id: StringName) -> int:
 	return int(inv.get(id, 0))
 
 static var _streams: Dictionary = {}
+## Живые плееры play_sfx: при выходе из матча их останавливаем (см. _exit_tree).
+static var _live_sfx: Array = []
+## Записи-серии: WoodCutAxe — 18 с, ~30 ударов подряд; на один удар топора играем
+## один удар серии (начала громких ударов, с), а не всю запись (было: 18 с рубки
+## на каждый взмах, плееры копились, а при выходе — «resources still in use»).
+const SFX_SLICES := {
+	"WEAPAxe_WoodCutAxe_OS_01": {"starts": [0.03, 1.38, 4.56, 5.02, 11.82], "len": 0.4},
+}
 
 static func play_sfx(from: Node, sound: String, pos: Vector3, db: float = 0.0, pitch: float = 1.0) -> void:
 	if from == null or not from.is_inside_tree():
@@ -970,7 +981,34 @@ static func play_sfx(from: Node, sound: String, pos: Vector3, db: float = 0.0, p
 	from.get_tree().current_scene.add_child(p)
 	p.global_position = pos
 	p.finished.connect(p.queue_free)
-	p.play()
+	if _live_sfx.size() > 24:
+		_live_sfx = _live_sfx.filter(func(x: Variant) -> bool: return is_instance_valid(x))
+	_live_sfx.append(p)
+	var sl: Dictionary = SFX_SLICES.get(sound, {})
+	if sl.is_empty():
+		p.play()
+	else:
+		var starts: Array = sl.starts
+		p.play(float(starts[randi() % starts.size()]))
+		from.get_tree().create_timer(float(sl.len) / maxf(pitch, 0.1), false).timeout.connect(p.queue_free)
+
+## Выход из матча/игры: звуки, ещё играющие в этот момент, остаются в аудиосервере
+## навсегда («N resources still in use at exit»), если остановленное воспроизведение
+## не успел снять аудиопоток. Останавливаем и даём ему несколько тактов микширования.
+## (Плееры к этому моменту уже могли выйти из дерева — тогда они на паузе, не «playing»,
+## поэтому останавливаем все ещё не удалённые.)
+static func stop_all_sfx() -> void:
+	var n := 0
+	for p in _live_sfx:
+		if is_instance_valid(p):
+			p.stop()
+			n += 1
+	_live_sfx.clear()
+	_streams.clear()
+	if n > 0:
+		OS.delay_msec(STOP_WAIT_MS)
+
+const STOP_WAIT_MS := 200
 
 static var _chip_meshes: Dictionary = {}
 
