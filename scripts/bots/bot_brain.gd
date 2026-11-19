@@ -176,9 +176,12 @@ func _scan() -> void:
 			continue
 		best = c
 		bd = d
-	# кто напал (в т.ч. зверь) — отвечаем
+	# кто напал (в т.ч. зверь) — отвечаем. Кроме морских (акула укусила на мосту, медуза):
+	# в погоне за ними бот сходил с настила в воду. От акул бот уходит (flee), а не дерётся.
 	if best == null and is_instance_valid(bot.last_attacker) and Game.match_time - bot.last_attacked_t < 8.0:
 		var la := bot.last_attacker as Node3D
+		if la and (la.is_in_group(&"sharks") or la.is_in_group(&"sea_life")):
+			la = null
 		if la and Game.is_alive(la) and la.global_position.distance_to(bot.global_position) < aggro * 1.5:
 			best = la
 	if not is_instance_valid(enemy):

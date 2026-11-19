@@ -86,6 +86,11 @@ func run() -> void:
 	while Game.match_time - t0 < 600.0:
 		await wait(0.5)
 		if bot.swimming:
+			if not swam:
+				var dk := nav.deck_at(bot.global_position)
+				print("[bots] плывёт: t=%.1f pos=%s wl=%.2f секция=%s задача=%s путь=%d" % [Game.match_time - t0,
+					str(bot.global_position.snapped(Vector3.ONE * 0.01)), float(bot.get(&"_wl")),
+					str(dk.global_position.snapped(Vector3.ONE * 0.01)) if dk else "-", bot.brain.status, bot.path.size()])
 			swam = true
 		if nav.deck_at(bot.global_position) != null:
 			on_deck = true

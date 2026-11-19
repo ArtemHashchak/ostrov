@@ -13,6 +13,8 @@ const BASE_PLAN: Array[Dictionary] = [
 ]
 const MAX_SECTIONS := 70
 const MAX_DETOUR := 12          # боковых секций на один мост (обход островков)
+## Глубже — вброд с конца моста к берегу не идём (у ботов плавание с 1.25 м, плюс волна).
+const WADE_DEPTH := 0.6
 
 var team: int = 1
 var bots: Array = []                 # Array[Bot]
@@ -262,6 +264,13 @@ func _next_section() -> Blueprint:
 	if shallow or ahead.x < INF or blocked_islet >= 0 or int(bridge.sections) >= MAX_SECTIONS:
 		var id := nav.island_id(probe) if (shallow or ahead.x < INF) else -1
 		var reached := id >= 0 and id != int(bridge.a) and blocked_islet < 0
+		# суша найдена в пределах 7 м от центра секции, но между концом настила и берегом
+		# глубоко (обрыв шельфа): ещё одна секция, иначе с моста идут вброд по грудь и
+		# с волной уже плывут (бот «плыл» в конце моста, test_bots_bridge)
+		if reached and not shallow and int(bridge.sections) < MAX_SECTIONS and _deep_gap(tip):
+			var ext := _place_forward(tip)
+			if ext:
+				return ext
 		if not reached and int(bridge.sections) < MAX_SECTIONS and int(bridge.get("detour", 0)) < MAX_DETOUR:
 			var sd := _sidestep(tip, probe, blocked_islet)
 			if sd:
@@ -283,6 +292,36 @@ func _next_section() -> Blueprint:
 	bridge.sections = int(bridge.sections) + 1
 	bridge.side = 0
 	return bp2
+
+## Брод за носом секции до суши глубже WADE_DEPTH (по оси, шаг 0.5 м, до 8.2 м от центра).
+func _deep_gap(tip: Blueprint) -> bool:
+	var xf := tip.base_now()
+	var lvl := nav.wl()
+	var deep := false
+	var d := 1.9
+	while d <= 8.2:
+		var p := xf * Vector3(0, 0, -d)
+		var hh := nav.h(p.x, p.z)
+		if hh > lvl + 0.02:
+			return deep and d > 2.4   # берег вплотную к настилу — шагнуть можно
+		if hh < lvl - WADE_DEPTH:
+			deep = true
+		d += 0.5
+	return false
+
+## Следующая секция прямо по ходу (null — не встала: нет сокета, мель, чужая территория).
+func _place_forward(tip: Blueprint) -> Blueprint:
+	var bm := _bm()
+	var sock := bm.raft_socket(tip.base_now() * Vector3(0, 0, -3.0), 1.5)
+	if sock.is_empty() or sock.parent != tip:
+		return null
+	var bp := bm.place_blueprint(&"raft", sock.xform, team, {"type": &"raft", "parent": sock.parent, "offset": sock.offset})
+	if bp == null:
+		return null
+	bridge.tip = bp
+	bridge.sections = int(bridge.sections) + 1
+	bridge.side = 0
+	return bp
 
 ## Боковая секция моста: обход препятствия впереди (островок/коса). Сторона — от центра
 ## островка (или от суши впереди), если там занято — другая.

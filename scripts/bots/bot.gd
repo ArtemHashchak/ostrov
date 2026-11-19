@@ -86,6 +86,7 @@ var _yaw: float = 0.0
 var _think_t: float = 0.0
 var _fall_speed: float = 0.0
 var _water_cache_t: float = 0.0
+var _climb_t: float = 0.0
 var _wl: float = 0.0
 var _ground_h: float = -100.0
 var _dead_t: float = 0.0
@@ -364,14 +365,7 @@ func _on_deck() -> bool:
 	var c := get_last_slide_collision()
 	if c == null:
 		return false
-	var n := c.get_collider() as Node
-	for i in 4:
-		if n == null:
-			return false
-		if n.is_in_group(&"raft_deck"):
-			return true
-		n = n.get_parent()
-	return false
+	return _is_deck_node(c.get_collider() as Node)
 
 func _vitals(delta: float) -> void:
 	hunger = maxf(0.0, hunger - HUNGER_PER_SEC * delta)
@@ -430,6 +424,11 @@ func _move(delta: float) -> void:
 	move_and_slide()
 	if wish != Vector3.ZERO and not swimming and is_on_wall():
 		_step_up(wish)
+	elif wish != Vector3.ZERO and swimming:
+		_climb_t -= delta
+		if _climb_t <= 0.0:
+			_climb_t = 0.25
+			_climb_deck(wish)
 	# смотреть: на цель прицела, иначе по ходу
 	var face := Vector3.ZERO
 	if aiming:
@@ -443,6 +442,36 @@ func _move(delta: float) -> void:
 		rotation.y = _yaw
 	model.update_pose(delta, hv.length(), swimming, running)
 	_check_progress(delta, wish)
+
+## Из воды на настил моста: впереди по ходу (или над головой) — секция, её верх
+## невысоко над водой — взбираемся (как игрок, подтягиваясь на брёвна). Иначе
+## бот, упавший с моста, плавал под ним, пока его не съедали акулы.
+func _climb_deck(wish: Vector3) -> bool:
+	var space := get_world_3d().direct_space_state
+	var ahead := global_position + wish.normalized() * (RADIUS + 0.45)
+	var q := PhysicsRayQueryParameters3D.create(Vector3(ahead.x, _wl + 2.0, ahead.z), Vector3(ahead.x, _wl - 1.0, ahead.z))
+	q.exclude = [get_rid()]
+	var hit := space.intersect_ray(q)
+	if hit.is_empty() or (hit.normal as Vector3).y < 0.6 or not _is_deck_node(hit.collider as Node):
+		return false
+	var top := (hit.position as Vector3).y
+	if top - _wl > 1.6:
+		return false
+	global_position = Vector3(ahead.x, top + 0.05, ahead.z)
+	velocity = Vector3.ZERO
+	swimming = false
+	_fall_speed = 0.0
+	_water_cache_t = 0.0
+	return true
+
+static func _is_deck_node(n: Node) -> bool:
+	for i in 4:
+		if n == null:
+			return false
+		if n.is_in_group(&"raft_deck"):
+			return true
+		n = n.get_parent()
+	return false
 
 ## Шаг на невысокий уступ (борт плота, камень, ступень) — до 0.65 м.
 func _step_up(wish: Vector3) -> void:
