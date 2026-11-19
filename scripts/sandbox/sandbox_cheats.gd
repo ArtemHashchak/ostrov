@@ -25,6 +25,10 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventKey and (event as InputEventKey).pressed and not (event as InputEventKey).echo:
 		if (event as InputEventKey).physical_keycode == KEY_V:
+			# V с автоматом в руке — переключение режима огня (CombatController), не полёт
+			var wd := WeaponDef.of(StringName(player.call(&"held_item"))) if player.has_method(&"held_item") else null
+			if wd and wd.fire_modes.size() > 1 and not fly:
+				return
 			set_fly(not fly)
 			get_viewport().set_input_as_handled()
 			return

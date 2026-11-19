@@ -76,6 +76,9 @@ static func clear_zones() -> Array:
 	for id: StringName in ZONES:
 		var z: Dictionary = ZONES[id]
 		out.append([Vector3(z.c.x, 0.0, z.c.y), float(z.r)])
+	# дорожка стрельбища до 100 м — без деревьев
+	for zz in [100.0, 125.0, 145.0]:
+		out.append([Vector3(-2.0, 0.0, zz), 16.0])
 	return out
 
 # ------------------------------------------------------------ сборка
@@ -330,7 +333,7 @@ func _items(root: Node3D) -> void:
 	_stand(&"items", "Предметы", 0.0, 9.0, 0.0, 22.0, 0.5)
 
 func _range(root: Node3D) -> void:
-	P.signpost(root, -15.0, 42.0, "СТРЕЛЬБИЩЕ", "Мишени на 10, 25 и 50 м · урон над чучелом")
+	P.signpost(root, -15.0, 42.0, "СТРЕЛЬБИЩЕ", "Мишени на 10, 25, 50 и 100 м · гонги, бумага, чучела\nПКМ — прицел · R — перезарядка · V — режим огня")
 	# стойка с оружием и боеприпасами
 	var weapons := all_items().filter(func(id: StringName) -> bool:
 		var d := Items.get_item(id)
@@ -343,19 +346,12 @@ func _range(root: Node3D) -> void:
 	_lay(&"range", root, t2, weapons.slice(half), 20)
 	P.tag(root, 0.0, 37.0, "Оружие и боеприпасы", 1.6, 30.0)
 	# линия стрельбы
-	for i in 9:
-		var x := -12.0 + i * 3.0
-		var mi := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(2.6, 0.06, 0.12)
-		mi.mesh = bm
-		mi.material_override = HeldModels.pbr("rough_wood", Vector3.ONE, Color(0.9, 0.85, 0.7))
-		root.add_child(mi)
-		mi.global_position = Vector3(x, P.ground(x, 41.0) + 0.03, 41.0)
-	for e in [[-8.0, 10.0], [0.0, 25.0], [8.0, 50.0]]:
-		var x: float = e[0]
-		var z: float = 41.0 + float(e[1])
-		_dummy(&"range", root, x, z, "%d м" % int(e[1]))
+	# дорожка 10/25/50/100 м: бумага, гонги, чучела, образцы поверхностей (SandboxRange)
+	var rg := SandboxRange.build(root, Vector3(0.0, P.ground(0.0, 41.0), 41.0), Vector3.BACK,
+		func(x: float, z: float) -> float: return P.ground(x, z))
+	for dm: TrainingDummy in rg.dummies:
+		var l := P.label(root, dm.global_position + Vector3.UP * 2.15, "", 44, Color(1.0, 0.6, 0.4), 120.0)
+		_dummies.append({"dummy": dm, "label": l, "n": 0})
 	_dummy(&"range", root, -20.0, 36.0, "Ближний бой")
 	_stand(&"range", "Стрельбище", 0.0, 40.0, 0.0, 70.0, 1.2)
 
