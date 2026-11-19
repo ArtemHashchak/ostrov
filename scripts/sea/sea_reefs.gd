@@ -221,7 +221,8 @@ func _emit_pack(t: StringName, v: int, xf: Array, col: PackedColorArray, wy: flo
 	if m0 == null:
 		return
 	_mm(t, 0, xf, col, CoralPack.material(t, wy, 0), 0.0, HI_END, 1, m0)
-	if m1:
+	# дальний уровень — только у крупных (мелкие вдали не читаются, а вызовы отрисовки стоят)
+	if m1 and t in [&"table", &"staghorn", &"corymbose", &"lobed", &"mound"]:
 		_mm(t, 1, xf, col, CoralPack.material(t, wy, 1), HI_END, LO_END, 2, m1)
 
 func _mm(t: StringName, lod: int, xf: Array, col: PackedColorArray, mat: Material, begin: float, end: float, step_n: int, mesh_override: Mesh = null) -> void:
