@@ -55,7 +55,7 @@ func do_strike(cam_pos: Vector3, world: Node, close_chance: float = 0.12) -> voi
 		gy = maxf(float(world.call(&"height_at", gx, gz)), float(world.call(&"water_level")) if world.has_method(&"water_level") else 0.0)
 	var ground := Vector3(gx, gy, gz)
 	var top := ground + Vector3(_rng.randf_range(-60.0, 60.0), 420.0, _rng.randf_range(-60.0, 60.0))
-	_build_bolt(top, ground, cam_pos)
+	_build_bolt(top, ground, cam_pos, clampf(dist * 0.0035, 1.2, 6.0))
 	_mesh_i.visible = true
 	_life = 0.45
 	_flicker = PackedFloat32Array([0.45, 0.36, 0.3, 0.2, 0.14])
@@ -69,12 +69,12 @@ func do_strike(cam_pos: Vector3, world: Node, close_chance: float = 0.12) -> voi
 	if dist < 260.0 and world and world.has_method(&"is_land") and bool(world.call(&"is_land", gx, gz)) and _rng.randf() < 0.3:
 		Combat.ignite_area(ground + Vector3(0, 0.3, 0), 2.5, null, 14.0, get_tree().current_scene)
 
-func _build_bolt(top: Vector3, ground: Vector3, cam_pos: Vector3) -> void:
+func _build_bolt(top: Vector3, ground: Vector3, cam_pos: Vector3, wscale: float = 1.0) -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var main := _zigzag(top, ground, 22, 26.0)
-	_ribbon(st, main, cam_pos, 2.4, 1.0)
-	_ribbon(st, main, cam_pos, 9.0, 0.18)   # свечение вокруг
+	_ribbon(st, main, cam_pos, 1.6 * wscale, 1.0)
+	_ribbon(st, main, cam_pos, 7.0 * wscale, 0.22)   # свечение вокруг
 	for b in _rng.randi_range(2, 4):
 		var i := _rng.randi_range(3, main.size() - 6)
 		var s := main[i]
@@ -82,7 +82,7 @@ func _build_bolt(top: Vector3, ground: Vector3, cam_pos: Vector3) -> void:
 		var side := Vector3(_rng.randf_range(-1, 1), 0.0, _rng.randf_range(-1, 1)).normalized()
 		var e := s + (dir * 0.6 + side * 0.7).normalized() * _rng.randf_range(60.0, 150.0)
 		var br := _zigzag(s, e, 9, 14.0)
-		_ribbon(st, br, cam_pos, 1.2, 0.7)
+		_ribbon(st, br, cam_pos, 0.9 * wscale, 0.7)
 	_mesh_i.mesh = st.commit()
 
 func _zigzag(a: Vector3, b: Vector3, n: int, jitter: float) -> PackedVector3Array:

@@ -139,11 +139,13 @@ func run() -> void:
 func _near_tree(p: Vector3) -> Vector3:
 	var fl := get_tree().get_first_node_in_group(&"flora")
 	if fl and fl.has_method(&"nodes_near"):
-		var arr: Array = fl.call(&"nodes_near", p, 60.0, "tree")
+		var arr: Array = fl.call(&"nodes_near", p, 90.0, &"palm")
+		if arr.is_empty():
+			arr = fl.call(&"nodes_near", p, 90.0, &"")
 		if arr.size() > 0:
 			var e = arr[0]
-			if e is Dictionary and (e as Dictionary).has("pos"):
-				return (e as Dictionary).pos
+			if e is Dictionary and (e as Dictionary).has("position"):
+				return (e as Dictionary).position
 			if e is Node3D:
 				return (e as Node3D).global_position
 	return Vector3.INF
