@@ -308,12 +308,19 @@ func run() -> void:
 	print("[gunplay] луч до манекена 50 м с высоты %.1f: %s" % [bot.global_position.y, hh50.get("collider")])
 	o = bot.global_position
 	await wait(0.3)
-	n0 = hits_on(d50).size()
-	var ok50 := Combat.fire(bot, &"pistol_9mm", o, Combat.aim_dir(o, body50, &"pistol_9mm"), {"spread": 0.0})
-	var h50 := await wait_hit(d50, n0, 2.0)
-	if h50.is_empty():
+	var h50 := {}
+	for attempt in 3: # повтор только для диагностики промаха (урон проверяется по попавшей пуле)
+		n0 = hits_on(d50).size()
+		var nd := GunFx.decal_count()
+		var ok50 := Combat.fire(bot, &"pistol_9mm", o, Combat.aim_dir(o, body50, &"pistol_9mm"), {"spread": 0.0})
+		h50 = await wait_hit(d50, n0, 3.0)
+		if not h50.is_empty():
+			break
 		var lh: Dictionary = Combat.last_hits[Combat.last_hits.size() - 1] if not Combat.last_hits.is_empty() else {}
-		print("[gunplay] 50 м: выстрел=%s, последнее попадание: %s в %s" % [ok50, lh.get("collider"), lh.get("position")])
+		var dec: Node3D = GunFx._decals.back() if GunFx.decal_count() > nd else null
+		print("[gunplay] 50 м промах #%d: выстрел=%s, dir=%s, след=%s, посл. попадание: %s" % [attempt, ok50,
+			Combat.last_shot.get("dir"), dec.global_position if dec else "-", lh.get("collider")])
+		await wait(0.6)
 	var dist50 := o.distance_to(body50)
 	d10.global_position -= Vector3.UP * 60.0
 	d25.global_position -= Vector3.UP * 60.0
