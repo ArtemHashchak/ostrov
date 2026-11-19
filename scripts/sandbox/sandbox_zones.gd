@@ -721,7 +721,7 @@ func _survival(root: Node3D) -> void:
 		w.global_position = Vector3(x, P.ground(x, wz) - 0.03, wz)
 		_own(&"survival", w)
 		P.tag(root, x, wz, ["Лечебная трава (яд)", "Дикие ягоды", "Дикое таро"][i], 1.2)
-	_stand(&"survival", "Выживание", -44.0 + SURV_D.x, 58.0 + SURV_D.y, -62.0 + SURV_D.x, 74.0 + SURV_D.y, 0.5)
+	_stand(&"survival", "Выживание", 34.0, -48.0, 48.0, -28.0, 0.5)
 
 func _beach(root: Node3D) -> void:
 	var sv := Survival.instance()
@@ -793,7 +793,8 @@ func _sea(root: Node3D) -> void:
 			_own(&"sea", sh)
 			_track({"kind": &"shark", "sp": e[0], "c": e[1], "ring": e[2], "seed": e[3], "node": sh})
 		sea.call(&"_spawn_school", Vector3(end.x, 0.0, end.z) + dir * 6.0, 3)
-	_point(&"sea", "Море (пирс)", Vector3(end.x, deck + 0.15, end.z) - dir * 2.0, Vector3(end.x, -1.0, end.z) + dir * 14.0)
+	_point(&"pier", "Пирс (у берега)", Vector3(start.x, deck + 0.15, start.z) + dir * 2.0, start + dir * 30.0 + Vector3.UP * 0.5)
+	_point(&"sea", "Море (конец пирса)", Vector3(end.x, deck + 0.15, end.z) - dir * 2.0, Vector3(end.x, -1.0, end.z) + dir * 14.0)
 
 func _reef(root: Node3D) -> void:
 	if world == null:
@@ -830,7 +831,7 @@ func _bots(root: Node3D) -> void:
 	var c: Vector2 = ZONES[&"bots"].c
 	P.ring_marks(root, c.x, c.y, 16.0)
 	P.signpost(root, c.x - 22.0, c.y - 9.0, "АРЕНА БОТОВ", "Меню полигона (F1): создать бота любой команды и сложности")
-	_stand(&"bots", "Арена ботов", c.x - 18.0, c.y - 18.0, c.x, c.y, 1.0)
+	_stand(&"bots", "Арена ботов", c.x + 18.0, c.y - 8.0, c.x, c.y, 1.0)
 
 func arena_center() -> Vector3:
 	var c: Vector2 = ZONES[&"bots"].c

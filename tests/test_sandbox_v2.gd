@@ -29,7 +29,7 @@ func run() -> void:
 			continue
 		var d := Vector2(hub.x, hub.z).distance_to(Vector2((z.points[id].pos as Vector3).x, (z.points[id].pos as Vector3).z))
 		check(d <= 60.0, "зона «%s» в %.0f м от центра (≤ 60)" % [z.points[id].name, d])
-	for id: StringName in [&"sea", &"beach"]:
+	for id: StringName in [&"pier", &"beach"]:
 		if z.points.has(id):
 			var d := Vector2(hub.x, hub.z).distance_to(Vector2((z.points[id].pos as Vector3).x, (z.points[id].pos as Vector3).z))
 			check(d <= 85.0, "берег: «%s» в %.0f м от центра (≤ 85)" % [z.points[id].name, d])
