@@ -21,7 +21,10 @@ func run() -> void:
 	for id in [&"pack_corals", &"pack_corals_reef"]:
 		check(z.points.has(id), "есть точка перемещения: %s" % id)
 	var row := get_tree().root.find_children("Coral_*", "MeshInstance3D", true, false).size()
-	check(row == 22, "витрин кораллов: %d" % row)
+	var want := 0
+	for t in CoralPack.TYPES.keys():
+		want += CoralPack.variants(t)
+	check(row == want, "витрин кораллов: %d (вариантов в паке %d)" % [row, want])
 	var garden := get_tree().root.find_child("CoralGarden", true, false)
 	check(garden != null and garden.get_child_count() >= 12, "коралловый сад: %d групп" % (garden.get_child_count() if garden else 0))
 	sb.panel.go(&"pack_corals")
