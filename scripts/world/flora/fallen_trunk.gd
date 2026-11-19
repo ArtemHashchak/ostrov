@@ -77,17 +77,26 @@ func _add_segment(h0: float, h1: float) -> void:
 	var cs := CollisionShape3D.new()
 	var a := FloraLib.trunk_point(variant, h0)
 	var b := FloraLib.trunk_point(variant, h1)
-	var r := FloraLib.trunk_radius(variant, (h0 + h1) * 0.5)
+	# радиус — по толстому торцу (комель с расширением у корня толще середины участка)
+	var r := maxf(FloraLib.trunk_radius(variant, h0), FloraLib.trunk_radius(variant, h1))
 	var cap := CapsuleShape3D.new()
 	cap.radius = r
 	cap.height = maxf(a.distance_to(b) + r * 0.5, r * 2.1)
-	cs.shape = cap
 	var y := (b - a).normalized()
+	var center := (a + b) * 0.5
+	if segments.is_empty() and a.distance_to(b) > r:
+		# комель: цилиндрическая часть капсулы — от самого среза (иначе скруглённый конец
+		# капсулы оставляет край комля без опоры, и он уходит в землю); полусфера за срезом
+		# не ниже образующей — ствол не приподнимает
+		var cyl := a.distance_to(b) - r * 0.75
+		cap.height = cyl + r * 2.0
+		center = a + y * cyl * 0.5
+	cs.shape = cap
 	var x := y.cross(Vector3.FORWARD).normalized()
 	if x.length() < 0.5:
 		x = Vector3.RIGHT
 	var z := x.cross(y).normalized()
-	cs.transform = Transform3D(Basis(x, y, z), (a + b) * 0.5)
+	cs.transform = Transform3D(Basis(x, y, z), center)
 	add_child(cs)
 	segments.append({"mesh": null, "shape": cs, "h0": h0, "h1": h1})
 
