@@ -308,6 +308,9 @@ func _recalc_waves(dt: float) -> void:
 
 # --- водяная пыль с гребней в шторм: несколько маленьких GPU-эмиттеров, которые
 # раз в ~0.3 с переставляются на самые крутые гребни у камеры (CPU: 16 точек × до 8 волн).
+## Брызги частицами ВЫКЛЮЧЕНЫ (отзыв пользователя: «летают белые точки — ужасно»).
+## Сорванная пена передаётся шейдером (полосы и шлейфы по ветру).
+const SPRAY_ENABLED := false
 const SPRAY_N := 3
 const SPRAY_PROBES := 16
 var _sprays: Array[GPUParticles3D] = []
@@ -316,6 +319,8 @@ var _spray_seed := 0
 var _spray_best := 0.0   # для тестов: сжатие лучшего гребня в пробах
 
 func _make_spray() -> void:
+	if not SPRAY_ENABLED:
+		return
 	var q := QuadMesh.new()
 	q.size = Vector2(0.9, 0.28)
 	var m := StandardMaterial3D.new()
@@ -451,8 +456,8 @@ func _smooth_weather(dt: float, scale_waves: float) -> void:
 	wind_dir = Vector2.from_angle(lerp_angle(wind_dir.angle(), _t_wind_dir.angle(), k60))
 	swell_dir = Vector2.from_angle(lerp_angle(swell_dir.angle(), wind_dir.angle(), 1.0 - exp(-dt / 240.0)))
 	# медленная «погода моря»: иногда волны заметно выше (периоды 3–6 мин)
-	var slow := 1.0 + 0.22 * sin(time_s / 211.0) + 0.14 * sin(time_s / 97.0 + 1.7)
-	var t_swell := wave_scale * slow * lerpf(1.0, 1.35, storm)
+	var slow := 1.0 + 0.28 * sin(time_s / 211.0) + 0.18 * sin(time_s / 97.0 + 1.7)
+	var t_swell := wave_scale * slow * lerpf(1.15, 1.7, storm)
 	var t_sea := clampf(0.25 + wind_speed * 0.16, 0.3, 5.0)   # ясно ~0.8, шторм ~4.8
 	_swell_amp = lerpf(_swell_amp, t_swell, k40)
 	_sea_amp = lerpf(_sea_amp, t_sea, k40)
@@ -490,6 +495,12 @@ func _update(dt: float, cam_pos: Vector3, level: float, scale_waves: float) -> v
 	_mat.set_shader_parameter(&"wind_dir", wind_dir)
 	_mat.set_shader_parameter(&"wind_k", clampf(wind_speed / 25.0, 0.0, 1.0))
 	_mat.set_shader_parameter(&"w_a", _arr_a)
+	var asum := 0.0
+	for i in n_comp:
+		if _wvtx[i] == 1:
+			asum += _wamp[i]
+	_mat.set_shader_parameter(&"amp_sum", asum)
+	_mat.set_shader_parameter(&"swell_dir", swell_dir)
 	_mat.set_shader_parameter(&"w_b", _arr_b)
 	# FFT-рябь повёрнута так, чтобы её «ветер» совпал с текущим
 	var rot := wind_dir.angle() - FFT_WIND.angle()
@@ -518,9 +529,17 @@ func _gerstner_disp(p: Vector2) -> Vector2:
 		d += _wdir[i] * (_wq[i] * _wamp[i] * cos(ph))
 	return d
 
+## Шоалинг (как в шейдере, shoal()): к берегу волна РАСТЁТ (~(12/d)^0.35, до ×2),
+## а в зоне обрушения (глубина < ~1.8 м) теряет высоту до 35 % у кромки.
+## Выше уровня воды (d < 0) — 35 %: гребни набегают на пляж (заплеск).
+static func shoal(d: float) -> float:
+	var grow := clampf(pow(12.0 / maxf(d, 0.8), 0.35), 1.0, 2.0)
+	var t := clampf(d / 1.8, 0.0, 1.0)
+	return lerpf(0.35, grow, t * t * (3.0 - 2.0 * t))
+
 func _wave_height(x: float, z: float) -> float:
 	var depth := depth_at(x, z)
-	var shoal := clampf(depth / 3.0, 0.15, 1.0)
+	var shoal := Ocean.shoal(depth)
 	var p := Vector2(x, z)
 	# вершина, что после смещения Герстнера оказалась над (x, z): одна итерация
 	var p0 := p - _gerstner_disp(p)

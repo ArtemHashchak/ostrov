@@ -61,8 +61,15 @@ func run() -> void:
 		if oc.depth_at(q.x, q.y) > best:
 			best = oc.depth_at(q.x, q.y)
 			sea = q
-	var pts: Array[Vector2] = [sea, sea + Vector2(17.0, -9.0), sea + Vector2(-31.0, 22.0)]
-	print("[test] точка моря: глубина %.1f м" % best)
+	# точка у берега (глубина ~3 м) на луче к острову — для шоалинга
+	var near := sea
+	for k in 400:
+		var q := sea.lerp(c, float(k) / 400.0)
+		if oc.depth_at(q.x, q.y) < 3.0:
+			near = q
+			break
+	var pts: Array[Vector2] = [sea, sea + Vector2(17.0, -9.0), sea + Vector2(-31.0, 22.0), near]
+	print("[test] точка моря: глубина %.1f м; у берега: %.1f м" % [best, oc.depth_at(near.x, near.y)])
 
 	# --- штиль/ясно: 120 с, шаг 0.05 с ---
 	_advance(20.0, 0.05, pts, [])   # сглаживание погоды устоялось
@@ -116,6 +123,10 @@ func run() -> void:
 	print("[test] шторм: размах %.2f м (ясно %.2f), шаг %.4f, ветер %.1f м/с, шторм %.2f, нагон %.2f м" % [ss.range, st.range, ss.step, w.wind_speed(), w.storm_intensity(), w.storm_surge()])
 	check(ss.range > st.range * 2.5, "шторм: волны в %.1f раза выше" % (ss.range / maxf(st.range, 0.01)))
 	check(ss.step < 0.2, "шторм: всё равно плавно (%.4f м за 0.05 с)" % ss.step)
+	var sn := _stats(srows, 3)
+	print("[test] шторм у берега (глубина ~3 м): размах %.2f м (в море %.2f)" % [sn.range, ss.range])
+	check(sn.range > ss.range * 1.05, "шоалинг: у берега волны выше, чем в море (%.2f > %.2f)" % [sn.range, ss.range])
+	check(sn.step < 0.3, "у берега плавно (%.4f м за 0.05 с)" % sn.step)
 	check(w.storm_surge() > 0.8, "нагон воды в шторм %.2f м" % w.storm_surge())
 	check(absf(w.water_level() - lvl0 - w.storm_surge()) < 0.01, "water_level включает нагон")
 	var storm_level := w.water_level()
@@ -132,6 +143,8 @@ func run() -> void:
 	cam.current = true
 	cam.far = 4000.0
 	await _shoot_sequence(cam, sea, "calm")
+	var beach := _beach_point(sea, c)
+	await _beach_shot(cam, beach, sea, "beach_eye_calm_day")
 	w.set_weather(&"storm", true)
 	w.set_process(false)
 	_advance(360.0, 0.1, pts, [])
@@ -140,19 +153,8 @@ func run() -> void:
 	cam.look_at(Vector3(sea.x + 80.0, w.water_level(), sea.y + 30.0))
 	await wait(1.0)
 	await shot("storm_open")
-	var em := 0
-	for i in 8:
-		await wait(0.35)
-		for sp in oc._sprays:
-			if sp.emitting:
-				em += 1
-	print("[test] брызги: активных эмиттеров за 8 проб: %d (лучший гребень j=%.2f)" % [em, oc._spray_best])
-	check(em > 0, "шторм: брызги срываются с гребней (%d)" % em)
-	var tc := Time.get_ticks_usec()
-	for i in 100:
-		oc._spray_t = 0.0
-		oc._update_spray(0.016, cam.global_position)
-	print("[test] поиск гребней для брызг: %.1f мкс" % (float(Time.get_ticks_usec() - tc) / 100.0))
+	# брызги частицами выключены (белые точки в воздухе — отзыв пользователя)
+	check(oc._sprays.is_empty(), "шторм: нет частиц-брызг над водой")
 	cam.global_position = Vector3(sea.x, w.water_level() + 14.0, sea.y)
 	cam.look_at(Vector3(sea.x + 180.0, w.water_level(), sea.y + 40.0))
 	await wait(0.6)
@@ -173,8 +175,10 @@ func run() -> void:
 	cam.look_at(Vector3(sea.x + 60.0, w.water_level() + 0.5, sea.y + 20.0))
 	await wait(0.6)
 	await shot("storm_eye_night")
+	await _beach_shot(cam, beach, sea, "beach_eye_storm_night")
 	w.set_time_of_day(11.5)
 	await wait(0.6)
+	await _beach_shot(cam, beach, sea, "beach_eye_storm_day")
 	# нагон на пляже: смотрим с суши на берег
 	var shore := c + (sea - c).normalized() * (r * 0.9)
 	var land := c + (sea - c).normalized() * (r * 0.6)
@@ -196,3 +200,19 @@ func _shoot_sequence(cam: Camera3D, sea: Vector2, tag: String) -> void:
 	for i in 6:
 		await shot("%s_seq_%d" % [tag, i])
 		await wait(0.4)
+
+## Точка на пляже: от моря к центру острова, где суша чуть выше воды.
+func _beach_point(sea: Vector2, c: Vector2) -> Vector2:
+	for k in 600:
+		var q := sea.lerp(c, float(k) / 600.0)
+		if w.height_at(q.x, q.y) > w.water_level() + 0.6:
+			return q
+	return c
+
+## Стоим на пляже (глаза 1.7 м), смотрим в море.
+func _beach_shot(cam: Camera3D, beach: Vector2, sea: Vector2, tag: String) -> void:
+	var back := beach + (beach - sea).normalized() * 3.0
+	cam.global_position = Vector3(back.x, w.height_at(back.x, back.y) + 1.7, back.y)
+	cam.look_at(Vector3(sea.x, w.water_level() + 0.3, sea.y))
+	await wait(1.2)
+	await shot(tag)

@@ -24,6 +24,8 @@ uniform vec2 w_origin = vec2(0.0);   // опора фаз (рядом с кам�
 uniform float fade_start = 260.0;
 uniform float fade_end = 600.0;
 uniform vec2 fft_rot = vec2(1.0, 0.0);
+uniform float amp_sum = 1.0;        // сумма амплитуд волн (для обрушения у берега)
+uniform vec2 swell_dir = vec2(1.0, 0.0);
 
 uniform sampler2D depth_map : filter_linear, repeat_disable;
 uniform vec2 map_origin = vec2(0.0);
@@ -63,6 +65,14 @@ float sample_depth(vec2 p) {
 	return d + (water_level - water_mean);
 }
 
+// Шоалинг (как Ocean.shoal): к берегу волна растёт до ×2, в зоне обрушения
+// (d < 1.8 м) падает до 35 %; над пляжем (d < 0) — 35 % (гребни набегают на песок).
+float shoal(float d) {
+	float grow = clamp(pow(12.0 / max(d, 0.8), 0.35), 1.0, 2.0);
+	float t = clamp(d / 1.8, 0.0, 1.0);
+	return mix(0.35, grow, t * t * (3.0 - 2.0 * t));
+}
+
 // кадр зыби: (кадр0, кадр1, вес)
 vec3 fft_frame(float t) {
 	float ft = fract(t / fft_period) * fft_frames;
@@ -83,8 +93,7 @@ void vertex() {
 	float dist = length(p - cam_xz);
 	vfade = 1.0 - smoothstep(fade_start, fade_end, dist);
 	depth_m = sample_depth(p);
-	float shoal = clamp(depth_m / 3.0, 0.15, 1.0);
-	float amp = shoal * vfade;
+	float amp = shoal(depth_m) * vfade;
 	float h = 0.0;
 	vec2 disp = vec2(0.0);
 	vec2 grad = vec2(0.0);
@@ -168,40 +177,33 @@ vec2 rain_rings(vec2 p, float t) {
 	return (r > 0.0001 ? d / r : vec2(0.0)) * w;
 }
 
-// Прибой: тонкие кружевные линии пены идут к берегу с фазой набегающей волны,
-// рвутся шумом вдоль берега, за линией — редкое «кружево», у самой кромки — заплеск.
-// Направление к берегу — градиент запечённой карты глубин (только у берега, d < 2.8 м).
-float shore_foam(vec2 p, float d) {
-	float e = 2.0;
-	vec2 g = vec2(sample_depth(p + vec2(e, 0.0)) - sample_depth(p - vec2(e, 0.0)),
-			sample_depth(p + vec2(0.0, e)) - sample_depth(p - vec2(0.0, e)));
-	vec2 off = normalize(g + vec2(0.0001, 0.0));     // от берега в море
-	vec2 tng = vec2(-off.y, off.x);
-	float along = dot(p, tng);
-	float across = dot(p, off);
-	// шум вдоль берега: растянутые полосы (разрывы линии)
-	float n1 = texture(foam_tex, vec2(along * 0.045, across * 0.35) + vec2(u_time * 0.004, 0.0)).r;
-	float n2 = texture(foam_tex, vec2(along * 0.11 + 3.7, across * 0.9) - vec2(0.0, u_time * 0.02)).r;
-	float lace_tex = n1 * 0.55 + n2 * 0.6;
-	float slow = sin(along * 0.035 + u_time * 0.05) * 0.12;   // разная фаза по берегу
-	float f = 0.0;
-	for (int k = 0; k < 3; k++) {
-		float s = fract(u_time / 7.5 + float(k) / 3.0 + slow);
-		float front = mix(1.25 + storm * 1.2, -0.05 - storm * 0.35, s * s * (3.0 - 2.0 * s));   // набег; в шторм — дальше на берег
-		float w = (0.025 + 0.035 * clamp(front, 0.0, 1.2)) * (1.0 + storm * 2.5);
-		float line = exp(-pow((d - front) / w, 2.0));
-		// линия рождается у отмели, ярче всего у самого берега, гаснет в конце набега
-		float amp = smoothstep(1.3 + storm * 1.2, 0.55, front) * (1.0 - smoothstep(0.8, 1.0, s)) * mix(0.85, 1.0, storm);
-		float broken = smoothstep(0.5, 0.85, lace_tex + line * 0.2);
-		f += line * amp * broken;
-		// след за линией: редкое кружево, тает
-		float behind = smoothstep(front + 0.05, front + 0.6, d) * (1.0 - smoothstep(front + 0.6, front + 1.4, d));
-		f += behind * smoothstep(0.78, 0.95, lace_tex) * amp * (1.0 - s) * 0.5;
-	}
-	// заплеск у кромки
-	float swash = 0.06 + 0.1 * (0.5 + 0.5 * sin(u_time * 0.84 + along * 0.06));
-	f += exp(-pow((d - swash) / 0.045, 2.0)) * smoothstep(0.3, 0.7, n2 + 0.25) * 0.8;
-	return clamp(f, 0.0, 1.0) * (1.0 - smoothstep(0.9 + storm * 1.2, 1.5 + storm * 1.5, d));
+// Прибой, привязанный к НАСТОЯЩИМ волнам: в зоне обрушения (мельче ~2.6 м,
+// в шторм — дальше от берега) гребень ломается — белая рваная полоса вдоль гребня,
+// за ней (со стороны моря) тающий шлейф пены; у кромки воды — тонкая пена заплеска.
+// Только там, где вода есть (dl > 0) — на сухой песок пена не рисуется.
+float breaking_foam(vec2 p, float d, float dl) {
+	if (dl <= 0.0) return 0.0;
+	// шум в мировых координатах без поворота (поворот «к берегу» на больших
+	// координатах давал блочную рябь пены)
+	float n1 = texture(foam_tex, p * 0.07 + vec2(u_time * 0.01, 0.0)).r;
+	float n2 = texture(foam_tex, p * 0.19 + vec2(3.7, -u_time * 0.03)).r;
+	float rag = n1 * 0.55 + n2 * 0.6;
+	// обрушение: местная высота волны против глубины (H/d > ~0.6 — гребень ломается)
+	float a_loc = amp_sum * shoal(d);
+	float brk_zone = smoothstep(0.45, 0.85, 2.0 * a_loc / max(d, 0.15)) * smoothstep(-0.8, -0.1, d);
+	vec2 c0 = crest_px(p);
+	float brk = smoothstep(0.30, 0.55, c0.x) * smoothstep(-0.05, 0.45, c0.y);
+	brk *= smoothstep(0.32, 0.62, rag + brk * 0.2);
+	// шлейф: гребень прошёл здесь только что (волна идёт к берегу — сэмплы по направлению зыби назад)
+	vec2 c1 = crest_px(p - swell_dir * 1.3);
+	vec2 c2 = crest_px(p - swell_dir * 2.8);
+	float tr = max(smoothstep(0.35, 0.6, c1.x) * 0.6, smoothstep(0.35, 0.6, c2.x) * 0.35);
+	tr *= smoothstep(0.55, 0.85, rag);
+	float f = max(brk, tr) * brk_zone;
+	// тонкая кромка заплеска — ровно по краю воды (dl → 0), двигается вместе с волной
+	float edge = smoothstep(0.0, 0.02, dl) * (1.0 - smoothstep(0.04, 0.12, dl));
+	f = max(f, edge * smoothstep(0.3, 0.7, n2 + 0.15) * 0.7);
+	return clamp(f, 0.0, 1.0);
 }
 
 void fragment() {
@@ -209,7 +211,10 @@ void fragment() {
 	float d = sample_depth(p);
 	float fft_foam = 0.0;
 	// крупная форма от аналитических волн — попиксельно (гладко, без «ступенек» сетки)
-	float amp_px = clamp(d / 3.0, 0.15, 1.0) * vfade;
+	float amp_px = shoal(d) * vfade;
+	// глубина воды в ЭТОЙ точке с учётом волны: > 0 — здесь вода (в т.ч. набежавший
+	// на пляж заплеск), < 0 — сухо. Пена и прозрачность — только по ней.
+	float dl = d + (wpos.y - water_level);
 	vec2 wg = wave_grad_px(p, amp_px);
 	vec3 n_waves = normalize(vec3(-wg.x, 1.0, -wg.y));
 	NORMAL = normalize((VIEW_MATRIX * vec4(n_waves, 0.0)).xyz);
@@ -261,9 +266,7 @@ void fragment() {
 	// склон к свету чуть светлее (крупная форма волны видна даже под тучами)
 	col *= 1.0 + 0.25 * storm * clamp(n_w.y - 0.85, -0.3, 0.15) * 4.0;
 	// пена у берега и над отмелями
-	float f1 = texture(foam_tex, p * 0.22 + vec2(u_time * 0.03, 0.0)).r;
-	float f2 = texture(foam_tex, p * 0.13 - vec2(0.0, u_time * 0.025)).r;
-	float foam = (d < 1.5 + storm * 1.5 && d > -0.4 - storm * 0.4) ? shore_foam(p, d) : 0.0;
+	float foam = (d < 2.6 + storm * 3.5 && d > -1.2) ? breaking_foam(p, d, dl) : 0.0;
 	// барашки: гребни, где поверхность сжата (якобиан Герстнера), сильнее с ветром
 	// барашки: на крутых гребнях, рвутся по ветру (вытянутая текстура), сильнее на подветренном склоне
 	vec2 wpp = vec2(-wind_dir.y, wind_dir.x);
@@ -326,6 +329,7 @@ void fragment() {
 	SPECULAR = 0.55;
 	// прозрачность: на мелководье видно дно
 	float a = mix(0.38, 0.97, smoothstep(0.0, 6.0, d));
-	ALPHA = clamp(max(a, foam * 0.95), 0.0, 1.0) * mix(1.0, 0.0, 1.0 - smoothstep(-0.3, 0.02, d));
+	// край воды — там, где кончается ВОЛНА (заплеск бегает по пляжу), а не средний уровень
+	ALPHA = clamp(max(a, foam * 0.95), 0.0, 1.0) * smoothstep(-0.01, 0.07, dl);
 	}
 }

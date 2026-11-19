@@ -9,7 +9,7 @@ signal weather_changed(w: StringName)
 
 @export var seed_value: int = 2026
 @export var start_hour: float = 8.5
-@export var tide_amplitude: float = 0.55
+@export var tide_amplitude: float = 0.8
 @export var tide_period: float = 480.0     # секунд на цикл прилив→отлив→прилив
 
 const SAND_TOP := 1.6
@@ -263,9 +263,9 @@ func biome_at(x: float, z: float) -> StringName:
 func water_level() -> float:
 	return sin(time_s / tide_period * TAU) * tide_amplitude + _surge
 
-## Штормовой нагон: море поднимается до ~1.3 м и плавно (минуты) уходит обратно.
+## Штормовой нагон: море поднимается до ~1.8 м и плавно (минуты) уходит обратно.
 var _surge := 0.0
-const SURGE_MAX := 1.3
+const SURGE_MAX := 1.8
 
 func storm_surge() -> float:
 	return _surge
