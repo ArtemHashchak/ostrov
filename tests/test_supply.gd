@@ -92,7 +92,7 @@ func run() -> void:
 		var l := SupplyItems.roll_loot(2, rng)
 		var has_leg := false
 		for s in l:
-			if s.id in [&"rifle", &"grenade", &"armor_vest", &"shotgun"]:
+			if s.id in [&"rifle", &"grenade", &"armor_vest", &"shotgun", &"pistol_9mm"]:
 				has_leg = true
 		leg_ok = leg_ok and has_leg and l.size() >= 3
 	check(leg_ok, "легендарный ящик всегда с ценной вещью")
