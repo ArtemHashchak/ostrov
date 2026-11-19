@@ -191,7 +191,7 @@ def gen_table(seed, tiers):
 	for t in range(tiers):
 		r = base_r * (1.0 - 0.3 * t) * rnd.uniform(0.9, 1.05)
 		plates.append((rnd.uniform(-0.3, 0.3) * t, rnd.uniform(-0.3, 0.3) * t, 0.42 + 0.2 * t + rnd.uniform(-0.03, 0.05), r))
-	n_total = {1: 300, 2: 330, 3: 330}[tiers]
+	n_total = {1: 220, 2: 240, 3: 240}[tiers]
 	area = sum(p[3] ** 2 for p in plates)
 	for (cx, cy, z, r) in plates:
 		RS = 30; RR = 4
@@ -229,6 +229,25 @@ def gen_table(seed, tiers):
 		for s in range(RS):
 			s1 = (s + 1) % RS
 			mb.face((rows_t[-1][s], rows_b[-1][s], rows_b[-1][s1], rows_t[-1][s1]))
+		# «ворс-оболочки»: 2 копии верха выше на 2.5/5 см, UV.x = 2 + слой — шейдер оставляет
+		# только точки-кончики (густой ворс веточек дёшево, как у референса)
+		for layer, dz in ((1, 0.025), (2, 0.05)):
+			cs = mb.add_v(Vector((cx, cy, z + 0.03 + dz)), lerp(top2, rim, 0.3 * layer), (2.0 + layer, 0))
+			rows_s = []
+			for k in range(RR):
+				rs = []
+				for s in range(RS):
+					p = mb.v[rows_t[k][s]] + Vector((0, 0, dz))
+					f = (k + 1) / RR
+					rs.append(mb.add_v(p, lerp(lerp(top2, rim, 0.25 * layer), rim, max(0.0, (f - 0.8) / 0.2)), (2.0 + layer, 0)))
+				rows_s.append(rs)
+			for s in range(RS):
+				s1 = (s + 1) % RS
+				mb.face((cs, rows_s[0][s], rows_s[0][s1]))
+			for k in range(RR - 1):
+				for s in range(RS):
+					s1 = (s + 1) % RS
+					mb.face((rows_s[k][s], rows_s[k + 1][s], rows_s[k + 1][s1], rows_s[k][s1]))
 		# густой ворс коротких веточек сверху, у кромки — светлые и наклонены наружу
 		n_br = int(n_total * r * r / area)
 		for i in range(n_br):
@@ -283,11 +302,12 @@ def gen_staghorn(seed):
 	rnd = random.Random(seed)
 	mb = MB()
 	base = hexc("#7E4E50"); mid = hexc("#B07272"); tip = hexc("#E6B8B0")
-	for d in fib_dome(46, 0.15):
+	# широкий раскидистый куст: много ветвей, каждая трижды делится — густая «шапка» мелких веточек
+	for d in fib_dome(40, 0.1):
 		d = (d + Vector((rnd.uniform(-.12, .12), rnd.uniform(-.12, .12), 0))).normalized()
-		d = Vector((d.x * 1.3, d.y * 1.3, d.z)).normalized()       # купол шире, чем выше
-		p = Vector((d.x * 0.2, d.y * 0.2, 0.0))
-		branch_tree(mb, rnd, p, d, rnd.uniform(0.17, 0.24), 0.034, 0, 2, [base, mid], tip, 4, (2, 2), 0.5, 0.12, segs=1, taper=0.8)
+		d = Vector((d.x * 1.6, d.y * 1.6, d.z)).normalized()       # купол шире, чем выше
+		p = Vector((d.x * 0.3, d.y * 0.3, 0.0))
+		branch_tree(mb, rnd, p, d, rnd.uniform(0.2, 0.26), 0.026, 0, 3, [base, mid], tip, 3, (2, 2), 0.55, 0.12, segs=1, taper=0.8)
 	for i in range(4):   # обломки
 		a = rnd.random() * math.tau
 		p = Vector((math.cos(a) * rnd.uniform(0.8, 1.0), math.sin(a) * rnd.uniform(0.8, 1.0), 0.02))
@@ -301,13 +321,13 @@ def gen_corymbose(seed):
 	mb = MB()
 	base = grey(0.55); mid = grey(0.82); tip = grey(0.98)
 	R = 0.5
-	for i, d in enumerate(fib_dome(95, 0.05)):
+	for i, d in enumerate(fib_dome(150, 0.05)):
 		d = (d + Vector((rnd.uniform(-.08, .08), rnd.uniform(-.08, .08), 0))).normalized()
 		start = Vector((d.x * R * 0.3, d.y * R * 0.3, R * 0.12))
 		end = Vector((d.x * R, d.y * R, d.z * R * 0.8 + R * 0.08)) * rnd.uniform(0.82, 0.95)
 		mid_p = start + (end - start) * 0.55 + Vector((0, 0, 0.02))
-		rad = rnd.uniform(0.04, 0.055)
-		mb.tube([start, mid_p, end], [rad * 1.15, rad * 1.05, rad * 0.95], 5, [base, mid, tip], [0, 0, 0], ring_noise=0.15, seed=i, tip_k=0.55)
+		rad = rnd.uniform(0.028, 0.038)
+		mb.tube([start, mid_p, end], [rad * 1.15, rad * 1.05, rad * 0.95], 4, [base, mid, tip], [0, 0, 0], ring_noise=0.15, seed=i, tip_k=0.6)
 	core = remesh_blob([((0, 0, R * 0.15), R * 0.5, 0.25, seed)], 0.06, "core", lambda p, n: base)
 	off = len(mb.v)
 	for i, p in enumerate(core.v):
@@ -478,7 +498,7 @@ def gen_leather(seed):
 		q = Vector((p.x * f, p.y * f, H * 0.8 + (p.z - H * 0.8) * f))
 		n = Vector((math.cos(a) * 0.7 * f, math.sin(a) * 0.7 * f, 1.0)).normalized()
 		return q, n
-	gen_tentacles(mb, rnd, where, 330, (0.06, 0.1), 0.016, fr0, fr1, sides=3, segs=1, curl=0.2, outward=0.3)
+	gen_tentacles(mb, rnd, where, 400, (0.07, 0.13), 0.015, fr0, fr1, sides=3, segs=1, curl=0.2, outward=0.3)
 	bake_shade(mb, 0.35, 0.3)
 	return mb
 
@@ -488,8 +508,8 @@ def gen_anemone(seed, colr):
 	c = hexc(colr); dark = mul(c, 0.7)
 	RS = 16
 	center = mb.add_v(Vector((0, 0, 0.07)), dark, (0, 0))
-	ring = [mb.add_v(Vector((math.cos(math.tau * s / RS) * 0.24, math.sin(math.tau * s / RS) * 0.24, 0.04)), dark, (0, 0)) for s in range(RS)]
-	ring2 = [mb.add_v(Vector((math.cos(math.tau * s / RS) * 0.28, math.sin(math.tau * s / RS) * 0.28, 0.0)), mul(dark, 0.8), (0, 0)) for s in range(RS)]
+	ring = [mb.add_v(Vector((math.cos(math.tau * s / RS) * 0.38, math.sin(math.tau * s / RS) * 0.22, 0.04)), dark, (0, 0)) for s in range(RS)]
+	ring2 = [mb.add_v(Vector((math.cos(math.tau * s / RS) * 0.42, math.sin(math.tau * s / RS) * 0.26, 0.0)), mul(dark, 0.8), (0, 0)) for s in range(RS)]
 	for s in range(RS):
 		s1 = (s + 1) % RS
 		mb.face((center, ring[s], ring[s1]))
@@ -497,11 +517,11 @@ def gen_anemone(seed, colr):
 	def where(r):
 		a = r.random() * math.tau
 		f = math.sqrt(r.random())
-		q = Vector((math.cos(a) * 0.24 * f, math.sin(a) * 0.24 * f, 0.06))
-		n = Vector((math.cos(a) * (0.2 + 0.9 * f), math.sin(a) * (0.2 + 0.9 * f), 1.4 - f * 0.6)).normalized()
+		q = Vector((math.cos(a) * 0.36 * f, math.sin(a) * 0.2 * f, 0.06))
+		n = Vector((math.cos(a) * (0.1 + 0.45 * f), math.sin(a) * (0.1 + 0.3 * f), 1.8 - f * 0.5)).normalized()
 		return q, n
-	gen_tentacles(mb, rnd, where, 72, (0.24, 0.38), 0.042, c, lerp(c, hexc("#FFFFFF"), 0.3), sides=4, segs=5,
-		curl=0.8, outward=0.3, flex0=0.1, wiggle=0.2)
+	gen_tentacles(mb, rnd, where, 150, (0.26, 0.42), 0.03, c, lerp(c, hexc("#FFFFFF"), 0.3), sides=3, segs=4,
+		curl=0.4, outward=0.2, flex0=0.1, wiggle=0.22)
 	bake_shade(mb, 0.3, 0.35)
 	return mb
 
@@ -534,10 +554,10 @@ def gen_crinoid(seed):
 	rnd = random.Random(seed)
 	mb = MB()
 	c0 = hexc("#A89010"); c1 = hexc("#E4D030")
-	arms = 22
+	arms = 34
 	for i in range(arms):
 		a = math.tau * i / arms + rnd.uniform(-.15, .15)
-		el = rnd.uniform(0.7, 1.35)
+		el = rnd.uniform(0.9, 1.5)
 		ln = rnd.uniform(0.3, 0.42)
 		bend = rnd.uniform(0.8, 1.5)
 		pts = []
@@ -555,7 +575,7 @@ def gen_crinoid(seed):
 				side = Vector((1, 0, 0))
 			side.normalize()
 			for sg in (-1, 1):
-				ln_p = 0.05 * (1.0 - 0.12 * s)
+				ln_p = 0.06 * (1.0 - 0.1 * s)
 				q = p + side * sg * ln_p + d * 0.03 + Vector((0, 0, 0.01))
 				i0 = mb.add_v(p, c0, (1.0, flex[s]))
 				i1 = mb.add_v(q, c1, (1.0, min(1.0, flex[s] + 0.1)))
@@ -586,13 +606,13 @@ def gen_mound(seed, colr):
 
 SPEC = [
 	# (тип, вариант, функция, бюджет LOD0, LOD1)
-	("table", 0, lambda: gen_table(11, 1), 3400, 900),
-	("table", 1, lambda: gen_table(12, 2), 3600, 1000),
-	("table", 2, lambda: gen_table(13, 3), 3800, 1100),
-	("staghorn", 0, lambda: gen_staghorn(21), 3400, 900),
-	("staghorn", 1, lambda: gen_staghorn(22), 3400, 900),
-	("corymbose", 0, lambda: gen_corymbose(31), 2600, 700),
-	("corymbose", 1, lambda: gen_corymbose(32), 2600, 700),
+	("table", 0, lambda: gen_table(11, 1), 3800, 1000),
+	("table", 1, lambda: gen_table(12, 2), 4200, 1100),
+	("table", 2, lambda: gen_table(13, 3), 4600, 1200),
+	("staghorn", 0, lambda: gen_staghorn(21), 4600, 1200),
+	("staghorn", 1, lambda: gen_staghorn(22), 4600, 1200),
+	("corymbose", 0, lambda: gen_corymbose(31), 3200, 800),
+	("corymbose", 1, lambda: gen_corymbose(32), 3200, 800),
 	("lobed", 0, lambda: gen_lobed(41), 1800, 500),
 	("lobed", 1, lambda: gen_lobed(42), 1800, 500),
 	("foliose", 0, lambda: gen_foliose(51, "#CDB070"), 900, 300),
@@ -601,11 +621,11 @@ SPEC = [
 	("antler", 1, lambda: gen_antler(62, ["#C07060", "#F0B0A0"]), 1600, 450),
 	("softcoral", 0, lambda: gen_softcoral(71, "#E8D8B0"), 2400, 600),
 	("softcoral", 1, lambda: gen_softcoral(72, "#E09A9A"), 2400, 600),
-	("leather", 0, lambda: gen_leather(81), 3400, 900),
-	("anemone", 0, lambda: gen_anemone(91, "#EEEDE6"), 3200, 900),
-	("anemone", 1, lambda: gen_anemone(92, "#D8CCAA"), 3200, 900),
+	("leather", 0, lambda: gen_leather(81), 4000, 1000),
+	("anemone", 0, lambda: gen_anemone(91, "#EEEDE6"), 4200, 1100),
+	("anemone", 1, lambda: gen_anemone(92, "#D8CCAA"), 4200, 1100),
 	("bubble", 0, lambda: gen_bubble(101), 2600, 700),
-	("crinoid", 0, lambda: gen_crinoid(111), 1600, 600),
+	("crinoid", 0, lambda: gen_crinoid(111), 2400, 800),
 	("mound", 0, lambda: gen_mound(121, "#7A5A38"), 700, 250),
 	("mound", 1, lambda: gen_mound(122, "#6A6A3A"), 700, 250),
 ]

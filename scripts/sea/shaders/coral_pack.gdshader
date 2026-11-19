@@ -24,6 +24,7 @@ varying vec3 lpos;
 varying vec3 lnrm;
 varying float hue_k;
 varying float soft;
+varying float shell;      // 1/2 — слой «ворса» (оболочка над пластиной), 0 — обычная поверхность
 
 float caus(vec2 p, float t) {
 	vec2 q = p + vec2(sin(p.y * 1.7 + t * 0.9), cos(p.x * 1.3 - t * 0.7)) * 0.6;
@@ -63,7 +64,8 @@ void vertex() {
 	lpos = VERTEX;
 	lnrm = NORMAL;
 	hue_k = fract(INSTANCE_CUSTOM.a * 7.13) - 0.5;
-	soft = UV.x;
+	soft = UV.x < 1.5 ? UV.x : 0.0;
+	shell = UV.x > 1.5 ? UV.x - 2.0 : 0.0;
 	float h = UV.y;
 	if (sway > 0.0 && h > 0.0) {
 		float ph = INSTANCE_CUSTOM.a * 6.2831;
@@ -82,6 +84,18 @@ void vertex() {
 void fragment() {
 	if (dot(NORMAL, VIEW) < 0.0) {
 		NORMAL = -NORMAL;
+	}
+	if (shell > 0.5) {
+		// ворс: оставляем только «кончики веточек» — точки ячеистого шума, выше слой — точки меньше
+		if (detail <= 0.0) {
+			discard;
+		}
+		vec2 q2 = lpos.xz * pattern_scale * 0.32;
+		float cd = cells(vec3(q2, shell * 7.3));
+		float rad = shell < 1.5 ? 0.36 : 0.24;
+		if (cd > rad) {
+			discard;
+		}
 	}
 	vec3 col = COLOR.rgb * tint;
 	col = mix(col, col.gbr, hue_k * 0.10);

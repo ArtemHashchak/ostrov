@@ -10,8 +10,8 @@ func _init() -> void:
 var root: Node3D
 var cam: Camera3D
 
-const BUDGET0 := {&"table": 4000, &"staghorn": 3500, &"corymbose": 3000, &"lobed": 2000, &"foliose": 1200,
-	&"antler": 1800, &"softcoral": 2600, &"leather": 3500, &"anemone": 3400, &"bubble": 2800, &"crinoid": 1800, &"mound": 900}
+const BUDGET0 := {&"table": 4600, &"staghorn": 4600, &"corymbose": 3200, &"lobed": 2000, &"foliose": 1200,
+	&"antler": 1800, &"softcoral": 2600, &"leather": 4000, &"anemone": 4200, &"bubble": 2800, &"crinoid": 2400, &"mound": 900}
 
 func run() -> void:
 	check(CoralPack.available(), "кораллы пака загружаются из %s" % CoralPack.GLB)

@@ -50,7 +50,7 @@ static func build(zones: SandboxZones, root: Node3D, c: Vector2) -> void:
 		P.label(root, Vector3(x, top, z), "%s%s\n%d / %d треуг." % [name_, "" if CoralPack.variants(t) == 1 else " · %d" % (v + 1), tr0, tr1], 20, P.SIGN_COLOR, 26.0)
 	var mid_x := x0 + (per_row - 1) * step * 0.5
 	zones._point(&"pack_corals", "Пак: кораллы (витрины)",
-		Vector3(mid_x, P.ground(mid_x, c.y + 14.0) + 4.0, c.y + 14.0), Vector3(mid_x, P.ground(mid_x, c.y + 24.0) + 0.6, c.y + 24.0))
+		Vector3(mid_x, P.ground(mid_x, c.y + 36.0) + 5.0, c.y + 36.0), Vector3(mid_x, P.ground(mid_x, c.y + 24.0) + 0.4, c.y + 24.0))
 
 
 ## Коралловый сад под водой: все виды вперемешку на мелководье 2–6 м.
