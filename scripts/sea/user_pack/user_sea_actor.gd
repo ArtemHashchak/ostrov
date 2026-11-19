@@ -97,8 +97,8 @@ static func material_for(d: Dictionary) -> ShaderMaterial:
 		return _materials[id]
 	var m := ShaderMaterial.new()
 	m.shader = load("res://scripts/sea/user_pack/user_creature.gdshader")
-	var k := _kind_of(d)
-	m.set_shader_parameter(&"mode", {"fish": 0, "octopus": 1, "squid": 2}[k])
+	var k := String(d.get("near", _kind_of(d)))
+	m.set_shader_parameter(&"mode", {"fish": 0, "octopus": 1, "squid": 2}.get(k, 0))
 	m.set_shader_parameter(&"body_len", float(d.get("length", 0.4)))
 	var mesh := UserSeaPack.species_mesh(d)
 	var tex: Texture2D = null
@@ -118,6 +118,8 @@ static func material_for(d: Dictionary) -> ShaderMaterial:
 		m.set_shader_parameter(&"glow", float(extra["glow"]) * 0.8)
 	if extra.has("glow_color"):
 		m.set_shader_parameter(&"glow_color", Color(String(extra["glow_color"])))
+	if extra.has("tint"):
+		m.set_shader_parameter(&"tint", Color(String(extra["tint"])))
 	if mesh and mesh.has_meta(&"rig"):
 		var rig: Dictionary = mesh.get_meta(&"rig")
 		if rig.has("hub"):
@@ -490,6 +492,44 @@ static func _ink_material() -> StandardMaterial3D:
 		_ink_mat.albedo_texture = g
 		_ink_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	return _ink_mat
+
+# --- кукла (сцены моря) ------------------------------------------------------
+## Сцены моря (SeaCritter) двигают узел сами, особь только анимируется по их скорости.
+## Тело создаётся setup(); тикать её менеджеру UserSeaActors не нужно.
+
+## Рыба: скорость (м/с), крейсерская, темп поворота −1..1, C-старт −1..1, зависла ли.
+func puppet_fish(dt: float, spd: float, cruise: float, turn: float, startle_amt: float, hover: bool) -> void:
+	speed = spd
+	var L := body_len
+	var rel := spd / maxf(cruise, 0.05)
+	var hz := (0.9 + 0.9 * rel) / sqrt(maxf(L, 0.05))
+	_swim_phase += dt * TAU * clampf(hz, 0.4, 9.0)
+	_fin_phase += dt * TAU * (2.6 if hover else 1.2)
+	_turn_rate = lerpf(_turn_rate, clampf(turn, -1.0, 1.0), clampf(dt * 6.0, 0.0, 1.0))
+	_startle = lerpf(_startle, startle_amt, clampf(dt * 18.0, 0.0, 1.0))
+	state = S.HOVER if hover else S.CRUISE
+	_mi.set_instance_shader_parameter(&"fish_a", Vector4(_swim_phase, clampf(0.035 + rel * 0.03, 0.03, 0.14),
+			_turn_rate, _startle))
+	_mi.set_instance_shader_parameter(&"fish_b", Vector4(_fin_phase, 0.55 if hover else 0.25, _seed_u, 0.0))
+
+## Осьминог: ползёт 0..1 (скорость шагов), угроза, хват, рывок, сжатие мантии, прижат, маскировка.
+func puppet_octo(dt: float, spd: float, crawl_k: float, threat: float, grab: float, jet: float, flatten: float, camo: float) -> void:
+	speed = spd
+	_gait += dt * (1.2 + spd * 9.0)
+	_crawl = lerpf(_crawl, crawl_k, clampf(dt * 3.0, 0.0, 1.0))
+	_threat = move_toward(_threat, threat, dt * 2.5)
+	_grab = move_toward(_grab, grab, dt * 3.0)
+	_jet = move_toward(_jet, jet, dt * 6.0)
+	_jet_pulse = maxf(1.0 - fposmod(_t, 0.9) / 0.3, 0.0) * jet
+	_t += dt
+	_flatten = move_toward(_flatten, flatten, dt * 1.2)
+	_camo = move_toward(_camo, camo, dt * 0.8)
+	_fin_phase += dt * TAU
+	_push_uniforms()
+
+## Чернила в точке (для сцен).
+func puppet_ink() -> void:
+	ink(global_position + Vector3(0.0, 0.15, 0.0), body_len)
 
 ## Принудительно (полигон/тест): перейти в состояние.
 func force(s: S) -> void:

@@ -112,6 +112,9 @@ var _dead_t: float = 0.0
 var _nest_done: bool = false
 ## Состояние анимации этого зверя для контроллера (anim_ctrl), если тому нужно хранить его на звере.
 var anim_state: Dictionary = {}
+## Сцена моря (SeaScene) ведёт животное сама: своё «мышление» выключено, состояние/цель
+## (state, target, move_to) задаёт сцена; поединки таких животных друг с другом без урона.
+var scripted := false
 
 static func create(sp: StringName, pos: Vector3, fauna_node: Node = null) -> Animal:
 	var a := Animal.new()
@@ -189,6 +192,9 @@ func on_hit(by: Node, hit: Dictionary) -> void:
 
 func apply_damage(amount: float, source: Node = null, _kind: StringName = &"melee") -> void:
 	if dead or amount <= 0.0:
+		return
+	if scripted and source is Animal and (source as Animal).scripted:
+		anim_event(&"hurt")   # поединок в сцене — без урона
 		return
 	health -= amount
 	_hurt_flash = 0.25
@@ -308,7 +314,7 @@ func tick(dt: float) -> void:
 	breed_cd = maxf(0.0, breed_cd - dt)
 	_hurt_flash = maxf(0.0, _hurt_flash - dt)
 	state_t += dt
-	if growth < 1.0 and fauna:
+	if growth < 1.0 and fauna and not scripted:
 		set_growth(growth + dt / fauna.grow_seconds * 0.55)
 	if cfg.get("fly", false) and tamed:
 		_tick_shoulder(dt)
@@ -316,7 +322,7 @@ func tick(dt: float) -> void:
 		_tick_bird(dt)
 	else:
 		_think_t -= dt
-		if _think_t <= 0.0:
+		if _think_t <= 0.0 and not scripted:
 			_think_t = 0.25 + _rng.randf() * 0.2
 			_think()
 		_act(dt)

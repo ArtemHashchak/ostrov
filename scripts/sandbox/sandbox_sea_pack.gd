@@ -129,6 +129,8 @@ static func build_sea(zones: SandboxZones, root: Node3D) -> void:
 	zones._point(&"pack_sea", "Пак: морская живность (под водой)",
 		Vector3(spot.x - dir.x * 9.0, clampf(gy + 2.2, gy + 1.0, -1.5), spot.y - dir.y * 9.0), Vector3(spot.x, gy + 1.8, spot.y))
 	P.label(root, Vector3(spot.x - dir.x * 8.0, 2.4, spot.y - dir.y * 8.0), "Морская живность из пака · нырните", 34, P.SIGN_COLOR, 60.0)
+	# сцены морской жизни (охота, укрытия, нерест, крабы…): точка и панель F7
+	SandboxSeaScenes.build(zones, root)
 
 
 ## Вода и дно полигона для особей вблизи (как у моря: water_y / floor_at / depth_at).

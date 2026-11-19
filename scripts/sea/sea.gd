@@ -56,6 +56,7 @@ var _bump_acc: float = 0.0
 var reefs: Node3D = null            # SeaReefs
 var life: Node3D = null             # SeaLife
 var reef_life: Node3D = null        # ReefLife (фон)
+var scenes: SeaSceneDirector = null  # сцены морской жизни
 
 func _ready() -> void:
 	add_to_group(&"sea")
@@ -79,6 +80,10 @@ func _ready() -> void:
 		fx = SeaFX.new()
 		fx.sea = self
 		add_child(fx)
+	# сцены морской жизни у игрока (scripts/sea/scenes): охота, укрытия, нерест, реакции
+	scenes = SeaSceneDirector.new()
+	scenes.sea = self
+	add_child(scenes)
 	if auto_populate:
 		call_deferred(&"_auto_start")
 
@@ -260,6 +265,9 @@ static func perf_line() -> String:
 	var ua := tree.get_first_node_in_group(&"user_sea_actors") as UserSeaActors
 	if ua:
 		parts.append(ua.perf_text())
+	var sd := SeaSceneDirector.instance()
+	if sd:
+		parts.append(sd.perf_text())
 	var near := 0
 	var far := 0
 	for n in tree.get_nodes_in_group(&"sharks"):

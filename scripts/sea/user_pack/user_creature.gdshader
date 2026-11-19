@@ -17,6 +17,8 @@ uniform float arm_base = 0.16;       // от центра до основани�
 uniform bool use_tex = true;
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap;
 uniform vec3 base_color : source_color = vec3(0.7, 0.4, 0.3);
+// Подкраска вида-«дублёра» (океанский состав, scripts/sea/scenes): модель пака под другой вид.
+uniform vec3 tint : source_color = vec3(1.0);
 uniform float alpha_cut = 0.4;
 uniform vec3 glow_color : source_color = vec3(0.2, 0.9, 1.0);
 uniform float glow = 0.0;
@@ -205,6 +207,7 @@ void fragment() {
 		if (tx.a < alpha_cut) discard;
 		col = tx.rgb;
 	}
+	col *= tint;
 	if (mode != 0) {
 		// осьминог: маскировка под дно и вспышки угрозы (темнеет/бледнеет волнами)
 		col = mix(col, camo_color * (0.85 + 0.3 * col), camo * 0.75);
