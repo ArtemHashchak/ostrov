@@ -150,6 +150,28 @@ func _creek_dist(I: Dictionary, p: Vector2) -> Vector2:
 # ------------------------------------------------------------ берег
 
 ## Радиус берега по углу: шум изрезанности, вытянутость (эллипс), бухты.
+## Сетка ячеек: у типовых островов охват берётся по реальному «дотягиванию»
+## рельефа (вытянутые кей/коса, неровный берег, шельф), иначе мель обрезается
+## квадратом ячеек (видно с высоты как прямоугольник светлой воды).
+func _build_grid() -> void:
+	_grid.clear()
+	for idx in islands.size():
+		var I: Dictionary = islands[idx]
+		var r := float(I.radius) * 2.3
+		if I.has("type"):
+			r = float(I.radius) * maxf(float(I.aspect), 1.0) * (1.0 + float(I.get("coast_amp", 0.0)) * 1.35) * 2.3 + CELL
+		_grid_add((I.center as Vector2) - Vector2(r, r), (I.center as Vector2) + Vector2(r, r), "i", idx)
+	for idx in bars.size():
+		_grid_add(bars[idx].bmin, bars[idx].bmax, "b", idx)
+	for idx in islets.size():
+		var il: Dictionary = islets[idx]
+		var r := float(il.radius) * 3.0
+		_grid_add((il.center as Vector2) - Vector2(r, r), (il.center as Vector2) + Vector2(r, r), "l", idx)
+	for idx in lakes.size():
+		var L: Dictionary = lakes[idx]
+		var r := float(L.radius) * 1.8
+		_grid_add((L.center as Vector2) - Vector2(r, r), (L.center as Vector2) + Vector2(r, r), "k", idx)
+
 func _coast_r(I: Dictionary, ang: float) -> float:
 	if not I.has("type"):
 		return super._coast_r(I, ang)
@@ -182,7 +204,7 @@ func _island_h(I: Dictionary, p: Vector2) -> float:
 	var c: Vector2 = I.center
 	var v := p - c
 	var dist := v.length()
-	var reach := float(I.radius) * maxf(float(I.aspect), 1.0) * 2.3
+	var reach := float(I.radius) * maxf(float(I.aspect), 1.0) * (1.0 + float(I.get("coast_amp", 0.0)) * 1.35) * 2.3
 	if dist > reach:
 		return -100.0
 	var ang := atan2(v.y, v.x)
