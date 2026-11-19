@@ -8,7 +8,7 @@ extends Node3D
 const FALL_SPEED := 11.0
 
 ## [ближние капли, брызги, листья, морские брызги] по пресету Низкое..Ультра
-const AMOUNTS := [[900, 120, 40, 40], [1800, 260, 80, 80], [3200, 480, 140, 140], [5200, 720, 200, 200]]
+const AMOUNTS := [[900, 120, 20, 40], [1800, 260, 40, 80], [3200, 480, 70, 140], [5200, 720, 100, 200]]
 
 var drops: GPUParticles3D
 var splashes: GPUParticles3D
@@ -20,6 +20,7 @@ var _leaf_pm: ParticleProcessMaterial
 var _spray_pm: ParticleProcessMaterial
 var _drop_mat: ShaderMaterial
 var _splash_mat: StandardMaterial3D
+var _leaf_mat: StandardMaterial3D
 var _sheet_mats: Array[ShaderMaterial] = []
 var _rain := 0.0
 var covered := false
@@ -86,7 +87,7 @@ func _make_drops() -> void:
 func _make_sheets() -> void:
 	var sh := load("res://scripts/world/weather/rain_sheet.gdshader") as Shader
 	# [радиус, высота, колонок, прозрачность, скорость]
-	for cfg in [[8.0, 26.0, 700.0, 0.26, 2.6], [22.0, 46.0, 1500.0, 0.2, 2.0]]:
+	for cfg in [[8.0, 26.0, 900.0, 0.15, 2.6], [22.0, 46.0, 1800.0, 0.11, 2.0]]:
 		var mi := MeshInstance3D.new()
 		mi.name = "RainSheet%d" % sheets.size()
 		var cm := CylinderMesh.new()
@@ -102,7 +103,9 @@ func _make_sheets() -> void:
 		m.set_shader_parameter(&"columns", cfg[2])
 		m.set_shader_parameter(&"rows", cfg[1] / 3.2)
 		m.set_shader_parameter(&"speed", -float(cfg[4]))
-		m.set_shader_parameter(&"color", Color(0.76, 0.81, 0.88, cfg[3]))
+		m.set_shader_parameter(&"color", Color(0.82, 0.86, 0.92, cfg[3]))
+		m.set_shader_parameter(&"streak_len", 0.13)
+		m.set_shader_parameter(&"thickness", 0.12)
 		cm.material = m
 		mi.mesh = cm
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -160,7 +163,7 @@ func _make_leaves() -> void:
 	leaves.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_leaf_pm = ParticleProcessMaterial.new()
 	_leaf_pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	_leaf_pm.emission_box_extents = Vector3(18.0, 5.0, 18.0)
+	_leaf_pm.emission_box_extents = Vector3(16.0, 1.4, 16.0)
 	_leaf_pm.spread = 25.0
 	_leaf_pm.gravity = Vector3(0, -1.2, 0)
 	_leaf_pm.angular_velocity_min = -360.0
@@ -181,12 +184,16 @@ func _make_leaves() -> void:
 	_leaf_pm.color_initial_ramp = gt
 	leaves.process_material = _leaf_pm
 	var qm := QuadMesh.new()
-	qm.size = Vector2(0.09, 0.05)
-	var m := StandardMaterial3D.new()
-	m.cull_mode = BaseMaterial3D.CULL_DISABLED
-	m.vertex_color_use_as_albedo = true
-	m.roughness = 0.8
-	qm.material = m
+	qm.size = Vector2(0.11, 0.07)
+	# лист: силуэт-эллипс с прожилкой (альфа), без освещения — цвет из рампы × свет сцены
+	_leaf_mat = StandardMaterial3D.new()
+	_leaf_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_leaf_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_leaf_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	_leaf_mat.alpha_scissor_threshold = 0.5
+	_leaf_mat.vertex_color_use_as_albedo = true
+	_leaf_mat.albedo_texture = _leaf_tex()
+	qm.material = _leaf_mat
 	leaves.draw_pass_1 = qm
 	leaves.emitting = false
 	add_child(leaves)
@@ -234,6 +241,23 @@ func _make_spray() -> void:
 	spray.draw_pass_1 = qm
 	spray.emitting = false
 	add_child(spray)
+
+static var _leaf_tex_c: Texture2D
+static func _leaf_tex() -> Texture2D:
+	if _leaf_tex_c:
+		return _leaf_tex_c
+	var img := Image.create(32, 16, false, Image.FORMAT_RGBA8)
+	for y in 16:
+		for x in 32:
+			var u := (x - 15.5) / 15.5
+			var v := (y - 7.5) / 7.5
+			var half := (1.0 - u * u) * 0.95
+			var inside := absf(v) < half
+			var vein := absf(v) < 0.12
+			var c := 0.82 if vein else 1.0
+			img.set_pixel(x, y, Color(c, c, c, 1.0 if inside else 0.0))
+	_leaf_tex_c = ImageTexture.create_from_image(img)
+	return _leaf_tex_c
 
 static var _dot_tex: Texture2D
 static func _soft_dot() -> Texture2D:
@@ -317,13 +341,16 @@ func update(dt: float, cam: Camera3D, rain: float, storm: float, wdir: Vector2, 
 	_splash_mat.albedo_color = Color(0.85 * light, 0.9 * light, 0.95 * light, 0.5)
 	# листья и мусор в шторм
 	var st := smoothstep(0.45, 0.9, storm)
-	leaves.emitting = st > 0.05 and not underwater
+	var on_land := ground_h > sea_h + 0.5
+	leaves.emitting = st > 0.05 and not underwater and on_land
 	leaves.amount_ratio = clampf(st, 0.05, 1.0)
+	var ll := clampf(light, 0.3, 1.2)
+	_leaf_mat.albedo_color = Color(ll, ll, ll)
 	var lv := Vector3(wdir.x, 0.15, wdir.y)
 	_leaf_pm.direction = lv.normalized()
 	_leaf_pm.initial_velocity_min = wspeed * 0.45
 	_leaf_pm.initial_velocity_max = wspeed * 0.8
-	leaves.global_position = cp + Vector3(-wdir.x * 14.0, 3.0, -wdir.y * 14.0)
+	leaves.global_position = Vector3(cp.x - wdir.x * 12.0, ground_h + 1.6, cp.z - wdir.y * 12.0)
 	# морские брызги у берега/над водой в шторм
 	spray.emitting = st > 0.1 and near_shore and not underwater
 	spray.amount_ratio = clampf(st, 0.05, 1.0)

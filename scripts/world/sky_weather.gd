@@ -40,6 +40,8 @@ var _seed := 4242
 var _rng := RandomNumberGenerator.new()
 var _lightning_t := 10.0
 var _flash := 0.0
+## Вспышка молнии освещает сцену сама (ночью солнца нет): свет сверху без теней.
+var _flash_light: DirectionalLight3D
 var _underwater := false
 var _env: Environment
 var _cloud_t := 0.0
@@ -81,6 +83,14 @@ func setup(start_hour: float = 8.5, seed_value: int = 4242) -> void:
 	_from = _cur.duplicate()
 	rain_fx = RainFx.new()
 	add_child(rain_fx)
+	_flash_light = DirectionalLight3D.new()
+	_flash_light.name = "LightningLight"
+	_flash_light.light_color = Color(0.78, 0.84, 1.0)
+	_flash_light.shadow_enabled = false
+	_flash_light.light_energy = 0.0
+	_flash_light.visible = false
+	_flash_light.rotation = Vector3(deg_to_rad(-62.0), deg_to_rad(25.0), 0.0)
+	add_child(_flash_light)
 	lightning = LightningFx.new()
 	lightning.name = "Lightning"
 	add_child(lightning)
@@ -302,7 +312,7 @@ func update(dt: float, cam: Camera3D, water_surface_at_cam: float) -> void:
 			gh = maxf(float(w.call(&"height_at", cp.x, cp.z)), water_surface_at_cam)
 			sea = float(w.call(&"water_level")) if w.has_method(&"water_level") else water_surface_at_cam
 		var near_shore := gh - sea < 3.0
-		var light := clampf(0.18 + daylight() * float(_cur.sun) * 1.1, 0.12, 1.0) + _flash * 1.5
+		var light := clampf(0.25 + daylight() * 0.75, 0.2, 1.0) + _flash * 0.8
 		rain_fx.update(dt, cam, float(_cur.rain), float(_cur.storm), _wind_dir, _wind_speed, light,
 				_underwater, gh, sea, near_shore)
 	_update_lightning(dt, cam)
@@ -332,9 +342,26 @@ func _apply(_dt: float) -> void:
 			sky3d.sky.cirrus_coverage = float(_cur.cirrus)
 		if absf(sky3d.sky.wind_speed - float(_cur.wind)) > 0.05:
 			sky3d.sky.wind_speed = float(_cur.wind)
-	var se := float(_cur.sun) + _flash * 4.0
+		# шторм: небо и тучи заметно темнее (меняется только во время перехода погоды)
+		var st0 := float(_cur.get("storm", 0.0))
+		var rn0 := float(_cur.get("rain", 0.0))
+		var sky_exp := 1.0 - 0.22 * st0 - 0.08 * rn0
+		if absf(sky3d.sky.exposure - sky_exp) > 0.004:
+			sky3d.sky.exposure = sky_exp
+		var cint := 0.6 * (1.0 - 0.15 * st0)
+		if absf(sky3d.sky.cumulus_intensity - cint) > 0.004:
+			sky3d.sky.cumulus_intensity = cint
+		var cabs := 2.0 + 1.2 * st0 + 0.6 * rn0
+		if absf(sky3d.sky.cumulus_absorption - cabs) > 0.02:
+			sky3d.sky.cumulus_absorption = cabs
+	var se := float(_cur.sun) + _flash * 1.4
 	if absf(sky3d.sun_energy - se) > 0.003:
 		sky3d.sun_energy = se
+	# в дождь тени солнца почти исчезают (сплошная облачность)
+	if sky3d.sun:
+		var so := clampf(1.0 - 0.9 * float(_cur.rain) - 0.3 * maxf(0.0, float(_cur.cov) - 0.6), 0.08, 1.0)
+		if absf(sky3d.sun.shadow_opacity - so) > 0.01:
+			sky3d.sun.shadow_opacity = so
 	var rain := float(_cur.rain)
 	var storm := float(_cur.get("storm", 0.0))
 	if _env and not _underwater:
@@ -343,18 +370,20 @@ func _apply(_dt: float) -> void:
 		fog_day = fog_day.lerp(Color(0.36, 0.4, 0.45), smoothstep(0.4, 1.0, storm))
 		# цветокоррекция: в шторм темнее, холоднее, менее насыщенно
 		_env.adjustment_enabled = storm > 0.02 or rain > 0.02
-		_env.adjustment_brightness = 1.0 - 0.14 * storm - 0.04 * rain + _flash * 0.35
+		_env.adjustment_brightness = 1.0 - 0.1 * storm - 0.03 * rain + _flash * 0.12
 		_env.adjustment_contrast = 1.0 + 0.06 * storm
 		_env.adjustment_saturation = 1.0 - 0.32 * storm - 0.1 * rain
 		var fog_night := Color(0.05, 0.07, 0.1)
 		_env.fog_light_color = fog_night.lerp(fog_day, dl)
 		_env.fog_density = float(_cur.fog)
-		_env.fog_sky_affect = clampf(0.15 + float(_cur.fog) * 14.0, 0.15, 0.85)
-		_env.fog_light_energy = 1.0 + _flash * 3.0
+		# в дождь/шторм небо затянуто: дымка заметно перекрывает небо (серое, а не чёрное)
+		_env.fog_sky_affect = clampf(0.15 + float(_cur.fog) * 14.0 + 0.45 * storm + 0.25 * rain, 0.15, 0.9)
+		_env.fog_light_energy = 1.0 + _flash * 1.0
 
 func _update_lightning(dt: float, cam: Camera3D) -> void:
 	lightning.update(dt)
 	_flash = lightning.flash
+	_update_flash_light()
 	var storm := float(_cur.get("storm", 0.0))
 	if storm < 0.6 or _underwater:
 		return
@@ -368,6 +397,15 @@ func _update_lightning(dt: float, cam: Camera3D) -> void:
 func force_lightning(cam_pos: Vector3, close: bool = false) -> void:
 	lightning.do_strike(cam_pos, get_parent(), 1.0 if close else 0.0)
 	_flash = lightning.flash
+	_update_flash_light()
+
+func _update_flash_light() -> void:
+	if _flash_light == null:
+		return
+	var on := _flash > 0.01 and not _underwater
+	_flash_light.visible = on
+	# ночью вспышка заметнее (относительно темноты), днём — лёгкий всполох
+	_flash_light.light_energy = _flash * lerpf(1.6, 0.7, daylight()) if on else 0.0
 
 func _update_underwater(under: bool) -> void:
 	if under == _underwater or _env == null:

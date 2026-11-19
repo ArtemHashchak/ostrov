@@ -1,7 +1,7 @@
 shader_type spatial;
 // Дальние слои дождя: цилиндр вокруг камеры (изнутри), процедурные бегущие штрихи.
 // Наклон по ветру — поворотом узла. Перекрывается стенами/крышами через тест глубины.
-render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 
 uniform vec4 color : source_color = vec4(0.75, 0.8, 0.88, 0.22);
 uniform float columns = 900.0;      // штрихов по окружности
@@ -29,6 +29,6 @@ void fragment() {
 	float drop = smoothstep(0.0, streak_len * 0.4, fy) * (1.0 - smoothstep(streak_len * 0.6, streak_len, fy));
 	// края цилиндра по высоте растворяются
 	float vfade = smoothstep(0.0, 0.25, UV.y) * smoothstep(1.0, 0.7, UV.y);
-	ALBEDO = color.rgb * light;
+	ALBEDO = color.rgb * clamp(light, 0.35, 1.6);
 	ALPHA = color.a * line * drop * on * vfade * sheet_fade * amount;
 }

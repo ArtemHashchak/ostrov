@@ -1,10 +1,10 @@
 shader_type spatial;
 // Капля-штрих дождя (частица). Ось Y частицы (align_y) = скорость → штрих вытянут
 // вдоль полёта (наклон по ветру); квад разворачивается к камере вокруг этой оси.
-render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 
-uniform vec4 color : source_color = vec4(0.78, 0.84, 0.92, 0.5);
-uniform float width = 0.011;
+uniform vec4 color : source_color = vec4(0.80, 0.85, 0.92, 0.30);
+uniform float width = 0.013;
 uniform float length = 0.75;
 uniform float light = 1.0;      // освещённость сцены (день/ночь/вспышка молнии)
 uniform float near_fade = 1.2;
@@ -29,6 +29,8 @@ void vertex() {
 void fragment() {
 	float across = 1.0 - abs(UV.x * 2.0 - 1.0);
 	float along = smoothstep(0.0, 0.35, UV.y) * smoothstep(1.0, 0.75, UV.y);
-	ALBEDO = color.rgb * light;
+	// аддитивно: в тёмный шторм штрихи светлее фона, на ярком небе почти не видны (как в жизни)
+	float l = clamp(light, 0.35, 1.6);
+	ALBEDO = color.rgb * l;
 	ALPHA = color.a * across * along * v_fade;
 }
