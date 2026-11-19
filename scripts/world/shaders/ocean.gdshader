@@ -134,6 +134,26 @@ float wave_h_px(vec2 p) {
 	return h;
 }
 
+// Все волны (и короткие, что не двигают вершины): x — сжатие у гребня (якобиан,
+// 0..1 от максимума), y — нормированная высота.
+vec2 crest_px(vec2 p) {
+	float j = 0.0;
+	float qs = 0.0001;
+	float h = 0.0;
+	float at = 0.0001;
+	for (int i = 0; i < 8; i++) {
+		vec4 a = w_a[i];
+		if (a.z <= 0.0) continue;
+		float q = max(w_b[i].y, 0.35);
+		float s = sin(a.w * dot(a.xy, p - w_origin) - w_b[i].x);
+		j += q * a.w * a.z * s;
+		qs += q * a.w * a.z;
+		h += a.z * s;
+		at += a.z;
+	}
+	return vec2(j / qs, h / at);
+}
+
 // Рябь от капель: кольца в ячейках 0.7 м (одна выборка на пиксель, без текстур).
 vec2 rain_rings(vec2 p, float t) {
 	vec2 cell = floor(p / 0.7);
@@ -252,10 +272,28 @@ void fragment() {
 	float lace1 = texture(foam_tex, vec2(along_w * 0.035 - u_time * 0.03, across_w * 0.11)).r;
 	float lace2 = texture(foam_tex, vec2(along_w * 0.09 - u_time * 0.05, across_w * 0.27) + 0.41).r;
 	float lace = lace1 * 0.6 + lace2 * 0.55;
-	float lee = smoothstep(0.0, -0.25, dot(wg, wind_dir) / max(amp_px, 0.15));   // склон по ветру (спуск гребня)
-	float steep = smoothstep(0.35, 0.8, jac + crest * 0.3);
-	float cap = steep * smoothstep(0.05, 0.6, crest) * mix(0.6, 1.0, lee) * smoothstep(0.45, 0.85, lace + steep * 0.25);
-	foam = max(foam, cap * (0.12 + 0.88 * max(storm, wind_k * 0.6)) * 0.95);
+	// барашки — ломающиеся гребни: тонкие линии вдоль гребня с рваными краями
+	// и тающим шлейфом пены по ветру; вблизи — мелкие и частые (короткие волны),
+	// при сильном шторме сливаются в пятна
+	float cap = 0.0;
+	float cap_k = max(storm, wind_k * 0.6);
+	if (cap_k > 0.05 && length(p - cam_xz) < 220.0) {
+		float thr = mix(0.72, 0.42, cap_k);                 // чем сильнее ветер, тем больше гребней ломается
+		float wdt = mix(0.05, 0.16, smoothstep(0.75, 1.0, storm));   // ширина линии; в сильный шторм — пятна
+		vec2 c0 = crest_px(p);
+		float line = smoothstep(thr, thr + wdt, c0.x) * smoothstep(-0.1, 0.4, c0.y);
+		// рваный край: шум вытянут ВДОЛЬ гребня (поперёк ветра), мелкий — вдоль ветра
+		float rag = texture(foam_tex, vec2(along_w * 0.42 - u_time * 0.05, across_w * 0.06)).r * 0.6
+				+ texture(foam_tex, vec2(along_w * 0.9, across_w * 0.15) + 0.33).r * 0.5;
+		line *= smoothstep(0.35, 0.7, rag + line * 0.15);
+		// шлейф по ветру: гребень был здесь чуть раньше (сэмплы против ветра), тает
+		vec2 c1 = crest_px(p - wind_dir * 1.6);
+		vec2 c2 = crest_px(p - wind_dir * 3.4);
+		float tr = max(smoothstep(thr, thr + wdt * 1.5, c1.x) * 0.6, smoothstep(thr, thr + wdt * 2.0, c2.x) * 0.35);
+		tr *= smoothstep(0.55, 0.85, rag * 0.7 + lace * 0.5);
+		cap = max(line, tr) * (1.0 - smoothstep(150.0, 220.0, length(p - cam_xz)));
+	}
+	foam = max(foam, cap * (0.25 + 0.75 * cap_k) * 0.95);
 	// полосы пены вдоль ветра в шторм: тянутся за гребнем (след сорванной пены живёт
 	// 10–25 м с подветренной стороны), тонкое кружево, а не «мазки»
 	if (storm > 0.05) {

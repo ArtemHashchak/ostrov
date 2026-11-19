@@ -306,39 +306,18 @@ func _recalc_waves(dt: float) -> void:
 		_arr_a[i] = Vector4(_wdir[i].x, _wdir[i].y, amp, _wk[i])
 		_arr_b[i] = Vector4(_wphase[i], _wq[i], float(_wvtx[i]), 0.0)
 
-# --- водяная пыль с гребней в шторм (GPU-частицы у камеры, CPU — только позиция) ---
-var _spray: GPUParticles3D
+# --- водяная пыль с гребней в шторм: несколько маленьких GPU-эмиттеров, которые
+# раз в ~0.3 с переставляются на самые крутые гребни у камеры (CPU: 16 точек × до 8 волн).
+const SPRAY_N := 3
+const SPRAY_PROBES := 16
+var _sprays: Array[GPUParticles3D] = []
+var _spray_t := 0.0
+var _spray_seed := 0
+var _spray_best := 0.0   # для тестов: сжатие лучшего гребня в пробах
 
 func _make_spray() -> void:
-	_spray = GPUParticles3D.new()
-	_spray.name = "StormSpray"
-	_spray.amount = 360
-	_spray.lifetime = 1.4
-	_spray.local_coords = false
-	_spray.emitting = false
-	_spray.visibility_aabb = AABB(Vector3(-60, -10, -60), Vector3(120, 30, 120))
-	var pm := ParticleProcessMaterial.new()
-	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	pm.emission_box_extents = Vector3(45.0, 0.6, 45.0)
-	pm.direction = Vector3(1, 0.25, 0)
-	pm.spread = 14.0
-	pm.initial_velocity_min = 7.0
-	pm.initial_velocity_max = 15.0
-	pm.gravity = Vector3(0, -5.0, 0)
-	pm.damping_min = 1.0
-	pm.damping_max = 2.0
-	pm.scale_min = 0.5
-	pm.scale_max = 1.6
-	var fade := Gradient.new()
-	fade.set_color(0, Color(1, 1, 1, 0.0))
-	fade.add_point(0.15, Color(1, 1, 1, 0.55))
-	fade.set_color(fade.get_point_count() - 1, Color(1, 1, 1, 0.0))
-	var gt := GradientTexture1D.new()
-	gt.gradient = fade
-	pm.color_ramp = gt
-	_spray.process_material = pm
 	var q := QuadMesh.new()
-	q.size = Vector2(1.6, 0.5)
+	q.size = Vector2(0.9, 0.28)
 	var m := StandardMaterial3D.new()
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -350,27 +329,96 @@ func _make_spray() -> void:
 	rad.fill_from = Vector2(0.5, 0.5)
 	rad.fill_to = Vector2(1.0, 0.5)
 	var g2 := Gradient.new()
-	g2.set_color(0, Color(1, 1, 1, 0.7))
+	g2.set_color(0, Color(1, 1, 1, 0.38))
 	g2.set_color(1, Color(1, 1, 1, 0.0))
 	rad.gradient = g2
 	m.albedo_texture = rad
 	q.material = m
-	_spray.draw_pass_1 = q
-	add_child(_spray)
-	_spray.top_level = true
+	var fade := Gradient.new()
+	fade.set_color(0, Color(1, 1, 1, 0.0))
+	fade.add_point(0.12, Color(1, 1, 1, 0.6))
+	fade.set_color(fade.get_point_count() - 1, Color(1, 1, 1, 0.0))
+	var gt := GradientTexture1D.new()
+	gt.gradient = fade
+	for i in SPRAY_N:
+		var sp := GPUParticles3D.new()
+		sp.name = "StormSpray%d" % i
+		sp.amount = 90
+		sp.lifetime = 1.2
+		sp.local_coords = false
+		sp.emitting = false
+		sp.visibility_aabb = AABB(Vector3(-25, -6, -25), Vector3(50, 16, 50))
+		var pm := ParticleProcessMaterial.new()
+		pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+		pm.emission_box_extents = Vector3(5.0, 0.25, 1.2)   # вдоль гребня — длинно
+		pm.direction = Vector3(1, 0.3, 0)
+		pm.spread = 12.0
+		pm.initial_velocity_min = 6.0
+		pm.initial_velocity_max = 13.0
+		pm.gravity = Vector3(0, -5.0, 0)
+		pm.damping_min = 1.0
+		pm.damping_max = 2.0
+		pm.scale_min = 0.4
+		pm.scale_max = 1.4
+		pm.color_ramp = gt
+		sp.process_material = pm
+		sp.draw_pass_1 = q
+		add_child(sp)
+		sp.top_level = true
+		_sprays.append(sp)
 
-func _update_spray(cam_pos: Vector3) -> void:
-	if _spray == null:
+## Сжатие поверхности у гребня (0..1 от максимума) в точке — как crest_px в шейдере.
+func _crest_j(p: Vector2) -> float:
+	var j := 0.0
+	var qs := 0.0001
+	for i in n_comp:
+		if _wamp[i] <= 0.0:
+			continue
+		var qq := maxf(_wq[i], 0.35)
+		var s := sin(_wk[i] * _wdir[i].dot(p - _origin) - _wphase[i])
+		j += qq * _wk[i] * _wamp[i] * s
+		qs += qq * _wk[i] * _wamp[i]
+	return j / qs
+
+func _update_spray(dt: float, cam_pos: Vector3) -> void:
+	if _sprays.is_empty():
 		return
 	var k := smoothstep(0.35, 0.9, storm) * (1.0 if quality >= 1 else 0.0)
-	_spray.emitting = k > 0.01
-	if not _spray.emitting:
+	if k <= 0.01:
+		for sp in _sprays:
+			sp.emitting = false
 		return
-	_spray.amount_ratio = k
-	var crest_h := water_level + _swell_amp * 0.35
-	_spray.global_position = Vector3(cam_pos.x, crest_h, cam_pos.z) + Vector3(-wind_dir.x, 0.0, -wind_dir.y) * 15.0
-	var pm := _spray.process_material as ParticleProcessMaterial
-	pm.direction = Vector3(wind_dir.x, 0.22, wind_dir.y)
+	_spray_t -= dt
+	if _spray_t > 0.0:
+		return
+	_spray_t = 0.3
+	# пробы на кольцах 6–40 м вокруг камеры (сдвиг по кругу каждый раз — разные точки)
+	var cam := Vector2(cam_pos.x, cam_pos.z)
+	var best: Array = []   # [j, Vector2]
+	_spray_seed += 1
+	for i in SPRAY_PROBES:
+		var ang := TAU * (float(i) + fposmod(_spray_seed * 0.618, 1.0)) / float(SPRAY_PROBES)
+		var r := 12.0 + 30.0 * fposmod(i * 0.381 + _spray_seed * 0.13, 1.0)   # не у самого лица
+		var pt := cam + Vector2.from_angle(ang) * r
+		best.append([_crest_j(pt), pt])
+	best.sort_custom(func(a, b): return a[0] > b[0])
+	var thr := lerpf(0.66, 0.36, storm)
+	_spray_best = float(best[0][0]) if not best.is_empty() else 0.0
+	var along := Vector2(wind_dir.y, -wind_dir.x)   # правая тройка: along × up = wind
+	for i in _sprays.size():
+		var sp := _sprays[i]
+		var ok: bool = i < best.size() and float(best[i][0]) > thr
+		sp.emitting = ok
+		if not ok:
+			continue
+		sp.amount_ratio = k
+		var pt: Vector2 = best[i][1]
+		var h := wave_height(pt.x, pt.y)
+		# эмиттер вытянут вдоль гребня (поперёк ветра)
+		var basis := Basis(Vector3(along.x, 0, along.y), Vector3.UP, Vector3(wind_dir.x, 0, wind_dir.y))
+		sp.global_transform = Transform3D(basis, Vector3(pt.x, h + 0.2, pt.y))
+		var pm := sp.process_material as ParticleProcessMaterial
+		pm.direction = Vector3(0, 0.3, 1)   # в локальных осях: +Z — по ветру
 
 ## Перенести опору фаз к камере (без изменения поля волн).
 func _reanchor(cam: Vector2) -> void:
@@ -430,7 +478,7 @@ func _update(dt: float, cam_pos: Vector3, level: float, scale_waves: float) -> v
 	_smooth_weather(dt, scale_waves)
 	_reanchor(Vector2(cam_pos.x, cam_pos.z))
 	_recalc_waves(dt)
-	_update_spray(cam_pos)
+	_update_spray(dt, cam_pos)
 	var step := inner_step()
 	global_position = Vector3(snappedf(cam_pos.x, step), 0.0, snappedf(cam_pos.z, step))
 	# время для текстур (пена, рябь) — с переносом раз в 2 ч, чтобы не терять точность

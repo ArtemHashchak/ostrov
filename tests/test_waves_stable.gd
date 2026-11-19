@@ -140,6 +140,19 @@ func run() -> void:
 	cam.look_at(Vector3(sea.x + 80.0, w.water_level(), sea.y + 30.0))
 	await wait(1.0)
 	await shot("storm_open")
+	var em := 0
+	for i in 8:
+		await wait(0.35)
+		for sp in oc._sprays:
+			if sp.emitting:
+				em += 1
+	print("[test] брызги: активных эмиттеров за 8 проб: %d (лучший гребень j=%.2f)" % [em, oc._spray_best])
+	check(em > 0, "шторм: брызги срываются с гребней (%d)" % em)
+	var tc := Time.get_ticks_usec()
+	for i in 100:
+		oc._spray_t = 0.0
+		oc._update_spray(0.016, cam.global_position)
+	print("[test] поиск гребней для брызг: %.1f мкс" % (float(Time.get_ticks_usec() - tc) / 100.0))
 	cam.global_position = Vector3(sea.x, w.water_level() + 14.0, sea.y)
 	cam.look_at(Vector3(sea.x + 180.0, w.water_level(), sea.y + 40.0))
 	await wait(0.6)
