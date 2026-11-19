@@ -291,7 +291,7 @@ func populate() -> void:
 	for I in _island_list:
 		var c: Vector2 = I["center"]
 		var R: float = float(I["radius"]) * 1.3 + 8.0
-		var prof: Dictionary = PROFILES.get(StringName(I.get("kind", &"home")), PROFILES[&"home"])
+		var prof: Dictionary = I.get("flora_profile", PROFILES.get(StringName(I.get("kind", &"home")), PROFILES[&"home"]))   # flora_profile — свой профиль типа острова (IslandGen)
 		for j in range(int(floor((c.y - R) / CELL)), int(ceil((c.y + R) / CELL))):
 			for i in range(int(floor((c.x - R) / CELL)), int(ceil((c.x + R) / CELL))):
 				var key := Vector2i(i, j)

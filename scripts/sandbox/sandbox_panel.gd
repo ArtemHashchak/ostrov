@@ -63,6 +63,10 @@ func _ready() -> void:
 	_status = UITheme.label("", 14, UITheme.TEXT_DIM)
 	head.add_child(_status)
 	var close := Button.new()
+	var isl := Button.new()
+	isl.text = "Полигон островов"
+	isl.pressed.connect(func() -> void: IslandsShowcase.start(get_tree()))
+	head.add_child(isl)
 	close.text = "Закрыть (F1)"
 	close.pressed.connect(close_panel)
 	head.add_child(close)
