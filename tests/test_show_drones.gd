@@ -76,3 +76,19 @@ func run() -> void:
 		await shot("03_medic")
 	await wait(3.5)
 	check(sd.get_node_or_null(^"MedicDrone") == null, "дрон-медик улетел и удалён")
+	# Ведущий: реплика-субтитр, очередь, флаг чужой команды
+	var host := ShowHost.instance()
+	check(host != null, "Ведущий создан вместе с SUPPLY")
+	if host == null:
+		return
+	host.say("Проверка эфира.")
+	await wait(0.3)
+	check(host.current == "Проверка эфира.", "реплика на экране")
+	Events.flag_destroyed.emit(2, null)
+	var t := 0.0
+	while t < 9.0 and not host.current.contains("Зелёных"):
+		await wait(0.25)
+		t += 0.25
+	check(host.current.contains("Зелёных"), "Ведущий объявил уничтожение флага Зелёных: «%s»" % host.current)
+	await wait(0.5)
+	await shot("04_host")

@@ -54,6 +54,8 @@ func _ready() -> void:
 	# лор шоу: дроны-камеры над участниками
 	var dr := ShowDrones.new()
 	add_child(dr)
+	# и «Ведущий» — субтитры реплик (сбросы, флаги, выбывание, первая кровь)
+	add_child(ShowHost.new())
 
 func _exit_tree() -> void:
 	SupplyModels.clear_caches()
