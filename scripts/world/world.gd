@@ -213,9 +213,11 @@ func _process(delta: float) -> void:
 
 func _perf_process(delta: float) -> void:
 	time_s += delta
+	_update_surge(delta)
 	var level := water_level()
 	var cam := get_viewport().get_camera_3d()
 	var cp := cam.global_position if cam else Vector3.ZERO
+	ocean.set_weather_drive(wind_dir(), wind_speed(), storm_intensity(), rain_factor())
 	ocean.update(delta, cp, level, sky.wave_scale())
 	terrain_material.set_shader_parameter(&"water_level", level)
 	terrain_material.set_shader_parameter(&"time_s", time_s)
@@ -259,7 +261,20 @@ func biome_at(x: float, z: float) -> StringName:
 
 ## Текущий уровень воды (среднее 0 + прилив).
 func water_level() -> float:
-	return sin(time_s / tide_period * TAU) * tide_amplitude
+	return sin(time_s / tide_period * TAU) * tide_amplitude + _surge
+
+## Штормовой нагон: море поднимается до ~1.3 м и плавно (минуты) уходит обратно.
+var _surge := 0.0
+const SURGE_MAX := 1.3
+
+func storm_surge() -> float:
+	return _surge
+
+func _update_surge(dt: float) -> void:
+	var target := SURGE_MAX * smoothstep(0.25, 1.0, storm_intensity())
+	# поднимается ~за 2 мин, спадает ~за 4 мин
+	var tau := 120.0 if target > _surge else 240.0
+	_surge = lerpf(_surge, target, 1.0 - exp(-dt / tau))
 
 func tide_rising() -> bool:
 	return cos(time_s / tide_period * TAU) > 0.0
