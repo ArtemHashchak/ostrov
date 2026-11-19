@@ -48,6 +48,15 @@
 - Пробы (не входят в набор): `tests/probes/` (напр. `probe_terrain3d.gd`).
 - **Важно:** под llvmpipe кадр рисуется медленно — меряй время через `wait(sec)`/`physics_frame`, а не числом кадров рендера.
 
+## Как тестировать быстро (с 2026-11-20)
+- **По умолчанию — быстрый режим:** `tests/run.sh tests/test_x.gd --fast` — headless (без окна и GPU), снимков нет, только проверки. Лёгкий по памяти, можно параллельно. Несколько тестов в одном процессе: `tests/run.sh a.gd,b.gd --fast`.
+- **Наборы:** `tests/run_suite.sh smoke` (≈3 мин, после каждого коммита) · `tests/run_suite.sh module <имя>` (все `test_<имя>*`, после правок модуля) · `tests/run_suite.sh full` (всё; рендер-тесты со снимками — только перед сборкой) · `tests/run_suite.sh list a b c`. Итог — `tests/logs/_suite_<режим>.txt`.
+- **Снимки** (`tests/run.sh … --shots`, или старый вызов без флага) — только когда менялась картинка и нужно на неё посмотреть. `TEST_LOW=1` — облегчённая графика.
+- **Рендер-тесты** помечены строкой `## test-class: render` (нужны пиксели/`frame_post_draw`/лучи из экрана): sea_life_cells, world_g2, survival_water. В `--fast` `shot()` пропускается, но `RenderingServer.frame_post_draw` в headless не наступает никогда — такие тесты помечать.
+- **Очередь Godot:** `tools/godot_slots.sh render|logic <cmd>` — 1 рендер-слот (общий `/tmp/claude-0/godot.lock`), `LOGIC_SLOTS`=2 headless-слота. `tools/test_reaper.sh` (запускается наборами сам) убивает тесты старше 75 мин и зависшие очереди старше 3 ч — остатки погибших агентов.
+- **Кэш мира:** выборка высот архипелага кэшируется в `.godot/test_cache` (ключ — md5 `scripts/world/*.gd` + размер мира): мир в тестах строится за ~14 с вместо ~45 с. Правка генератора → кэш пересчитается сам.
+- Если после смены способа тестирования полезут баги — вернуться к полному прогону со снимками (`tests/run_suite.sh full`).
+
 ## Сцены
 - `scenes/test/test_island.tscn` (+ `scripts/world/test_island.gd`) — остров-заглушка: рельеф на PBR-текстурах, HDRI-небо, вода по рендеру, камни/папоротники из ассетов, бревно (`TestLog`) и мишень (`TestTarget`), игрок. Главная сцена проекта, пока WORLD не сделает настоящую.
 - `scenes/player/player.tscn` — игрок (`Player`, CharacterBody3D; дети создаются в коде).

@@ -52,8 +52,11 @@ func build(a: Archipelago, mat: Material) -> void:
 		for cx in range(cx0, cx1):
 			_keys.append(Vector2i(cx, cz))
 			_jobs.append({})
-	var gid := WorkerThreadPool.add_group_task(_job, _keys.size(), -1, true, "terrain sample")
-	WorkerThreadPool.wait_for_group_task_completion(gid)
+	var cache_path := _cache_path()
+	if not _load_cache(cache_path):
+		var gid := WorkerThreadPool.add_group_task(_job, _keys.size(), -1, true, "terrain sample")
+		WorkerThreadPool.wait_for_group_task_completion(gid)
+		_save_cache(cache_path)
 	var t1 := Time.get_ticks_usec()
 	var tris := {"lod0": 0, "lod1": 0, "lod2": 0, "lod3": 0, "sea": 0}
 	_sea_blocks.clear()
@@ -76,6 +79,53 @@ func chunk_count() -> Dictionary:
 		else:
 			coarse += 1
 	return {"fine": fine, "coarse": coarse, "total": _chunks.size()}
+
+# ------------------------------------------------------------ кэш выборки (тесты)
+## OSTROVA_TERRAIN_CACHE=1 (ставит tests/run.sh): выборка высот сохраняется в
+## .godot/test_cache и при повторном запуске читается вместо 15–30 с расчёта.
+## Ключ — сид, размер мира и md5 скриптов scripts/world/*.gd (любая правка генератора → новый кэш).
+
+func _cache_path() -> String:
+	if OS.get_environment("OSTROVA_TERRAIN_CACHE") != "1":
+		return ""
+	var ctx := HashingContext.new()
+	ctx.start(HashingContext.HASH_MD5)
+	ctx.update(("%s|%d|%d" % [str(arch.bounds), arch.islands.size(), _keys.size()]).to_utf8_buffer())
+	var files := DirAccess.get_files_at("res://scripts/world")
+	files.sort()
+	for f in files:
+		if f.ends_with(".gd"):
+			ctx.update(FileAccess.get_file_as_bytes("res://scripts/world/" + f))
+	var key := ctx.finish().hex_encode().substr(0, 16)
+	var dir := ProjectSettings.globalize_path("res://.godot/test_cache")
+	DirAccess.make_dir_recursive_absolute(dir)
+	return dir + "/terrain_" + key + ".bin"
+
+func _load_cache(path: String) -> bool:
+	if path == "" or not FileAccess.file_exists(path):
+		return false
+	var f := FileAccess.open_compressed(path, FileAccess.READ, FileAccess.COMPRESSION_ZSTD)
+	if f == null:
+		return false
+	var data: Variant = bytes_to_var(f.get_buffer(f.get_length()))
+	f.close()
+	if not (data is Array) or (data as Array).size() != _keys.size():
+		return false
+	for i in _keys.size():
+		_jobs[i] = data[i]
+	print("[terrain] выборка высот из кэша: ", path.get_file())
+	return true
+
+func _save_cache(path: String) -> void:
+	if path == "":
+		return
+	var tmp := path + ".tmp%d" % OS.get_process_id()
+	var f := FileAccess.open_compressed(tmp, FileAccess.WRITE, FileAccess.COMPRESSION_ZSTD)
+	if f == null:
+		return
+	f.store_buffer(var_to_bytes(_jobs))
+	f.close()
+	DirAccess.rename_absolute(tmp, path)
 
 # ------------------------------------------------------------ выборка (потоки)
 

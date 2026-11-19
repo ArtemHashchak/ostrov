@@ -39,7 +39,15 @@ func tap(action: StringName) -> void:
 	Input.parse_input_event(up)
 	await wait_frames(1)
 
+## Быстрый режим (tests/run.sh --fast, headless): снимков нет, только логика.
+static func is_fast() -> bool:
+	return DisplayServer.get_name() == "headless" or OS.get_environment("OSTROVA_TEST_FAST") == "1"
+
 func shot(shot_name: String) -> void:
+	if is_fast():
+		await get_tree().process_frame
+		print("[test] shot (пропущен, быстрый режим) ", shot_name)
+		return
 	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
 	var dir := ProjectSettings.globalize_path(shots_dir)
