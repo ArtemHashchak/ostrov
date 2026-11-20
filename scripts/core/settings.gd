@@ -3,6 +3,10 @@ extends Node
 ## project.godot не правили все модули сразу и чтобы работало переназначение.
 
 const SAVE_PATH := "user://settings.cfg"
+## Автотесты (--test=…) пишут сюда и при старте ничего не читают: каждый тест начинает
+## с настроек по умолчанию, а настройки игрока не затираются (раньше «Низкое» из рендер-
+## тестов с TEST_LOW=1 сохранялось и ломало следующие тесты, напр. завесу ливня в test_weather).
+const TEST_SAVE_PATH := "user://settings_test.cfg"
 
 var mouse_sensitivity: float = 0.0022
 var gamepad_look_speed: float = 2.6
@@ -87,7 +91,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_input_map()
 	AutoLOD.connect_tree(get_tree())
-	load_settings()
+	if not _is_test_run():
+		load_settings()
 	apply_graphics.call_deferred()
 	PerfOverlay.ensure.call_deferred(get_tree().root)
 	var args := OS.get_cmdline_user_args()
@@ -162,7 +167,7 @@ func save_settings() -> void:
 			if ev is InputEventKey:
 				keys.append((ev as InputEventKey).physical_keycode)
 		cfg.set_value("keys", String(action), keys)
-	cfg.save(SAVE_PATH)
+	cfg.save(TEST_SAVE_PATH if _is_test_run() else SAVE_PATH)
 
 func load_settings() -> void:
 	var cfg := ConfigFile.new()

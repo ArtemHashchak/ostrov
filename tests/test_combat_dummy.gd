@@ -18,6 +18,9 @@ func fire_at(target: Vector3, wait_sec: float = 0.6) -> Dictionary:
 	var n0 := dummy.hits.size()
 	aim_at(target)
 	await wait_frames(2)
+	# разброс (randfn, σ = spread/2) у пистоля в ADS на 12 м ≈ ±0.12 м — иногда уводил мимо ноги
+	# манекена (флейк). Тест проверяет зоны и урон, не разброс: фиксируем зерно перед выстрелом.
+	seed(20261120)
 	await tap(&"attack")
 	var t := 0.0
 	while dummy.hits.size() == n0 and t < wait_sec:
