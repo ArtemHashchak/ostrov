@@ -80,6 +80,11 @@ void vertex() {
 
 void fragment() {
 	vec3 c = COLOR.rgb * tint;
+	// двусторонние ленты (келп, листья, плавники): у обратной стороны нормаль должна смотреть
+	// на камеру, иначе изнанка неосвещённая и почти чёрная
+	if (!FRONT_FACING) {
+		NORMAL = -NORMAL;
+	}
 	ALBEDO = c;
 	ROUGHNESS = rough;
 	SPECULAR = 0.45;

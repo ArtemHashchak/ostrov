@@ -226,7 +226,8 @@ func run() -> void:
 		_specific(id, s)
 		dir.stop_all()
 		await wait_frames(2)
-	check(ok_start >= 26, "поставлено сцен: %d" % ok_start)
+	if OS.get_environment("SEA_SCENES_ONLY") == "":
+		check(ok_start >= 26, "поставлено сцен: %d" % ok_start)
 	print("[test] цена тика сцен (среднее, мкс): ", ", ".join(cost))
 
 	# --- реакции режиссёра: ночь — искры планктона вокруг движущегося пловца

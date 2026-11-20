@@ -48,12 +48,16 @@ static func _mat(additive: bool) -> StandardMaterial3D:
 static func _make(parent: Node, at: Vector3, amount: int, life: float, col_a: Color, col_b: Color, size_a: float, size_b: float, additive: bool, dur: float) -> CPUParticles3D:
 	if parent == null or not parent.is_inside_tree():
 		return null
+	# В Compatibility слоты частиц, которые ещё не «родились» (непрерывная/растянутая эмиссия,
+	# explosiveness < 1), рисуются тёмным диском под туманом. Поэтому каждый выброс — мгновенный
+	# (explosiveness = 1), а длинное облако на dur секунд — серия коротких выбросов.
+	var bursts := 1 if dur <= 0.0 else clampi(int(ceil(dur / 0.6)), 2, 14)
 	var p := CPUParticles3D.new()
-	p.amount = maxi(amount, 1)
+	p.amount = maxi(int(ceil(float(amount) / bursts)), 1)
 	p.lifetime = life
 	p.local_coords = false
-	p.one_shot = dur <= 0.0
-	p.explosiveness = 0.8 if dur <= 0.0 else 0.0
+	p.one_shot = true
+	p.explosiveness = 1.0
 	p.scale_amount_min = size_a
 	p.scale_amount_max = size_b
 	var grad := Gradient.new()
@@ -64,19 +68,28 @@ static func _make(parent: Node, at: Vector3, amount: int, life: float, col_a: Co
 	q.size = Vector2.ONE
 	q.material = _mat(additive)
 	p.mesh = q
-	# В Compatibility первый кадр CPUParticles3D рисуется с ещё не залитым цветом экземпляров —
-	# частица видна чёрным диском. Прячем систему на два кадра, пока буфер не обновится.
-	p.visible = false
+	p.emitting = false
 	parent.add_child(p)
 	p.global_position = at
-	p.emitting = true
-	var tw_show := p.create_tween()
-	tw_show.tween_interval(0.06)
-	tw_show.tween_callback(func() -> void: p.visible = true)
 	var tw := p.create_tween()
-	if dur > 0.0:
-		tw.tween_interval(dur)
-		tw.tween_callback(func() -> void: p.emitting = false)
+	# первый выброс — на следующем кадре, когда вызывающий уже настроил форму/скорость
+	tw.tween_interval(0.0)
+	tw.tween_callback(func() -> void:
+		p.explosiveness = 1.0
+		p.emitting = true)
+	for i in range(1, bursts):
+		tw.tween_interval(dur / bursts)
+		tw.tween_callback(func() -> void:
+			if not is_instance_valid(p) or not p.is_inside_tree():
+				return
+			var c := p.duplicate() as CPUParticles3D
+			p.get_parent().add_child(c)
+			c.global_position = p.global_position
+			c.explosiveness = 1.0
+			c.emitting = true
+			var tc := c.create_tween()
+			tc.tween_interval(c.lifetime + 0.3)
+			tc.tween_callback(c.queue_free))
 	tw.tween_interval(life + 0.3)
 	tw.tween_callback(p.queue_free)
 	return p
