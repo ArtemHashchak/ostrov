@@ -295,6 +295,15 @@ func _trail_follow(lat: float) -> void:
 		for j in N:
 			pts[j] = Vector3(0.0, ys, lerpf(z0, z1, float(j) / (N - 1)))
 		trail.clear()
+	# След «ложится» на рельеф: каждая точка следа держит ту же высоту над землёй, что и голова.
+	# Иначе после появления/падения на землю старые точки следа остаются выше или ниже головы,
+	# и ящерица «встаёт на дыбы» (нос вверх, хвост в земле) — особенно в покое, когда след не обновляется.
+	if trail.size() > 1 and model != null and model.is_inside_tree():
+		var hw := model.to_global(_head_local(lat))
+		var h_head := hw.y - Fauna.ground_y_at(a, hw.x, hw.z)
+		for i in range(1, trail.size()):
+			var tp := trail[i]
+			trail[i].y = Fauna.ground_y_at(a, tp.x, tp.z) + h_head
 	super._trail_follow(lat)
 
 ## Вместо шейдера: кости по кадрам позвоночника.

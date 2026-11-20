@@ -238,6 +238,8 @@ func _lizard_section(p: Vector2, d: Vector2, gy: float) -> void:
 		at += right * 3.0
 
 ## Стопы обеих сторон — на земле (IK), брюхо низко. walking: опорные стопы (две из четырёх в переносе).
+var _k_ref := 0.0
+
 func _check_feet(a: Node3D, sp: StringName, what: String, walking := false) -> void:
 	var sk := a.find_child("Skeleton3D", true, false) as Skeleton3D
 	if sk == null:
@@ -259,11 +261,18 @@ func _check_feet(a: Node3D, sp: StringName, what: String, walking := false) -> v
 		var g2 := sk.global_transform * sk.get_bone_global_pose(bi2)
 		belly = g2.origin.y - w.height_at(g2.origin.x, g2.origin.z)
 	print("[test] %s %s: стопы над землёй %s, ось туловища %.3f м" % [sp, what, str(hs.map(func(v): return snappedf(v, 0.005))), belly])
+	# высота кости запястья над подошвой растёт с размером зверя: пороги масштабируются
+	# по масштабу модели относительно игуаны (варан крупнее ≈ в 1.4 раза)
+	var body := a.find_child("Body", true, false) as Node3D
+	var ks: float = body.scale.x if body else 1.0
+	if sp == &"iguana" or _k_ref <= 0.0:
+		_k_ref = ks if sp == &"iguana" else (_k_ref if _k_ref > 0.0 else ks)
+	var kf: float = maxf(1.0, ks / maxf(_k_ref, 1e-5))
 	if hs.size() == 4:
 		var sorted_h: Array = hs.duplicate()
 		sorted_h.sort()
 		var planted: float = sorted_h[1] if walking else sorted_h[3]
-		check(absf(sorted_h[0]) < 0.06 and planted < 0.07, "%s %s: стопы обеих сторон на земле" % [sp, what])
+		check(absf(sorted_h[0]) < 0.06 * kf and planted < 0.07 * kf, "%s %s: стопы обеих сторон на земле" % [sp, what])
 		check(absf(float(hs[0]) - float(hs[1])) < 0.05 or walking, "%s %s: левая и правая стороны симметричны" % [sp, what])
 
 func _bat_section(p: Vector2, d: Vector2, gy: float) -> void:
