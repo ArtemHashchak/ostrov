@@ -328,5 +328,136 @@
     "note": "текстура-заглушка 64x64 — цвет задаёт шейдер вида (params color_a/color_b), не трогаем"
    }
   ]
+ },
+ {
+  "model": "animals/lizard/lizard_user.glb",
+  "scale": 15.34837653692773,
+  "materials": [
+   {
+    "material": "lizard",
+    "class": "reptile_skin",
+    "density_px_m": 804,
+    "density": "в норме",
+    "uv_used": 0.472,
+    "y_med_before": 0.2219,
+    "y_p95_before": 0.4028,
+    "sat_before": 0.4425,
+    "baked_before": 0.1749,
+    "baked_after": 0.135,
+    "y_med_after": 0.2237,
+    "y_p95_after": 0.3768,
+    "sat_after": 0.4425,
+    "detail": "scales, период 3.2 px (4 мм), сила 0.14",
+    "rough_before": 0.506,
+    "rough_after": 0.506
+   }
+  ]
+ },
+ {
+  "model": "animals/bat/bat_user.glb",
+  "scale": 0.5294163903967243,
+  "materials": [
+   {
+    "material": "bat",
+    "class": "bat_skin",
+    "density_px_m": 1783,
+    "density": "в норме",
+    "uv_used": 0.177,
+    "y_med_before": 0.0909,
+    "y_p95_before": 0.4419,
+    "sat_before": 0.5143,
+    "baked_before": 0.41,
+    "baked_after": 0.3178,
+    "y_med_after": 0.0897,
+    "y_p95_after": 0.3457,
+    "sat_after": 0.368,
+    "detail": "pores, период 5.3 px (3 мм), сила 0.10"
+   }
+  ]
+ },
+ {
+  "model": "rocks/tex/stone002_albedo.png",
+  "materials": [
+   {
+    "material": "stone002_albedo.png",
+    "class": "rock",
+    "y_med_before": 0.309,
+    "y_p95_before": 0.4385,
+    "sat_before": 0.0839,
+    "baked_before": 0.0597,
+    "baked_after": 0.0548,
+    "y_med_after": 0.309,
+    "y_p95_after": 0.4359,
+    "sat_after": 0.0839
+   }
+  ]
+ },
+ {
+  "model": "rocks/tex/stone004_albedo.png",
+  "materials": [
+   {
+    "material": "stone004_albedo.png",
+    "class": "rock",
+    "y_med_before": 0.2172,
+    "y_p95_before": 0.2732,
+    "sat_before": 0.0171,
+    "baked_before": 0.0219,
+    "baked_after": 0.0206,
+    "y_med_after": 0.2172,
+    "y_p95_after": 0.2732,
+    "sat_after": 0.0171
+   }
+  ]
+ },
+ {
+  "model": "rocks/tex/stone005_albedo.png",
+  "materials": [
+   {
+    "material": "stone005_albedo.png",
+    "class": "rock",
+    "y_med_before": 0.552,
+    "y_p95_before": 0.7016,
+    "sat_before": 0.0142,
+    "baked_before": 0.048,
+    "baked_after": 0.0445,
+    "y_med_after": 0.3502,
+    "y_p95_after": 0.4437,
+    "sat_after": 0.013
+   }
+  ]
+ },
+ {
+  "model": "rocks/tex/stone006_albedo.png",
+  "materials": [
+   {
+    "material": "stone006_albedo.png",
+    "class": "rock",
+    "y_med_before": 0.3434,
+    "y_p95_before": 0.3976,
+    "sat_before": 0.1486,
+    "baked_before": 0.0215,
+    "baked_after": 0.0198,
+    "y_med_after": 0.3436,
+    "y_p95_after": 0.3976,
+    "sat_after": 0.1486
+   }
+  ]
+ },
+ {
+  "model": "rocks/tex/stone007_albedo.png",
+  "materials": [
+   {
+    "material": "stone007_albedo.png",
+    "class": "rock",
+    "y_med_before": 0.2807,
+    "y_p95_before": 0.3437,
+    "sat_before": 0.0261,
+    "baked_before": 0.055,
+    "baked_after": 0.0501,
+    "y_med_after": 0.2805,
+    "y_p95_after": 0.3409,
+    "sat_after": 0.0261
+   }
+  ]
  }
 ]

@@ -1,32 +1,54 @@
 extends Node
 ## Следы на песке (автозагрузка SandTracks).
-## Хранит только недавние отпечатки рядом с камерой (до MAX_PRINTS записей: место, направление шага,
-## левая/правая, размер, «свежесть»). Раз в 1/REDRAW_HZ с карта 1024×1024 на окно 32×32 м вокруг
-## камеры (3 см на пиксель) перерисовывается из этих записей: R — глубина отпечатка 0..1.
-## Шейдер рельефа (terrain_tropic) по ней продавливает песок (нормаль по краю отпечатка, тень в лунке)
-## и подмешивает утоптанный песок пользователя (Грунт/Песок → assets/textures/sand_trampled).
-## Старое выцветает (сухой песок ~15 мин, в дождь быстрее), ниже линии наката волна размывает
-## отпечаток за несколько секунд. Свои следы оставляют персонажи (группа characters) и крупные звери.
+##
+## Хранит недавние отпечатки рядом с камерой (до MAX_PRINTS записей). Карта следов RG 2048² на окно
+## 24×24 м вокруг камеры (1.2 см на пиксель) рисуется на GPU: SubViewport с 2D-холстом, каждый
+## отпечаток — повернутый штамп своего вида (ступня человека с пальцами, раздвоенное копыто кабана,
+## когтистая лапа ящерицы/варана/крокодила, ладонь обезьяны, ласт черепахи, борозда хвоста/брюха).
+##   R — глубина лунки 0..1 (1 = TRACK_DEPTH в шейдере, 4.5 см), G — валик выдавленного песка.
+## Штампы строятся один раз процедурно (маска глубины → валик = размытая маска минус сама маска).
+## Новый отпечаток перекрывает старый (как настоящая нога). Шейдер рельефа (terrain_tropic) делает
+## по карте параллакс (лунка видна глубокой при взгляде сбоку), нормаль стенок и валика, тёмное
+## влажное дно и утоптанное зерно песка пользователя.
+## Старое заплывает (сухой песок ~15 мин, в дождь быстрее); ниже линии наката волна стирает отпечаток
+## за несколько секунд. Следы оставляют персонажи (группа characters) и крупные звери: у каждого своя
+## походка (человек — левая/правая; кабан — рысь диагоналями; ящерицы/варан/крокодил — лапы широко в
+## стороны, пальцы развернуты наружу, волнистая борозда хвоста; черепаха — пары ласт + борозда панциря).
 
-const RES := 1024
-const SIZE := 32.0                  # м на сторону окна → 3.1 см/пиксель
-const MAX_PRINTS := 360
+const RES := 2048
+const SIZE := 24.0                  # м на сторону окна → 1.17 см/пиксель
+const STAMP_RES := 128
+const MAX_PRINTS := 700
 const STRIDE := 0.72                # м между шагами человека
 const FOOT_LEN := 0.27
-const FOOT_W := 0.105
 const FADE_PER_S := 1.0 / 900.0     # сухой песок: ~15 минут
 const RAIN_PER_S := 1.0 / 120.0
 const WASH_PER_S := 1.0 / 3.0       # под накатом — за 3 с
 const REDRAW_HZ := 8.0
-const ANIMAL_SPECIES := [&"boar", &"croc", &"turtle", &"monitor", &"iguana", &"monkey"]
+
+enum { FOOT, HOOF, CLAW, HAND, FLIPPER, DRAG }
+
+## Походки: шаг (м), штамп, размер штампа (м, сторона квадрата), смещение лап вбок, база (перед—зад),
+## разворот пальцев наружу (рад), сила вдавливания, борозда хвоста/брюха (ширина м, 0 — нет).
+const GAITS := {
+	&"human":   {"stride": 0.72, "type": FOOT,    "size": 0.375, "lat": 0.09, "base": 0.0, "splay": 0.1,  "str": 1.0, "drag": 0.0},
+	&"boar":    {"stride": 0.42, "type": HOOF,    "size": 0.13,  "lat": 0.09, "base": 0.62, "splay": 0.0, "str": 0.95, "drag": 0.0},
+	&"iguana":  {"stride": 0.2,  "type": CLAW,    "size": 0.17,  "lat": 0.12, "base": 0.3,  "splay": 0.5, "str": 0.55, "drag": 0.05},
+	&"monitor": {"stride": 0.3,  "type": CLAW,    "size": 0.25,  "lat": 0.18, "base": 0.5,  "splay": 0.45, "str": 0.75, "drag": 0.08},
+	&"croc":    {"stride": 0.55, "type": CLAW,    "size": 0.36,  "lat": 0.36, "base": 1.0,  "splay": 0.4, "str": 1.0, "drag": 0.2},
+	&"turtle":  {"stride": 0.32, "type": FLIPPER, "size": 0.36,  "lat": 0.32, "base": 0.0,  "splay": 0.0, "str": 0.85, "drag": 0.5},
+	&"monkey":  {"stride": 0.36, "type": HAND,    "size": 0.15,  "lat": 0.1,  "base": 0.35, "splay": 0.2, "str": 0.6, "drag": 0.0},
+}
 
 var enabled := true
 var origin := Vector2.ZERO          # мир (x, z) угла окна
-var prints: Array = []              # [x, z, dirx, dirz, side, scale, strength(0..1)]
+## [x, z, dirx, dirz, side(0 лев./1 прав.), ширина м, сила 0..1, тип, длина м]
+var prints: Array = []
 var stamps_total := 0
-var _img: Image
-var _tex: ImageTexture
-var _walkers := {}                  # instance_id -> {last: Vector2, side: int}
+var _stamps: Array[ImageTexture] = []
+var _vp: SubViewport
+var _canvas: Node2D
+var _walkers := {}                  # instance_id -> {last, side, phase}
 var _redraw_t := 0.0
 var _decay_t := 0.0
 var _dirty := false
@@ -34,10 +56,18 @@ var _world: Node = null
 var _active := false
 
 func _ready() -> void:
-	_img = Image.create(RES, RES, false, Image.FORMAT_R8)
-	_tex = ImageTexture.create_from_image(_img)
+	_vp = SubViewport.new()
+	_vp.size = Vector2i(RES, RES)
+	_vp.disable_3d = true
+	_vp.transparent_bg = true
+	_vp.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
+	_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+	_canvas = Node2D.new()
+	_vp.add_child(_canvas)
+	add_child(_vp)
+	_canvas.draw.connect(_on_draw)
 	# параметры sand_tracks_* объявлены в project.godot [shader_globals]
-	RenderingServer.global_shader_parameter_set(&"sand_tracks_map", _tex)
+	RenderingServer.global_shader_parameter_set(&"sand_tracks_map", _vp.get_texture())
 	_set_rect(false)
 
 func _set_rect(on: bool) -> void:
@@ -48,9 +78,21 @@ func clear() -> void:
 	_walkers.clear()
 	_dirty = true
 
-## Отпечаток вручную: pos — мир, dir — направление шага (x, z), side 0 — левая, 1 — правая.
+## Отпечаток ступни человека: pos — мир, dir — направление шага (x, z), side 0 — левая, 1 — правая.
 func stamp_foot(pos: Vector3, dir: Vector2, side: int, strength := 1.0, scale := 1.0) -> void:
-	_add(Vector2(pos.x, pos.z), dir, side, strength, scale)
+	_add(Vector2(pos.x, pos.z), dir, side, strength, 0.375 * scale, FOOT, 0.0)
+
+## Цепочка следов вида (как если бы зверь прошёл от a до b) — для полигона и тестов.
+func walk_line(species: StringName, a: Vector3, b: Vector3, scale := 1.0) -> void:
+	var g: Dictionary = GAITS.get(species, GAITS[&"human"])
+	var d := Vector2(b.x - a.x, b.z - a.z)
+	var n := int(d.length() / (float(g.stride) * scale))
+	var w := {"last": Vector2(a.x, a.z), "side": 0, "phase": 0.0}
+	for i in range(1, n + 1):
+		var p := Vector2(a.x, a.z) + d * (float(i) / n)
+		_step(g, w, p, p - w.last, scale)
+		w.last = p
+		w.side = 1 - int(w.side)
 
 ## Свежесть ближайшего отпечатка (0..1) в радиусе 0.2 м — для тестов/логики.
 func depth_at(x: float, z: float) -> float:
@@ -74,6 +116,8 @@ func _process(dt: float) -> void:
 		_active = mat is ShaderMaterial and float((mat as ShaderMaterial).get_shader_parameter(&"use_beach_sand")) > 0.5
 		if not _active:
 			return
+		if _stamps.is_empty():
+			_build_stamps()     # ~0.3 с один раз, только на мире с пляжным песком
 		clear()
 		_recenter(true)
 	_recenter(false)
@@ -86,7 +130,8 @@ func _process(dt: float) -> void:
 	if _dirty and _redraw_t >= 1.0 / REDRAW_HZ:
 		_redraw_t = 0.0
 		_dirty = false
-		_redraw()
+		_canvas.queue_redraw()
+		_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 func _recenter(force: bool) -> void:
 	var cam := get_viewport().get_camera_3d()
@@ -103,7 +148,6 @@ func _recenter(force: bool) -> void:
 	origin = Vector2(floorf(o.x / px) * px, floorf(o.y / px) * px)
 	_set_rect(true)
 	_dirty = true
-	# дальние записи больше не нужны
 	var keep: Array = []
 	for p: Array in prints:
 		if absf(float(p[0]) - c.x) < SIZE and absf(float(p[1]) - c.y) < SIZE:
@@ -126,7 +170,7 @@ func _track_walkers() -> void:
 	var nodes: Array = get_tree().get_nodes_in_group(&"characters")
 	for a in get_tree().get_nodes_in_group(&"animals"):
 		var sp = a.get("species")
-		if sp != null and ANIMAL_SPECIES.has(StringName(str(sp))):
+		if sp != null and GAITS.has(StringName(str(sp))):
 			nodes.append(a)
 	var seen := {}
 	for n in nodes:
@@ -134,41 +178,74 @@ func _track_walkers() -> void:
 			continue
 		var id: int = n.get_instance_id()
 		seen[id] = true
-		var g: Vector3 = (n as Node3D).global_position
-		var p := Vector2(g.x, g.z)
+		var g3: Vector3 = (n as Node3D).global_position
+		var p := Vector2(g3.x, g3.z)
 		var w: Dictionary = _walkers.get(id, {})
 		if w.is_empty():
-			_walkers[id] = {"last": p, "side": 0}
+			_walkers[id] = {"last": p, "side": 0, "phase": 0.0}
 			continue
 		var d: Vector2 = p - w.last
 		if d.length() > 6.0:          # телепорт/респаун
 			w.last = p
 			continue
 		var animal: bool = n.is_in_group(&"animals")
-		var stride := 0.45 if animal else STRIDE
-		if d.length() < stride:
+		var key: StringName = StringName(str(n.get("species"))) if animal else &"human"
+		var g: Dictionary = GAITS[key]
+		var sc := 1.0
+		if animal:
+			var gr = n.get("growth")
+			if gr != null:
+				sc = lerpf(0.5, 1.0, clampf((float(gr) - 0.45) / 0.55, 0.0, 1.0))
+		if d.length() < float(g.stride) * sc:
 			continue
-		var air := g.y - float(_world.height_at(g.x, g.z))
+		var air := g3.y - float(_world.height_at(g3.x, g3.z))
 		var swimming = n.get("swimming")
 		if air < 1.4 and swimming != true and _is_sand(p):
-			var dir := d.normalized()
-			if animal:
-				# четыре лапы: пара отпечатков на шаг, мельче
-				_add(p, dir, w.side, 0.8, 0.75)
-				_add(p - dir * 0.35, dir, 1 - w.side, 0.7, 0.75)
-			else:
-				_add(p, dir, w.side, 1.0, 1.0)
-		w.side = 1 - w.side
+			_step(g, w, p, d, sc)
+		w.side = 1 - int(w.side)
 		w.last = p
 	for id in _walkers.keys():
 		if not seen.has(id):
 			_walkers.erase(id)
 
-func _add(p: Vector2, dir: Vector2, side: int, strength: float, scale: float) -> void:
+## Один шаг походки: p — текущее положение (центр корпуса), d — смещение с прошлого шага.
+func _step(g: Dictionary, w: Dictionary, p: Vector2, d: Vector2, sc: float) -> void:
+	var dir := d.normalized() if d.length_squared() > 1e-8 else Vector2(0, -1)
+	var right := Vector2(-dir.y, dir.x)
+	var side: int = int(w.side)
+	var t: int = int(g.type)
+	var size: float = float(g.size) * sc
+	var lat: float = float(g.lat) * sc
+	var base: float = float(g.base) * sc
+	var st: float = float(g.str) * lerpf(0.6, 1.0, sc)
+	var spl: float = float(g.splay)
+	var sgn := 1.0 if side == 1 else -1.0
+	match t:
+		FOOT:
+			_add(p + right * lat * sgn, dir.rotated(spl * sgn), side, st, size, FOOT, 0.0)
+		FLIPPER:
+			# черепаха гребёт обоими ластами сразу; ласты развернуты назад-наружу
+			for s in [0, 1]:
+				var k := 1.0 if s == 1 else -1.0
+				_add(p + right * lat * k, dir.rotated(0.8 * k), s, st, size * 0.8, FLIPPER, 0.0)
+		_:
+			# четвероногие — диагональные пары: передняя одной стороны + задняя другой
+			_add(p + dir * base * 0.5 + right * lat * sgn, dir.rotated(spl * sgn), side, st, size, t, 0.0)
+			_add(p - dir * base * 0.5 - right * lat * sgn, dir.rotated(-spl * sgn), 1 - side, st, size * 1.12, t, 0.0)
+	var dw: float = float(g.drag) * sc
+	if dw > 0.0:
+		# борозда хвоста/брюха — за корпусом; хвост виляет (фаза идёт с каждым шагом)
+		w.phase = float(w.phase) + 1.3
+		var sway := sin(float(w.phase)) * lat * 0.45 if t != FLIPPER else 0.0
+		var back := base * 0.9 if t != FLIPPER else 0.0
+		var mid := p - d * 0.5 - dir * back + right * sway
+		_add(mid, dir, 0, st * 0.55, dw, DRAG, d.length() * 1.7 + dw)
+
+func _add(p: Vector2, dir: Vector2, side: int, strength: float, size: float, type: int, length: float) -> void:
 	if dir.length_squared() < 1e-6:
 		dir = Vector2(0, -1)
 	dir = dir.normalized()
-	prints.append([p.x, p.y, dir.x, dir.y, side, scale, clampf(strength, 0.0, 1.0)])
+	prints.append([p.x, p.y, dir.x, dir.y, side, size, clampf(strength, 0.0, 1.0), type, length if length > 0.0 else size])
 	if prints.size() > MAX_PRINTS:
 		prints.remove_at(0)
 	stamps_total += 1
@@ -197,42 +274,123 @@ func _decay(dt: float) -> void:
 	prints = keep
 	_dirty = true
 
-func _redraw() -> void:
-	_img.fill(Color(0, 0, 0))
+## Холст карты: каждый отпечаток — штамп, повернутый по направлению шага (верх штампа — носок).
+func _on_draw() -> void:
+	if _stamps.is_empty():
+		return
 	var px := SIZE / RES
 	for p: Array in prints:
-		_draw(Vector2(float(p[0]), float(p[1])), Vector2(float(p[2]), float(p[3])), int(p[4]), float(p[5]), float(p[6]), px)
-	_tex.update(_img)
+		var c := Vector2((float(p[0]) - origin.x) / px, (float(p[1]) - origin.y) / px)
+		if c.x < -64 or c.y < -64 or c.x > RES + 64 or c.y > RES + 64:
+			continue
+		var dx := float(p[2])
+		var dz := float(p[3])
+		var ang := atan2(dx, -dz)
+		var mirror := -1.0 if int(p[4]) == 0 else 1.0
+		var wpx := float(p[5]) / px
+		var lpx := float(p[8]) / px
+		var s := float(p[6])
+		_canvas.draw_set_transform(c, ang, Vector2(mirror, 1.0))
+		_canvas.draw_texture_rect(_stamps[int(p[7])], Rect2(-wpx * 0.5, -lpx * 0.5, wpx, lpx), false, Color(s, s, 1.0, 1.0))
+	_canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
-## Отпечаток ступни: носок шире пятки, глубже в пятке и под подушечками; валик по краю
-## получается в шейдере — нормаль берётся из градиента карты.
-func _draw(p: Vector2, dir: Vector2, side: int, scale: float, strength: float, px: float) -> void:
-	var perp := Vector2(-dir.y, dir.x)
-	var c := p + perp * (0.1 * scale) * (1.0 if side == 0 else -1.0)
-	var L := FOOT_LEN * scale
-	var W := FOOT_W * scale
-	var cx := (c.x - origin.x) / px
-	var cy := (c.y - origin.y) / px
-	var rp := int(ceil(L * 0.6 / px)) + 1
-	var x0 := maxi(0, int(cx) - rp)
-	var x1 := mini(RES - 1, int(cx) + rp)
-	var y0 := maxi(0, int(cy) - rp)
-	var y1 := mini(RES - 1, int(cy) + rp)
-	if x0 > x1 or y0 > y1:
-		return
-	for yy in range(y0, y1 + 1):
-		for xx in range(x0, x1 + 1):
-			var q := Vector2((xx + 0.5) * px + origin.x, (yy + 0.5) * px + origin.y) - c
-			var u := q.dot(dir) / (L * 0.5)          # −1 пятка … +1 носок
-			if absf(u) >= 1.0:
-				continue
-			var widen := 0.78 + 0.32 * clampf(u + 0.2, -1.0, 1.0)
-			var v := q.dot(perp) / (W * 0.5 * widen)
-			var e := u * u + v * v
-			if e >= 1.0:
-				continue
-			# профиль: плоское дно, мягкий край; пятка и подушечки глубже
-			var depth := smoothstep(1.0, 0.55, e) * (0.75 + 0.25 * (exp(-pow((u + 0.62) * 3.2, 2.0)) + exp(-pow((u - 0.5) * 3.5, 2.0))))
-			var val := clampf(depth * strength, 0.0, 1.0)
-			if val > _img.get_pixel(xx, yy).r:
-				_img.set_pixel(xx, yy, Color(val, 0, 0))
+# ------------------------------------------------------------------ штампы
+## Маска глубины штампа в своих координатах: u — вперед (носок) −1..1, v — вбок (+ наружу у правой).
+func _shape(t: int, u: float, v: float) -> float:
+	match t:
+		FOOT:
+			var d := _ell(u, v, -0.5, 0.0, 0.22, 0.17) * 1.0                       # пятка — глубже всего
+			d = maxf(d, _ell(u, v, -0.08, 0.11, 0.3, 0.085) * 0.55)                 # наружный свод
+			d = maxf(d, _ell(u, v, 0.28, -0.01, 0.17, 0.24) * 0.9)                  # подушечка
+			d = maxf(d, _ell(u, v, 0.62, -0.15, 0.11, 0.095) * 0.95)                # большой палец
+			var toes := [[0.58, 0.0, 0.065], [0.54, 0.1, 0.06], [0.48, 0.18, 0.055], [0.41, 0.245, 0.05]]
+			for q in toes:
+				d = maxf(d, _ell(u, v, q[0], q[1], q[2], q[2]) * 0.72)
+			return d
+		HOOF:
+			var d := 0.0
+			for k in [-1.0, 1.0]:
+				# половинка копыта: капля, острием вперед, внутренний край прямой
+				var cu := 0.12
+				var taper := 1.0 - 0.55 * clampf((u - cu) / 0.5, 0.0, 1.0)
+				d = maxf(d, _ell(u, v, cu, 0.15 * k, 0.5, 0.12 * taper) * (0.85 + 0.15 * clampf(-u, 0.0, 1.0)))
+				d = maxf(d, _ell(u, v, -0.62, 0.3 * k, 0.08, 0.065) * 0.4)        # прибылые пальцы
+			return d
+		CLAW:
+			var d := _ell(u, v, -0.25, 0.0, 0.22, 0.2) * 0.75                         # ладонь
+			# пять пальцев веером; у ящериц четвертый (наружный) самый длинный
+			var angs := [-1.0, -0.5, 0.0, 0.45, 0.95]
+			var lens := [0.38, 0.55, 0.66, 0.74, 0.5]
+			for i in 5:
+				var a: float = angs[i]
+				var tip := Vector2(-0.25, 0.0) + Vector2(cos(a), sin(a)) * float(lens[i]) * Vector2(1.0, 0.85)
+				d = maxf(d, _capsule(u, v, Vector2(-0.2, 0.0), tip, 0.045) * 0.6)
+				d = maxf(d, _ell(u, v, tip.x + cos(a) * 0.04, tip.y + sin(a) * 0.04, 0.035, 0.03) * 1.0)  # коготь
+			return d
+		HAND:
+			var d := _ell(u, v, -0.2, 0.0, 0.3, 0.27) * 0.8
+			for i in 4:
+				var vv := -0.18 + i * 0.12
+				d = maxf(d, _capsule(u, v, Vector2(0.05, vv), Vector2(0.45 - absf(vv - 0.0) * 0.4, vv * 1.15), 0.05) * 0.7)
+			d = maxf(d, _capsule(u, v, Vector2(-0.25, -0.22), Vector2(0.0, -0.5), 0.055) * 0.7)  # большой
+			return d
+		FLIPPER:
+			# мазок ласта: дуга назад-наружу, глубже у переднего края
+			var d := _capsule(u, v, Vector2(0.45, -0.3), Vector2(-0.4, 0.35), 0.16) * (0.55 + 0.45 * clampf(u * 0.8 + 0.5, 0.0, 1.0))
+			d = maxf(d, _capsule(u, v, Vector2(0.3, -0.05), Vector2(-0.55, 0.55), 0.08) * 0.5)
+			return d
+		DRAG:
+			# борозда: округлый профиль поперек, по длине почти ровная
+			var a := clampf(1.0 - absf(v) / 0.7, 0.0, 1.0)
+			return (1.0 - (1.0 - a) * (1.0 - a)) * smoothstep(1.0, 0.55, absf(u)) * 0.8
+	return 0.0
+
+func _ell(u: float, v: float, cu: float, cv: float, ru: float, rv: float) -> float:
+	var e := pow((u - cu) / ru, 2.0) + pow((v - cv) / rv, 2.0)
+	return smoothstep(1.0, 0.45, e)
+
+func _capsule(u: float, v: float, a: Vector2, b: Vector2, r: float) -> float:
+	var p := Vector2(u, v)
+	var ab := b - a
+	var h := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 1e-6), 0.0, 1.0)
+	var dist := (p - a - ab * h).length()
+	return smoothstep(r, r * 0.35, dist)
+
+func _build_stamps() -> void:
+	var n := STAMP_RES
+	for t in [FOOT, HOOF, CLAW, HAND, FLIPPER, DRAG]:
+		var dimg := Image.create(n, n, false, Image.FORMAT_RF)
+		for y in n:
+			for x in n:
+				# картинка: x — вбок (v), строка 0 — носок (u = +1)
+				var v := (x + 0.5) / n * 2.0 - 1.0
+				var u := 1.0 - (y + 0.5) / n * 2.0
+				dimg.set_pixel(x, y, Color(_shape(t, u, v), 0, 0))
+		# валик: выдавленный песок вокруг отпечатка = размытая маска − сама маска
+		var blur := dimg.duplicate() as Image
+		blur.resize(n / 8, n / 8, Image.INTERPOLATE_BILINEAR)
+		blur.resize(n, n, Image.INTERPOLATE_CUBIC)
+		var out := Image.create(n, n, false, Image.FORMAT_RGBA8)
+		for y in n:
+			for x in n:
+				var d := dimg.get_pixel(x, y).r
+				var b := blur.get_pixel(x, y).r
+				var rim := clampf(b * 2.2 - d * 2.6, 0.0, 1.0)
+				if t == DRAG:
+					# борозда кладется внахлест — валик только по бокам, иначе «лесенка» на стыках
+					var vv := absf((x + 0.5) / n * 2.0 - 1.0)
+					var uu := absf(1.0 - (y + 0.5) / n * 2.0)
+					rim = clampf((vv - 0.62) / 0.12, 0.0, 1.0) * clampf((1.0 - vv) / 0.15, 0.0, 1.0) * 0.8 * smoothstep(1.0, 0.7, uu)
+				# край штампа — без валика (квадрат не должен читаться)
+				var ex := minf(minf(x, n - 1 - x), minf(y, n - 1 - y)) / (n * 0.08)
+				rim *= clampf(ex, 0.0, 1.0)
+				var a := clampf(maxf(d, rim) * 5.0, 0.0, 1.0)
+				if t == DRAG:
+					# борозда: профиль поперёк в цвете, спад по длине — в прозрачности (стыки сливаются)
+					var vv2 := (x + 0.5) / n * 2.0 - 1.0
+					var uu2 := 1.0 - (y + 0.5) / n * 2.0
+					var dl := _shape(DRAG, 0.0, vv2)
+					a = smoothstep(1.0, 0.45, absf(uu2)) * clampf(maxf(dl, rim) * 5.0, 0.0, 1.0)
+					d = dl
+				out.set_pixel(x, y, Color(d, rim, 0.0, a))
+		_stamps.append(ImageTexture.create_from_image(out))

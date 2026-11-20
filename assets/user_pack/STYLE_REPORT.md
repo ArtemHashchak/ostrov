@@ -25,3 +25,10 @@ Y — медианная линейная яркость альбедо по и�
 | shark_pack8.res · shark_pack8 | shark_skin | 569 (в норме) | 0.047 → 0.070 | 0.09 → 0.08 | 1.082 → 1.082 | — | у морских видов шейдер берёт только альбедо: шероховатость/микродеталь задаёт шейдер вида |
 | octopus.res · octopus | cephalopod | — | — | — | — | — | текстура-заглушка 64x64 — цвет задаёт шейдер вида (params color_a/color_b), не трогаем |
 | squid_biolum.res · squid_biolum | cephalopod | — | — | — | — | — | текстура-заглушка 64x64 — цвет задаёт шейдер вида (params color_a/color_b), не трогаем |
+| lizard_user.glb · lizard | reptile_skin | 804 (в норме) | 0.222 → 0.224 | 0.44 → 0.44 | 0.175 → 0.135 | 0.51 → 0.51 | scales, период 3.2 px (4 мм), сила 0.14 |
+| bat_user.glb · bat | bat_skin | 1783 (в норме) | 0.091 → 0.090 | 0.51 → 0.37 | 0.410 → 0.318 | — | pores, период 5.3 px (3 мм), сила 0.10 |
+| stone002_albedo.png · stone002_albedo.png | rock | — | 0.309 → 0.309 | 0.08 → 0.08 | 0.060 → 0.055 | — | — |
+| stone004_albedo.png · stone004_albedo.png | rock | — | 0.217 → 0.217 | 0.02 → 0.02 | 0.022 → 0.021 | — | — |
+| stone005_albedo.png · stone005_albedo.png | rock | — | 0.552 → 0.350 | 0.01 → 0.01 | 0.048 → 0.044 | — | — |
+| stone006_albedo.png · stone006_albedo.png | rock | — | 0.343 → 0.344 | 0.15 → 0.15 | 0.021 → 0.020 | — | — |
+| stone007_albedo.png · stone007_albedo.png | rock | — | 0.281 → 0.281 | 0.03 → 0.03 | 0.055 → 0.050 | — | — |

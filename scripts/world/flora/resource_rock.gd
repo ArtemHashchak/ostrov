@@ -27,6 +27,7 @@ func _ready() -> void:
 		add_to_group(&"ore")
 	if ResourceLoader.exists(scene_path):
 		_visual = (load(scene_path) as PackedScene).instantiate() as Node3D
+		UserRocks.dress(_visual, scene_path)   # валун пака: камень пользователя трипланарно
 	else:
 		var mi := MeshInstance3D.new()
 		var sm := SphereMesh.new()

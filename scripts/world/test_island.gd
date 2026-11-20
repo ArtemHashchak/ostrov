@@ -127,10 +127,13 @@ func _scatter_props() -> void:
 		tree.position = Vector3(x, y - 0.1, z)
 		add_child(tree)
 	var rock_scenes: Array[PackedScene] = []
-	for f in ["boulder_01", "boulder_02", "rock_07", "rock_moss_set_01_rock03", "rock_moss_set_02_rock09"]:
-		var path := "res://assets/models/polyhaven/%s.glb" % f
+	var rock_paths: Array[String] = []
+	var names := UserRocks.SHAPES if UserRocks.available() else ["boulder_01", "boulder_02", "rock_07", "rock_moss_set_01_rock03", "rock_moss_set_02_rock09"]
+	for f in names:
+		var path: String = (UserRocks.DIR + f + ".glb") if UserRocks.available() else "res://assets/models/polyhaven/%s.glb" % f
 		if ResourceLoader.exists(path):
 			rock_scenes.append(load(path) as PackedScene)
+			rock_paths.append(path)
 	var plant_scenes: Array[PackedScene] = []
 	for f in ["fern_02_a", "fern_02_b", "shrub_02_a", "shrub_02_c"]:
 		var path := "res://assets/models/polyhaven/%s.glb" % f
@@ -144,6 +147,7 @@ func _scatter_props() -> void:
 		var pos := Vector3(cos(a) * r, 0.0, sin(a) * r)
 		pos.y = height_at(pos.x, pos.z) - 0.15
 		var rock := rock_scenes[k % rock_scenes.size()].instantiate() as Node3D
+		UserRocks.dress(rock, rock_paths[k % rock_paths.size()])
 		rock.position = pos
 		rock.rotation.y = rng.randf() * TAU
 		rock.scale = Vector3.ONE * rng.randf_range(0.7, 1.6)

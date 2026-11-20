@@ -32,16 +32,30 @@ uniform vec3 sand_tint : source_color = vec3(1.3, 1.22, 1.04);
 // Пляжный песок из пака пользователя (Грунт/Песок): высота/шероховатость; утоптанный песок со следами.
 // use_beach_sand = 0 — прежний песок coast_sand_01.
 uniform float use_beach_sand = 0.0;
-uniform float sand_tile = 0.42;               // ~2.4 м на повтор
+uniform float sand_tile = 1.0;                // ~1 м на повтор: зерно и мелкая рябь, без «пузырей»
 uniform sampler2D sand_height : hint_default_white, filter_linear_mipmap, repeat_enable;
 uniform sampler2D sand_rough : hint_default_white, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tramp_albedo : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tramp_normal : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tramp_height : hint_default_white, filter_linear_mipmap, repeat_enable;
 uniform float tramp_tile = 0.66;              // 1.5 м на повтор (как у исходника)
-// Карта следов (SandTracks): R — свежесть следа 0..1; rect = (x0, z0, размер, вкл)
-global uniform sampler2D sand_tracks_map;
+// Мшистая земля пользователя (Грунт/Procedural Mossy Dirt → assets/textures/mossy_ground): пятна мха
+// и сырой земли в подлеске. rhm: R — шероховатость, G — высота, B — маска мха.
+uniform float use_mossy = 0.0;
+uniform sampler2D mossy_albedo : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D mossy_normal : hint_normal, filter_linear_mipmap, repeat_enable;
+uniform sampler2D mossy_rhm : filter_linear_mipmap, repeat_enable;
+uniform float mossy_tile = 0.42;              // 2.4 м на повтор (масштаб узлов автора)
+// Карта следов (SandTracks): R — глубина лунки 0..1, G — валик выдавленного песка 0..1;
+// rect = (x0, z0, размер окна м, вкл)
+global uniform sampler2D sand_tracks_map : filter_linear, repeat_disable;
 global uniform vec4 sand_tracks_rect;
+const float TRACK_DEPTH = 0.055;   // м — полная глубина отпечатка (пятка взрослого в сухом песке)
+const float RIM_H = 0.32;          // высота валика в долях глубины
+float track_f(vec2 p) {            // «глубина» поля следов: >0 — лунка, <0 — валик
+	vec2 m = texture(sand_tracks_map, p).rg;
+	return m.r - m.g * RIM_H;
+}
 
 varying vec3 wpos;
 varying vec3 wnrm;
@@ -99,37 +113,69 @@ void fragment() {
 	float macro = vnoise(wpos.xz * 0.025) * 0.6 + vnoise(wpos.xz * 0.11) * 0.4;
 
 	vec3 sand = tex2(sand_albedo, uv) * sand_tint;
-	// --- новый пляжный песок: две шкалы + крупные пятна оттенка (убирают повтор)
-	vec2 suv = wpos.xz * sand_tile;
 	float sh = 0.5;
-	float tr = 0.0;   // утоптанность/следы 0..1
+	float tr = 0.0;     // глубина следа 0..1 (после параллакса)
+	float trim = 0.0;   // валик 0..1
 	vec2 tuv = vec2(-1.0);
-	if (use_beach_sand > 0.5) {
-		vec3 s1 = texture(sand_albedo, suv).rgb;
-		vec3 s2 = texture(sand_albedo, suv * 0.213 + vec2(0.37, 0.71)).rgb;
-		float mv = vnoise(wpos.xz * 0.045) * 0.6 + vnoise(wpos.xz * 0.19 + 3.0) * 0.4;
-		sand = mix(s1, s2, 0.3) * sand_tint;
-		// светлее у гребня пляжа, теплее/темнее в низинах; редкие пятна ракушечника
-		sand *= mix(vec3(0.93, 0.92, 0.9), vec3(1.05, 1.04, 1.02), mv);
-		sh = mix(texture(sand_height, suv).r, texture(sand_height, suv * 0.213 + vec2(0.37, 0.71)).r, 0.3);
-		if (sand_tracks_rect.w > 0.5) {
-			tuv = (wpos.xz - sand_tracks_rect.xy) / sand_tracks_rect.z;
-			if (all(greaterThan(tuv, vec2(0.0))) && all(lessThan(tuv, vec2(1.0)))) {
-				tr = texture(sand_tracks_map, tuv).r;
+	vec2 tg = vec2(0.0);  // градиент поля следов (для нормали)
+	vec2 sp = wpos.xz;    // точка песка, видимая через параллакс лунки
+	if (use_beach_sand > 0.5 && sand_tracks_rect.w > 0.5) {
+		tuv = (wpos.xz - sand_tracks_rect.xy) / sand_tracks_rect.z;
+		if (all(greaterThan(tuv, vec2(0.01))) && all(lessThan(tuv, vec2(0.99)))) {
+			// луч от камеры уходит в лунку: смещение tuv на единицу глубины
+			vec3 wv = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
+			vec2 dxz = -wv.xz / max(wv.y, 0.18) * (TRACK_DEPTH / sand_tracks_rect.z);
+			float pre = abs(track_f(tuv)) + abs(track_f(tuv + dxz)) + abs(track_f(tuv + dxz * 0.5));
+			if (pre > 0.002) {
+				// POM: 14 шагов от верха валика вниз, потом линейное уточнение
+				float t = -RIM_H;
+				float dt = (1.0 + RIM_H) / 14.0;
+				float f = track_f(tuv + dxz * t);
+				float pt = t;
+				float pf = f;
+				for (int i = 0; i < 14; i++) {
+					if (t >= f) { break; }
+					pt = t; pf = f;
+					t += dt;
+					f = track_f(tuv + dxz * t);
+				}
+				float den = (pf - pt) - (f - t);
+				float tt = mix(pt, t, clamp((pf - pt) / max(den, 1e-4), 0.0, 1.0));
+				tuv += dxz * tt;
+				sp = wpos.xz + dxz * tt * sand_tracks_rect.z;
+				vec2 m = texture(sand_tracks_map, tuv).rg;
+				tr = m.r;
+				trim = m.g;
+				float e = 1.5 / 2048.0;
+				tg = vec2(track_f(tuv + vec2(e, 0.0)) - track_f(tuv - vec2(e, 0.0)),
+						track_f(tuv + vec2(0.0, e)) - track_f(tuv - vec2(0.0, e))) * (TRACK_DEPTH / (2.0 * e * sand_tracks_rect.z));
 			}
 		}
-		if (tr > 0.003) {
-			vec2 puv = wpos.xz * tramp_tile;
+	}
+	// --- пляжный песок пользователя: две шкалы (вторая повернута — нет сетки повтора) + пятна оттенка
+	vec2 suv = sp * sand_tile;
+	vec2 suv2 = mat2(vec2(0.8, -0.6), vec2(0.6, 0.8)) * suv * 0.47 + vec2(0.37, 0.71);
+	if (use_beach_sand > 0.5) {
+		vec3 s1 = texture(sand_albedo, suv).rgb;
+		vec3 s2 = texture(sand_albedo, suv2).rgb;
+		float mv = vnoise(wpos.xz * 0.06) * 0.55 + vnoise(wpos.xz * 0.23 + 3.0) * 0.3 + vnoise(wpos.xz * 0.9 + 9.0) * 0.15;
+		sand = mix(s1, s2, 0.35) * sand_tint;
+		// светлее у гребня пляжа, теплее/темнее в низинах (цвет, не рельеф)
+		sand *= mix(vec3(0.94, 0.93, 0.91), vec3(1.04, 1.03, 1.01), mv);
+		sh = mix(texture(sand_height, suv).r, texture(sand_height, suv2).r, 0.35);
+		if (tr + trim > 0.003) {
+			vec2 puv = sp * tramp_tile;
 			float th = texture(tramp_height, puv).r;
-			// след проступает по высоте: сначала самые глубокие отпечатки
-			float k = smoothstep(0.0, 0.55, tr * 1.25 - (th - 0.35));
-			k *= tr;
-			// внутри отпечатка: утоптанное зерно пользователя (не темнее основного песка) + лёгкая тень лунки
+			// дно отпечатка: утоптанное зерно пользователя, влажнее и темнее (песок под коркой сырой),
+			// глубже — темнее; валик — сухой рыхлый песок, чуть светлее
+			float k = smoothstep(0.02, 0.35, tr) * (0.75 + 0.25 * smoothstep(0.2, 0.8, th));
 			vec3 tcol = texture(tramp_albedo, puv).rgb * sand_tint;
 			tcol *= dot(sand, vec3(0.333)) / max(dot(tcol, vec3(0.333)), 0.02);
-			sand = mix(sand, tcol, k * 0.6) * (1.0 - k * 0.1);
+			sand = mix(sand, tcol * vec3(0.9, 0.88, 0.85), k * 0.75);
+			// лунка темнее (тень стенок + сырой песок) — читается с высоты глаз; валик светлее (сухой, рыхлый)
+			sand *= 1.0 - 0.38 * smoothstep(0.05, 0.9, tr);
+			sand *= 1.0 + 0.12 * trim * (1.0 - k);
 			sh = mix(sh, th, k);
-			tr = k;
 		}
 	}
 	// мокрый песок: тот же тёплый песок, темнее (текстура damp_sand без тинта давала
@@ -141,6 +187,18 @@ void fragment() {
 	vec3 jungle = tex2(jungle_albedo, uv * 0.9);
 	// подлесок: листовой опад вперемешку с мхом/папоротником
 	jungle = mix(jungle, grass * vec3(0.62, 0.78, 0.55), 0.35 + 0.3 * macro);
+	// мшистая земля: крупные пятна (сырые низины, ровные места), вторая шкала повернута — без повтора
+	float k_moss = 0.0;
+	vec2 muv = wpos.xz * mossy_tile;
+	vec2 muv2 = mat2(vec2(0.6, 0.8), vec2(-0.8, 0.6)) * muv * 0.41 + vec2(0.21, 0.57);
+	if (use_mossy > 0.5) {
+		vec3 mcol = mix(texture(mossy_albedo, muv).rgb, texture(mossy_albedo, muv2).rgb, 0.35);
+		float pm = vnoise(wpos.xz * 0.07) * 0.55 + vnoise(wpos.xz * 0.27 + 7.0) * 0.3 + vnoise(wpos.xz * 1.1 + 2.0) * 0.15;
+		k_moss = smoothstep(0.46, 0.68, pm) * smoothstep(0.8, 0.95, slope) * 0.85;
+		// опад поверх мха не исчезает целиком: светлые листья подлеска проступают по краям пятен
+		float litter = smoothstep(0.55, 0.8, dot(jungle, vec3(0.333)) / max(dot(mcol, vec3(0.333)), 0.02) * 0.5);
+		jungle = mix(jungle, mcol, k_moss * (1.0 - litter * 0.5 * (1.0 - k_moss)));
+	}
 	vec3 mud = texture(mud_albedo, uv).rgb;
 	vec3 rock = tri(rock_albedo, wpos, wnrm, rock_tile);
 	vec3 seabed = tex2(seabed_albedo, uv * 0.7);
@@ -198,18 +256,21 @@ void fragment() {
 
 	vec3 n_s = texture(sand_normal, uv).rgb;
 	if (use_beach_sand > 0.5) {
-		n_s = mix(texture(sand_normal, suv).rgb, texture(sand_normal, suv * 0.213 + vec2(0.37, 0.71)).rgb, 0.3);
-		if (tr > 0.003) {
-			n_s = mix(n_s, texture(tramp_normal, wpos.xz * tramp_tile).rgb, clamp(tr * 1.3, 0.0, 1.0));
-			// вдавленная ступня: наклон нормали по градиенту карты следов (край отпечатка)
-			float e = 1.0 / 1024.0;
-			float mx = texture(sand_tracks_map, tuv + vec2(e, 0.0)).r - texture(sand_tracks_map, tuv - vec2(e, 0.0)).r;
-			float mz = texture(sand_tracks_map, tuv + vec2(0.0, e)).r - texture(sand_tracks_map, tuv - vec2(0.0, e)).r;
-			n_s.xy = clamp(n_s.xy + vec2(mx, mz) * 0.45, vec2(0.34), vec2(0.66));
+		n_s = mix(texture(sand_normal, suv).rgb, texture(sand_normal, suv2).rgb, 0.35);
+		if (tr + trim > 0.003) {
+			n_s = mix(n_s, texture(tramp_normal, sp * tramp_tile).rgb, smoothstep(0.02, 0.4, tr) * 0.8);
+			// стенки лунки и валик: настоящий наклон по градиенту поля следов (м/м); итог — поверх
+			// мелкой нормали песка (глубина нормали песка ниже, поэтому делим на неё)
+			vec3 nb = n_s * 2.0 - 1.0;
+			vec3 nt = normalize(vec3(nb.xy + tg / 0.7, max(nb.z, 0.2)));
+			n_s = nt * 0.5 + 0.5;
 		}
 	}
 	vec3 n_g = texture(grass_normal, uv * 0.8).rgb;
 	vec3 n_j = texture(jungle_normal, uv * 0.9).rgb;
+	if (k_moss > 0.001) {
+		n_j = mix(n_j, mix(texture(mossy_normal, muv).rgb, texture(mossy_normal, muv2).rgb, 0.35), k_moss);
+	}
 	vec3 n_r = tri(rock_normal, wpos, wnrm, rock_tile);
 	vec3 nm = mix(n_s, n_g, k_grass);
 	nm = mix(nm, n_j, k_jungle);
@@ -220,7 +281,7 @@ void fragment() {
 		nm = mix(nm, vec3(0.5 + rip.x * 0.35, 0.5 + rip.y * 0.35, 1.0), puddle);
 	}
 	NORMAL_MAP = nm;
-	NORMAL_MAP_DEPTH = mix(mix(1.0, 1.35 + tr * 0.4, use_beach_sand * (1.0 - k_grass) * (1.0 - k_sea)), 1.6, k_rock);
+	NORMAL_MAP_DEPTH = mix(mix(1.0, 0.7, use_beach_sand * (1.0 - k_grass) * (1.0 - k_sea)), 1.6, k_rock);
 	float sand_r = mix(0.93, texture(sand_rough, suv).r, use_beach_sand);
 	ROUGHNESS = mix(mix(sand_r, 0.6, k_wet * (1.0 - k_grass)), 0.95, max(max(k_grass, k_rock), k_volc));
 	ROUGHNESS = mix(ROUGHNESS, mix(0.32, 0.55, k_grass), rain_wet);

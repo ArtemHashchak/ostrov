@@ -84,7 +84,7 @@ static func build(zones: SandboxZones, root: Node3D, c: Vector2) -> void:
 			P.pen(root, lx, lz, 2.8)
 			if fa2:
 				zones._penned(fa2, specs[i][0], Vector2(lx, lz), 2.8)
-			P.tag(root, lx, lz + 3.3, "%s — ящерица пользователя (lizard_model.blend)\n14.7k+5.8k+сабсёрф → 5.2k треуг. · 95 костей автора · текстуры 1024\nокраска: палитра по яркости исходника (%s)\nходьба по диагонали, S-изгиб, хвост волной, %s" % [
+			P.tag(root, lx, lz + 3.3, "%s — ящерица пользователя (lizard_model.blend)\n14.7k+5.8k+сабсёрф → 5.2k треуг. · 95 костей автора · текстуры 1024\nокраска: палитра по яркости исходника (%s)\nраспластанная стойка: IK лап к земле, локти/колени наружу, брюхо низко; S-изгиб, хвост волной, %s" % [
 				specs[i][1], "зелёная" if i == 0 else "серо-бурая, охристый крап",
 				"кивки головой" if i == 0 else "покачивание головой"], 2.2, 45.0)
 			zones._point(StringName("pack_" + String(specs[i][0])), "Пак: " + specs[i][1],
@@ -98,6 +98,29 @@ static func build(zones: SandboxZones, root: Node3D, c: Vector2) -> void:
 			zones._flock(fa3, &"bat", Vector3(bx, P.ground(bx, bz) + 5.0, bz), 4)
 		P.tag(root, bx, bz, "Крылан — летучая мышь пользователя (скан, без скелета)\n241k → 3.6k треуг. · скелет и веса построены по геометрии (7 костей)\nвзмахи/планирование/висит вниз головой — BirdAnim на костях", 2.2, 45.0)
 		zones._point(&"pack_bat", "Пак: крылан", Vector3(bx + 4.0, P.ground(bx + 4.0, bz - 4.0) + 2.0, bz - 4.0), Vector3(bx, P.ground(bx, bz) + 4.5, bz))
+	# --- валуны: формы под камень пользователя (Rocks/Stone0XX — только поверхности) вместо polyhaven
+	if UserRocks.available():
+		var rx := c.x - 31.0
+		var rz := c.y - 1.0
+		var old := ["boulder_01", "boulder_02", "rock_07", "rock_moss_set_01_rock03", "rock_moss_set_02_rock09"]
+		for i in UserRocks.SHAPES.size():
+			var x := rx + i * 2.4
+			var r := UserRocks.make(i, 1.5)
+			r.position = Vector3(x, P.ground(x, rz) - 0.03, rz)
+			r.rotation.y = i * 1.1
+			root.add_child(r)
+			if i < old.size():
+				var op := "res://assets/models/polyhaven/%s.glb" % old[i]
+				if ResourceLoader.exists(op):
+					var o := (load(op) as PackedScene).instantiate() as Node3D
+					var bb := AABB()
+					for mi in o.find_children("*", "MeshInstance3D", true, false):
+						bb = bb.merge((mi as MeshInstance3D).get_aabb())
+					o.scale = Vector3.ONE * (1.5 / maxf(bb.get_longest_axis_size(), 0.01))
+					o.position = Vector3(x, P.ground(x, rz - 2.8) - 0.03, rz - 2.8)
+					root.add_child(o)
+		P.tag(root, rx + 6.0, rz + 2.2, "Валуны — камень пользователя (Rocks: Stone002/004/005/006/007, PBR-поверхности)\nформы наши: сколы, трещины, плоское основание · 18–32k → 3.6k треуг. (LOD1/2 — импорт)\nтрипланарно, мох по вогнутостям, песок у основания, мокнут в дождь · сзади — прежние polyhaven", 2.2, 45.0)
+		zones._point(&"pack_rocks", "Пак: валуны", Vector3(rx + 6.0, P.ground(rx + 6.0, rz + 6.0) + 2.2, rz + 6.0), Vector3(rx + 6.0, P.ground(rx + 6.0, rz) + 0.5, rz))
 	zones._stand(&"pack", "Пак моделей", c.x, c.y - 12.0, c.x + 2.0, c.y + 2.0, 2.5)
 
 

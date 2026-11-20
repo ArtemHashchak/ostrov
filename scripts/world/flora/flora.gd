@@ -438,9 +438,25 @@ func _add_rec(rec: Dictionary) -> Dictionary:
 	stats[sk] = int(stats.get(sk, 0)) + 1
 	return rec
 
+## Валун: формы пака пользователя (UserRocks) по месту — у воды песчаник/окатыши, выше — серые и
+## угловатые, в джунглях — во мху; без пака — прежние polyhaven.
+func _rock_scene(p: Vector3, r: int, ore: StringName) -> String:
+	if not UserRocks.available():
+		return "res://assets/models/polyhaven/%s.glb" % BOULDERS[mini(r, BOULDERS.size() - 1)]
+	if ore != &"":
+		return UserRocks.path(r)                                   # округлые валуны с жилами
+	var pick: Array
+	if p.y < 2.2:
+		pick = [3, 5, 5, 0, 3, 2]                                   # берег: плита, окатыш
+	elif _biome(p.x, p.z) == &"jungle":
+		pick = [1, 1, 0, 2, 4, 1]                                   # подлесок: замшелые
+	else:
+		pick = [0, 2, 4, 1, 2, 0]
+	return UserRocks.path(int(pick[r % pick.size()]))
+
 func _add_rock(p: Vector3, rng: RandomNumberGenerator, ore: StringName) -> void:
 	_add_rec({"t": T_ROCK, "kind": ore if ore != &"" else &"boulder", "ore": ore, "pos": p, "yaw": rng.randf() * TAU,
-		"scene": BOULDERS[rng.randi_range(0, 1 if ore != &"" else BOULDERS.size() - 1)],
+		"scene": _rock_scene(p, rng.randi_range(0, 1 if ore != &"" else 5), ore),
 		"size": rng.randf_range(1.3, 1.9) if ore != &"" else rng.randf_range(0.9, 1.8),
 		"units": rng.randi_range(3, 5) if ore != &"" else rng.randi_range(5, 9)})
 
@@ -884,7 +900,8 @@ func _spawn_node(rec: Dictionary) -> Node:
 			n = rn
 		T_ROCK:
 			var rr := ResourceRock.new()
-			rr.scene_path = "res://assets/models/polyhaven/%s.glb" % rec["scene"]
+			var sc_: String = String(rec["scene"])
+			rr.scene_path = sc_ if sc_.begins_with("res://") else "res://assets/models/polyhaven/%s.glb" % sc_
 			rr.size = float(rec["size"])
 			rr.units = int(rec["units"])
 			rr.ore = rec.get("ore", &"")

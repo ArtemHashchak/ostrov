@@ -53,6 +53,13 @@ static func _apply_beach_sand(m: ShaderMaterial) -> void:
 	m.set_shader_parameter(&"tramp_height", _t("sand_trampled", "height"))
 	# исходник тёплый (~#A28F6C); тропический пляж светлее — поднимаем яркость, чуть теплее
 	m.set_shader_parameter(&"sand_tint", Color(1.22, 1.13, 0.98))
+	# мшистая земля пользователя — пятнами в подлеске джунглей
+	var ma := _t("mossy_ground", "albedo")
+	if ma:
+		m.set_shader_parameter(&"use_mossy", 1.0)
+		m.set_shader_parameter(&"mossy_albedo", ma)
+		m.set_shader_parameter(&"mossy_normal", _t("mossy_ground", "normal"))
+		m.set_shader_parameter(&"mossy_rhm", _t("mossy_ground", "rhm"))
 
 ## PBR-материал из набора (albedo/normal/roughness/ao).
 static func pbr(set_name: String, uv_scale: float = 1.0) -> StandardMaterial3D:

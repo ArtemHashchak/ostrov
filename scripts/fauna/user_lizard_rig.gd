@@ -7,8 +7,11 @@ extends ReptileAnim
 ## хвост бегущей волной и волочится, диагональная походка, кивки игуаны, покачивание головы варана),
 ## но вместо шейдерного изгиба процедурной сетки двигаются кости:
 ##  • позвоночник/хвост/шея/голова — каждая кость переносится кадром позвоночника в своей точке оси;
-##  • лапы — корневая кость лапы поворачивается в «тазобедренном» суставе (размах и подъём шага),
-##    колено и запястье чуть сгибаются на подъёме; кисти и пальцы следуют.
+##  • лапы — двухкостная IK (плечо/бедро → локоть/колено → запястье/лодыжка): стопа ставится на землю
+##    по фазе диагональной походки (опора 60 % цикла — стопа неподвижна относительно земли, перенос —
+##    дугой вверх), локти и колени развёрнуты наружу и вверх (распластанная стойка рептилии),
+##    запястье держит ладонь плоско; обе стороны — к земле (поза автора несимметрична, она не используется).
+##  • туловище опущено: брюхо почти на земле, хвост волочится.
 ## Процедурная модель остаётся запасной: UserLizardRig.use_pack = false.
 
 const SCENE := "res://assets/user_pack/animals/lizard/lizard_user.glb"
@@ -33,6 +36,7 @@ var _xf := Transform3D.IDENTITY          # скелет → модель
 var _xf_inv := Transform3D.IDENTITY
 var _spine_bones: Array = []            # [idx, rest_global_model: Transform3D, z]
 var _leg_bones: Array = []              # [idx, rest_global_model, hip: Vector3, knee_idx, knee_rest_local]
+var _ik: Array = []                     # лапы для IK: словари (кости 01..04, покой, длины, сторона)
 var _nose_z := -0.5
 var _tail_z := 0.5
 var _axis_y := 0.1
@@ -191,6 +195,49 @@ func _prepare(root: Node3D, turn: Node3D) -> void:
 			continue
 		var rg := _xf * skel.get_bone_global_rest(bi)
 		_leg_bones.append([bi, rg, rg.origin, ki, skel.get_bone_rest(ki) if ki >= 0 else Transform3D.IDENTITY])
+	# IK: цепочка leg_X01 (ключица/таз) → 02 (плечо/бедро) → 03 (предплечье/голень) → 04 (запястье)
+	for li in LEG_ROOTS.size():
+		var r1n: String = LEG_ROOTS[li]
+		var pre := r1n.substr(0, r1n.length() - 4)       # "leg_front" / "leg_back"
+		var suf := r1n.substr(r1n.length() - 2)          # ".l" / ".r"
+		var ids: Array = []
+		for k in ["01", "02", "03", "04"]:
+			ids.append(skel.find_bone(pre + k + suf))
+		if ids.has(-1):
+			continue
+		var R: Array = []
+		for bi in ids:
+			R.append(_xf * skel.get_bone_global_rest(int(bi)))
+		# высота лодыжки над подошвой (самая низкая кость кисти/пальцев этой лапы)
+		var low := INF
+		for bi in nb:
+			var q := skel.get_bone_parent(bi)
+			while q >= 0 and q != int(ids[3]):
+				q = skel.get_bone_parent(q)
+			if q == int(ids[3]):
+				low = minf(low, (_xf * skel.get_bone_global_rest(bi)).origin.y)
+		var r2: Transform3D = R[1]
+		var r3: Transform3D = R[2]
+		var r4: Transform3D = R[3]
+		_ik.append({
+			"i": li, "ids": ids, "R": R,
+			"L2": (R[0] as Transform3D).affine_inverse() * r2,
+			"L3": r2.affine_inverse() * r3,
+			"L4": r3.affine_inverse() * r4,
+			"l1": r2.origin.distance_to(r3.origin), "l2": r3.origin.distance_to(r4.origin),
+			"ankle": clampf(r4.origin.y - low, 0.0, r2.origin.distance_to(r3.origin)) if low < INF else 0.0,
+			"side": signf(r2.origin.x) if absf(r2.origin.x) > 1e-5 else (-1.0 if suf == ".l" else 1.0),
+			"front": li < 2,
+		})
+	# пары лап симметричны по длинам и высоте лодыжки (поза автора несимметрична)
+	for a_ in 2:
+		if _ik.size() == 4:
+			var A: Dictionary = _ik[a_ * 2]
+			var B: Dictionary = _ik[a_ * 2 + 1]
+			for key in ["l1", "l2", "ankle"]:
+				var m := (float(A[key]) + float(B[key])) * 0.5
+				A[key] = m
+				B[key] = m
 	# ось: от кончика морды до кончика хвоста (по сетке), высота — средняя высота костей туловища
 	var skin_root := skel.get_parent() as Node3D
 	var mb := _skin_aabb(skin_root)
@@ -225,18 +272,37 @@ func setup(an: Animal) -> void:
 	var Lm := z1 - z0
 	reach = 0.11 * Lm
 	stride = 0.3 * Lm
+	# распластанная стойка: ось туловища низко (брюхо в паре сантиметров от земли)
+	ys = minf(_axis_y, 0.068 * Lm)
 	pts.resize(N)
 	for j in N:
 		pts[j] = Vector3(0.0, ys, lerpf(z0, z1, float(j) / (N - 1)))
 	trail.clear()
 	_push()
 
+var _last_growth := -1.0
+
+## След головы (мир) сбрасывается в прямую линию, если зверь резко вырос (set_growth) или его
+## переставили по высоте (появление, телепорт): иначе позвоночник тянется к старым точкам следа —
+## хвост «в земле», нос задран.
+func _trail_follow(lat: float) -> void:
+	var reset := absf(a.growth - _last_growth) > 0.01
+	if not reset and trail.size() > 0:
+		var hw := model.to_global(_head_local(lat))
+		reset = absf(hw.y - trail[0].y) > (z1 - z0) * maxf(a.growth, 0.05) * 0.12
+	if reset:
+		_last_growth = a.growth
+		for j in N:
+			pts[j] = Vector3(0.0, ys, lerpf(z0, z1, float(j) / (N - 1)))
+		trail.clear()
+	super._trail_follow(lat)
+
 ## Вместо шейдера: кости по кадрам позвоночника.
 func _push() -> void:
 	if not _ready_rig or skel == null:
 		return
 	var rest_line := func(z: float) -> Transform3D:
-		return Transform3D(Basis.IDENTITY, Vector3(0.0, ys, z))
+		return Transform3D(Basis.IDENTITY, Vector3(0.0, _axis_y, z))
 	var D := func(z: float) -> Transform3D:
 		var fr := _frame(z)
 		var cur := Transform3D(Basis(fr[1], fr[2], fr[3]), fr[0])
@@ -244,24 +310,85 @@ func _push() -> void:
 	for sb in _spine_bones:
 		var g: Transform3D = (D.call(float(sb[2])) as Transform3D) * (sb[1] as Transform3D)
 		skel.set_bone_global_pose(int(sb[0]), _xf_inv * g)
-	# лапы: поворот в тазобедренном суставе (из маркеров ReptileAnim) + сгиб колена на подъёме
-	var legs: Array = rig_root.get_meta(&"legs", []) if rig_root else []
-	for li in _leg_bones.size():
-		var lb: Array = _leg_bones[li]
-		var hip: Vector3 = lb[2]
-		var rest: Transform3D = lb[1]
-		var g: Transform3D = (D.call(hip.z) as Transform3D)
-		var rot := Basis.IDENTITY
-		if li < legs.size() and is_instance_valid(legs[li]):
-			# маркер: поворот лапы относительно кадра позвоночника
-			var fr := _frame(hip.z)
-			var frame_b := Basis(fr[1], fr[2], fr[3])
-			rot = frame_b.inverse() * (legs[li] as Node3D).transform.basis
-		var about_hip := Transform3D(Basis.IDENTITY, hip) * Transform3D(rot, Vector3.ZERO) * Transform3D(Basis.IDENTITY, -hip)
-		skel.set_bone_global_pose(int(lb[0]), _xf_inv * (g * about_hip * rest))
-		# колено: подъём лапы (крен вокруг продольной оси) → лёгкий сгиб
-		var ki := int(lb[3])
-		if ki >= 0:
-			var lift := absf(rot.get_euler().z)
-			var kr: Transform3D = lb[4]
-			skel.set_bone_pose_rotation(ki, kr.basis.get_rotation_quaternion() * Quaternion(Vector3.RIGHT, -lift * 0.9))
+	# лапы: IK по фазе походки (та же схема фаз, что ReptileAnim._gait_legs)
+	var Lm := z1 - z0
+	var amp_z := 0.3 * stride * move_w
+	var gx_ok := a != null and rig_root != null and rig_root.is_inside_tree() and a.lod == 0
+	var gxf := rig_root.global_transform if gx_ok else Transform3D.IDENTITY
+	var gxf_inv := gxf.affine_inverse()          # полуразмах стопы без проскальзывания (опора 60 % цикла)
+	for lg: Dictionary in _ik:
+		var ids: Array = lg.ids
+		var R: Array = lg.R
+		var hipz: float = (R[1] as Transform3D).origin.z
+		var Dh: Transform3D = D.call(hipz)
+		var G1: Transform3D = Dh * (R[0] as Transform3D)
+		var G2: Transform3D = G1 * (lg.L2 as Transform3D)
+		var S := G2.origin
+		var fr := _frame(hipz)
+		var X: Vector3 = fr[1]
+		var T: Vector3 = fr[3]
+		var i: int = lg.i
+		var off := 0.0 if (i == 0 or i == 3) else 0.5
+		var ph := fposmod(gait + off, 1.0)
+		var sw := 0.0
+		var lift := 0.0
+		if ph < 0.6:
+			sw = 1.0 - 2.0 * ph / 0.6
+		else:
+			var q := (ph - 0.6) / 0.4
+			sw = -1.0 + 2.0 * smoothstep(0.0, 1.0, q)
+			lift = sin(PI * q)
+		var l1: float = lg.l1
+		var l2: float = lg.l2
+		var ank: float = lg.ankle
+		var side: float = lg.side
+		var front: bool = lg.front
+		# стопа: в сторону (почти распрямлённая лапа по горизонтали), чуть вперёд от плеча/бедра
+		var dy := maxf(S.y - ank, 0.0)
+		var span := 0.84 * (l1 + l2)
+		var reach_h := sqrt(maxf(span * span - dy * dy, pow(0.35 * (l1 + l2), 2.0)))
+		var tgt := S + X * side * reach_h - T * ((0.02 if front else 0.06) * Lm) - T * (sw * amp_z)
+		tgt.y = ank + lift * 0.05 * Lm * move_w
+		# рельеф под этой лапой (склон пляжа, кочка): высота земли в точке стопы относительно земли под
+		# центром зверя — в кадр модели (модель может быть наклонена по склону — переводим через мир)
+		if gx_ok:
+			# точка «земли модели» под стопой → по вертикали на настоящий рельеф → обратно в модель
+			var wt := gxf * Vector3(tgt.x, 0.0, tgt.z)
+			var lt := gxf_inv * Vector3(wt.x, Fauna.ground_y_at(a, wt.x, wt.z), wt.z)
+			tgt.y += clampf(lt.y, -0.2 * Lm, 0.2 * Lm)
+		# полюс: локоть — наружу, вверх и назад; колено — наружу, вверх и вперёд
+		var pole := S + X * side * 1.0 + Vector3.UP * 0.8 + T * (0.35 if front else -0.35)
+		var K := _ik_knee(S, tgt, l1, l2, pole)
+		var G2n := Transform3D(_aim(G2.basis, (G2 * (lg.L3 as Transform3D)).origin - S, K - S), S)
+		var G3: Transform3D = G2n * (lg.L3 as Transform3D)
+		var G3n := Transform3D(_aim(G3.basis, (G3 * (lg.L4 as Transform3D)).origin - G3.origin, tgt - K), K)
+		# запястье: ладонь плоско (ориентация покоя в кадре туловища), пальцы чуть наружу
+		var flat := Basis(Vector3.UP, -side * 0.35) * Dh.basis.orthonormalized() * (R[3] as Transform3D).basis
+		var G4 := Transform3D(flat, (G3n * (lg.L4 as Transform3D)).origin)
+		skel.set_bone_global_pose(int(ids[0]), _xf_inv * G1)
+		skel.set_bone_global_pose(int(ids[1]), _xf_inv * G2n)
+		skel.set_bone_global_pose(int(ids[2]), _xf_inv * G3n)
+		skel.set_bone_global_pose(int(ids[3]), _xf_inv * G4)
+
+## Повернуть базис так, чтобы направление from перешло в to (кратчайший поворот; масштаб сохраняется).
+static func _aim(b: Basis, from: Vector3, to: Vector3) -> Basis:
+	if from.length_squared() < 1e-12 or to.length_squared() < 1e-12:
+		return b
+	var f := from.normalized()
+	var t := to.normalized()
+	var ax := f.cross(t)
+	var d := clampf(f.dot(t), -1.0, 1.0)
+	if ax.length_squared() < 1e-12:
+		return b
+	return Basis(ax.normalized(), acos(d)) * b
+
+## Двухкостная IK: точка колена/локтя K при плече S, цели T, длинах l1, l2 и полюсе P.
+static func _ik_knee(S: Vector3, T: Vector3, l1: float, l2: float, P: Vector3) -> Vector3:
+	var v := T - S
+	var d := clampf(v.length(), absf(l1 - l2) + 1e-5, (l1 + l2) * 0.999)
+	var dir := v.normalized() if v.length_squared() > 1e-12 else Vector3.DOWN
+	var aa := (l1 * l1 - l2 * l2 + d * d) / (2.0 * d)
+	var h := sqrt(maxf(l1 * l1 - aa * aa, 0.0))
+	var pv := (P - S) - dir * (P - S).dot(dir)
+	pv = pv.normalized() if pv.length_squared() > 1e-12 else Vector3.UP
+	return S + dir * aa + pv * h
