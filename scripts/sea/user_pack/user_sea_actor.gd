@@ -439,7 +439,7 @@ func ink(at: Vector3, size: float) -> void:
 	p.emitting = false
 	p.amount = 26
 	p.lifetime = 2.6
-	p.explosiveness = 0.85
+	p.explosiveness = 1.0
 	p.local_coords = false
 	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
 	p.emission_sphere_radius = size * 0.25

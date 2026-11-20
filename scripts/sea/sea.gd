@@ -733,7 +733,7 @@ func splash(pos: Vector3, size: float = 1.0) -> void:
 	p.emitting = false
 	p.amount = int(24 * size) + 8
 	p.lifetime = 0.9
-	p.explosiveness = 0.95
+	p.explosiveness = 1.0
 	p.direction = Vector3.UP
 	p.spread = 35.0
 	p.initial_velocity_min = 2.5 * size
@@ -792,7 +792,7 @@ func _blood_cloud(pos: Vector3, strength: float) -> void:
 	p.one_shot = true
 	p.amount = 14 + int(strength * 0.6)
 	p.lifetime = 3.0   # > 3 с — чёрные клубы в Compatibility
-	p.explosiveness = 0.8
+	p.explosiveness = 1.0
 	p.direction = Vector3.UP
 	p.spread = 180.0
 	p.initial_velocity_min = 0.2

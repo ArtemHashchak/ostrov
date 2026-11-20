@@ -46,10 +46,18 @@ func _focus(s: SeaScene) -> Vector3:
 func _frame(s: SeaScene, view: String, k: int) -> void:
 	var f := _focus(s)
 	var wy := s.water_y()
-	var ang := 0.7 + k * 0.5
-	var dist := 5.5
-	var p := f + Vector3(cos(ang) * dist, 0.0, sin(ang) * dist)
-	var fl := s.floor_y(p.x, p.z)
+	var small := s.id in ["crab_chase", "crab_rivals", "hermit_swap", "lobster_march", "seahorse_grass", "star_barrens", "clownfish_anemone", "cleaner_station", "octopus_den", "octopus_hunt", "moray_ambush", "parrotfish_crunch"]
+	var dist := 3.5 if small else 6.0
+	var ang0 := 0.7 + k * 0.5
+	var p := f
+	var fl := 0.0
+	# точка камеры, где воды хотя бы 0.9 м (не на границе воды): перебираем направления
+	for i in 12:
+		var ang := ang0 + i * 0.52
+		p = f + Vector3(cos(ang) * dist, 0.0, sin(ang) * dist)
+		fl = s.floor_y(p.x, p.z)
+		if wy - fl >= 0.9:
+			break
 	if s.id == "sargassum_raft":
 		# снизу вверх на плот: золотистый силуэт, свисающие плети, мальки под ним
 		p = Vector3(s.at.x + 3.0, wy - 2.6, s.at.z + 2.0)
@@ -57,15 +65,15 @@ func _frame(s: SeaScene, view: String, k: int) -> void:
 		f = Vector3(s.at.x, wy - 0.4, s.at.z)
 	elif s.id == "kelp_forest":
 		# из-под полога келпа: снизу против света
-		p.y = clampf(fl + 0.7, fl + 0.5, wy - 1.0)
+		p.y = clampf(fl + 0.7, fl + 0.4, wy - 0.5)
 		f = s.at + Vector3(0.0, minf(2.5, (wy - s.at.y) * 0.6), 0.0)
-	elif view == "surface" or wy - fl < 1.0 or s.id in ["whale_breach", "gulls_steal", "dolphins_bait"]:
-		p.y = wy + 1.2
+	elif view == "surface" or s.id in ["whale_breach", "gulls_steal", "dolphins_bait", "bait_ball"]:
+		p.y = wy + 1.4
 		if s.id == "whale_breach":
-			p = f + Vector3(cos(ang) * 60.0, 0.0, sin(ang) * 60.0)
+			p = f + Vector3(cos(ang0) * 60.0, 0.0, sin(ang0) * 60.0)
 			p.y = wy + 3.0
 	else:
-		p.y = clampf(f.y + 0.6, fl + 0.6, wy - 0.7)
+		p.y = clampf(f.y + (0.3 if small else 0.6), fl + 0.3, wy - 0.45)
 	sb.cheats.teleport(p, f)
 
 func run() -> void:

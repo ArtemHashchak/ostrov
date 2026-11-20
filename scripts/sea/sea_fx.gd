@@ -138,7 +138,7 @@ func bubbles(pos: Vector3, amount: int = 10, wy: float = NAN) -> void:
 	p.one_shot = true
 	p.amount = amount
 	p.lifetime = clampf((wy - pos.y) / 1.2, 0.6, 4.0)
-	p.explosiveness = 0.6
+	p.explosiveness = 1.0
 	p.direction = Vector3.UP
 	p.spread = 12.0
 	p.initial_velocity_min = 0.8
