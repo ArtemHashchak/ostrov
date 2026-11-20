@@ -310,6 +310,26 @@ static func _sargassum(a: Color, b: Color) -> ArrayMesh:
 		# пузырьки-поплавки
 		var q := p + d * 0.5
 		_tube(st, [q, q + Vector3(0, 0.025, 0)], [0.018, 0.0], [wt, wt], a.lightened(0.2), a.lightened(0.2), 5, false)
+	# свисающие вниз плети с листочками — силуэт плота снизу
+	for k in 9:
+		var top := Vector3(rng.randf_range(-0.4, 0.4), -0.05, rng.randf_range(-0.4, 0.4))
+		var ln := rng.randf_range(0.35, 0.8)
+		var ang := rng.randf() * TAU
+		var side := Vector3(cos(ang), 0, sin(ang))
+		var pts: Array = []
+		var wid: Array = []
+		var w: Array = []
+		for i in 6:
+			var tt := float(i) / 5.0
+			pts.append(top + Vector3(sin(tt * 4.0 + k) * 0.04, -ln * tt, cos(tt * 3.0 + k) * 0.04))
+			wid.append(lerpf(0.035, 0.012, tt))
+			w.append(0.4 + tt * 0.6)
+		_ribbon(st, pts, wid, side, w, b, a)
+		for i in range(1, 6, 2):
+			var lp: Vector3 = pts[i]
+			var ld := Vector3(cos(ang + i), -0.3, sin(ang + i)).normalized() * 0.09
+			var ls := ld.cross(Vector3.UP).normalized() * 0.022
+			_tri(st, lp - ls, lp + ld, lp + ls, b, a, b, w[i], w[i], w[i])
 	return _end(st)
 
 static func _grass(a: Color, b: Color) -> ArrayMesh:

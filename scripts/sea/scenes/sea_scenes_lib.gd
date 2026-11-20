@@ -1070,7 +1070,7 @@ class SargassumRaft extends SeaScene:
 	func _begin() -> void:
 		duration = 60.0
 		raft = Vector3(at.x, water_y(), at.z)
-		plant_patch("sargassum", raft, 2.0, 16)
+		plant_patch("sargassum", raft, 3.0, 40)
 		sch = school("juvenile", 26, raft + Vector3(0, -0.6, 0), 0.8)
 		sch.hold_at(raft + Vector3(0, -0.6, 0))
 		for i in 2:

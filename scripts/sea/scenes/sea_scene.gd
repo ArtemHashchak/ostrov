@@ -268,6 +268,7 @@ func plant_patch(pl_id: String, c: Vector3, r: float, count: int, surge: float =
 	m.set_shader_parameter(&"sway", float(d.get("sway", 0.3)))
 	m.set_shader_parameter(&"surge", surge)
 	m.set_shader_parameter(&"rough", 0.55)
+	m.set_shader_parameter(&"transl", float(d.get("translucent", 0.0)))
 	SeaPush.register(m)
 	mi.material_override = m
 	add_child(mi)

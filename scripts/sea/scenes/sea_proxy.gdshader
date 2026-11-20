@@ -15,6 +15,7 @@ uniform vec3 tint : source_color = vec3(1.0);
 uniform float sway = 0.4;         // растения: сила качания
 uniform float surge = 1.0;        // растения: прибой (берег — сильнее)
 uniform float rough = 0.6;
+uniform float transl = 0.0;       // растения: просвет листьев (келп, саргассум) 0..1
 global uniform vec2 wind_dir;
 global uniform float weather_storm;
 
@@ -93,7 +94,9 @@ void fragment() {
 		BACKLIGHT = c * 0.6;
 	}
 	if (mode == 6) {
-		// просвет на тонких листьях
-		BACKLIGHT = c * 0.35;
+		// просвет на тонких листьях: снизу против света келп и саргассум светятся золотисто-оливковым,
+		// а не становятся чёрными силуэтами; немного собственного «пропущенного» света
+		BACKLIGHT = c * (0.35 + transl * 0.55);
+		EMISSION = c * transl * 0.07;
 	}
 }
