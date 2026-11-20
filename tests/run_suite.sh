@@ -37,8 +37,11 @@ mkdir -p tests/logs /tmp/claude-0/suite
 RES=/tmp/claude-0/suite/res_$$; : > "$RES"
 T0=$(date +%s)
 run_one() {  # имя  режим(logic|render)
-  local n="$1" kind="$2" s rc
+  local n="$1" kind="$2" s rc to
   s=$(date +%s)
+  # свой таймаут теста: строка «## test-timeout: <сек>» (иначе TEST_TIMEOUT или 300/1500)
+  to=$(sed -n 's/^## test-timeout: *\([0-9]*\).*/\1/p' "tests/$n.gd" | head -1)
+  export TEST_TIMEOUT="${to:-${TEST_TIMEOUT:-300}}"
   if [ "$kind" = "render" ]; then
     TEST_LOW=1 "$ROOT/tools/godot_slots.sh" render "$ROOT/tests/run.sh" "tests/$n.gd" --shots >/dev/null 2>&1; rc=$?
   else

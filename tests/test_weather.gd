@@ -1,3 +1,4 @@
+## test-timeout: 900
 extends TestCase
 ## WEATHER: API ветра/погоды (CONTRACT_WEATHER), дождь, шторм, молния, укрытие от дождя.
 
