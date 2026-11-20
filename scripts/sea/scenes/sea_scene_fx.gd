@@ -64,9 +64,15 @@ static func _make(parent: Node, at: Vector3, amount: int, life: float, col_a: Co
 	q.size = Vector2.ONE
 	q.material = _mat(additive)
 	p.mesh = q
+	# В Compatibility первый кадр CPUParticles3D рисуется с ещё не залитым цветом экземпляров —
+	# частица видна чёрным диском. Прячем систему на два кадра, пока буфер не обновится.
+	p.visible = false
 	parent.add_child(p)
 	p.global_position = at
 	p.emitting = true
+	var tw_show := p.create_tween()
+	tw_show.tween_interval(0.06)
+	tw_show.tween_callback(func() -> void: p.visible = true)
 	var tw := p.create_tween()
 	if dur > 0.0:
 		tw.tween_interval(dur)

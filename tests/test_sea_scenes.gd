@@ -169,7 +169,10 @@ func run() -> void:
 
 	var cost: Array[String] = []
 	var ok_start := 0
+	var only := OS.get_environment("SEA_SCENES_ONLY")  # «id1,id2» — прогнать только эти сцены
 	for id: String in SeaScenesLib.ids():
+		if only != "" and not (id in only.split(",")):
+			continue
 		var info: Dictionary = SeaScenesLib.CATALOG[id]
 		dir.forced_time = String(info.get("time", "any")) if String(info.get("time", "any")) != "any" else "day"
 		if dir.forced_time == "dusk":
