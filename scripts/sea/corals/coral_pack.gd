@@ -16,19 +16,19 @@ const HARD := [&"table", &"staghorn", &"corymbose", &"lobed", &"foliose", &"antl
 
 ## Виды: варианты, вес, глубины, масштаб, оттенки (множитель к запечённому цвету), качание, узор.
 const TYPES := {
-	&"table": {"name": "Акропора столовая", "vars": 3, "w": 1.0, "dmin": 1.8, "dmax": 9.0, "smin": 0.55, "smax": 1.1,
+	&"table": {"name": "Акропора столовая", "vars": 3, "w": 0.7, "dmin": 1.8, "dmax": 9.0, "smin": 0.55, "smax": 1.1,
 		"tints": [Color(1, 1, 1), Color(1.0, 0.92, 0.86), Color(0.94, 0.98, 1.0), Color(1.05, 0.95, 0.8)], "sway": 0.0, "pattern": 0, "pscale": 70.0},
-	&"staghorn": {"name": "Акропора кустовая", "vars": 2, "w": 1.6, "dmin": 0.8, "dmax": 7.0, "smin": 0.6, "smax": 1.2,
+	&"staghorn": {"name": "Акропора кустовая", "vars": 2, "w": 0.9, "dmin": 0.8, "dmax": 7.0, "smin": 0.6, "smax": 1.2,
 		"tints": [Color(1, 1, 1), Color(0.9, 0.82, 0.95), Color(1.05, 0.95, 0.88)], "sway": 0.0, "pattern": 0, "pscale": 110.0},
 	&"corymbose": {"name": "Акропора пальчиковая", "vars": 2, "w": 2.2, "dmin": 0.8, "dmax": 7.5, "smin": 0.7, "smax": 1.5,
 		"tints": [Color("#A6A060"), Color("#8C8A48"), Color("#B8A870"), Color("#C9A46A"), Color("#D48A60")], "sway": 0.0, "pattern": 0, "pscale": 120.0},
-	&"lobed": {"name": "Лопастной", "vars": 4, "w": 1.4, "dmin": 0.9, "dmax": 8.0, "smin": 0.7, "smax": 1.6,
+	&"lobed": {"name": "Лопастной", "vars": 4, "w": 1.6, "dmin": 0.9, "dmax": 8.0, "smin": 0.7, "smax": 1.6,
 		"tints": [Color("#C84A4A"), Color("#D85A80"), Color("#8A58B8"), Color("#B8406A"), Color("#7448A0")], "sway": 0.0, "pattern": 1, "pscale": 60.0},
 	&"foliose": {"name": "Листовой (розетка)", "vars": 2, "w": 0.8, "dmin": 1.5, "dmax": 9.0, "smin": 0.7, "smax": 1.4,
 		"tints": [Color(1, 1, 1), Color(0.95, 1.0, 0.9)], "sway": 0.0, "pattern": 0, "pscale": 90.0},
 	&"antler": {"name": "Акропора-деревце", "vars": 2, "w": 0.7, "dmin": 2.0, "dmax": 10.0, "smin": 0.9, "smax": 1.7,
 		"tints": [Color(1, 1, 1), Color(0.95, 0.92, 1.0)], "sway": 0.0, "pattern": 0, "pscale": 100.0},
-	&"softcoral": {"name": "Мягкий коралл", "vars": 2, "w": 0.7, "dmin": 2.0, "dmax": 11.0, "smin": 1.0, "smax": 1.8,
+	&"softcoral": {"name": "Мягкий коралл", "vars": 2, "w": 0.45, "dmin": 2.0, "dmax": 11.0, "smin": 1.0, "smax": 1.8,
 		"tints": [Color(1, 1, 1), Color(1.0, 0.92, 0.95)], "sway": 0.05, "pattern": 2, "pscale": 60.0},
 	&"leather": {"name": "Кожистый с бахромой", "vars": 1, "w": 0.6, "dmin": 1.0, "dmax": 8.0, "smin": 0.7, "smax": 1.3,
 		"tints": [Color(1, 1, 1), Color(0.95, 1.0, 0.92)], "sway": 0.06, "pattern": 2, "pscale": 80.0},
@@ -36,11 +36,11 @@ const TYPES := {
 		"tints": [Color(1, 1, 1), Color(1.0, 0.97, 0.9)], "sway": 0.1, "pattern": 2, "pscale": 60.0},
 	&"bubble": {"name": "Пузырчатая актиния", "vars": 1, "w": 0.4, "dmin": 1.0, "dmax": 8.0, "smin": 0.8, "smax": 1.4,
 		"tints": [Color(1, 1, 1), Color(1.0, 0.95, 0.85)], "sway": 0.06, "pattern": 2, "pscale": 60.0},
-	&"crinoid": {"name": "Морская лилия", "vars": 2, "w": 0.4, "dmin": 1.5, "dmax": 11.0, "smin": 0.8, "smax": 1.4,
+	&"crinoid": {"name": "Морская лилия", "vars": 2, "w": 0.3, "dmin": 1.5, "dmax": 11.0, "smin": 0.8, "smax": 1.4,
 		"tints": [Color(1, 1, 1), Color(1.0, 0.9, 0.7), Color(0.95, 1.0, 0.85)], "sway": 0.08, "pattern": 2, "pscale": 60.0},
-	&"millepora": {"name": "Огненный коралл", "vars": 2, "w": 0.6, "dmin": 0.8, "dmax": 8.0, "smin": 0.7, "smax": 1.4,
+	&"millepora": {"name": "Огненный коралл", "vars": 2, "w": 0.9, "dmin": 0.8, "dmax": 8.0, "smin": 0.7, "smax": 1.4,
 		"tints": [Color(1, 1, 1), Color(1.05, 0.98, 0.9)], "sway": 0.0, "pattern": 0, "pscale": 90.0},
-	&"mound": {"name": "Корковый холмик", "vars": 2, "w": 1.0, "dmin": 0.6, "dmax": 10.0, "smin": 0.6, "smax": 1.8,
+	&"mound": {"name": "Корковый холмик", "vars": 2, "w": 1.6, "dmin": 0.6, "dmax": 10.0, "smin": 0.6, "smax": 1.8,
 		"tints": [Color(1, 1, 1), Color(0.92, 0.95, 1.0), Color(1.05, 1.0, 0.9)], "sway": 0.0, "pattern": 1, "pscale": 50.0},
 }
 

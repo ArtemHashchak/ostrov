@@ -48,6 +48,15 @@ for key, m in meta.items():
 		Image.fromarray((np.clip(out, 0, 1) * 255 + 0.5).astype(np.uint8), "RGBA").save(os.path.join(dst, "%s_%s.png" % (key, kind)))
 	print("ok", key)
 
+# слить с уже запечёнными видами (частичный перебейк CORAL_TYPES=… не теряет остальные)
+import re
+old_lines = {}
+mp = os.path.join(dst, "impostor_meta.gd")
+if os.path.exists(mp):
+	for ln in open(mp, encoding="utf-8"):
+		mm = re.match(r'\t"([^"]+)": (\{.*\}),$', ln.rstrip("\n"))
+		if mm and mm.group(1) not in meta:
+			old_lines[mm.group(1)] = ln
 with open(os.path.join(dst, "impostor_meta.gd"), "w") as f:
 	f.write("class_name CoralImpostorMeta\nextends RefCounted\n## Сгенерировано tools/model_gen/corals/impostor_post.py — не править руками.\n")
 	f.write("## Импосторы кораллов: центр и радиус ограничивающей сферы (координаты модели), кадров N×N.\n\n")
@@ -55,5 +64,7 @@ with open(os.path.join(dst, "impostor_meta.gd"), "w") as f:
 	for key, m in meta.items():
 		c = m["center"]
 		f.write('\t"%s": {"center": Vector3(%.4f, %.4f, %.4f), "radius": %.4f, "frames": %d},\n' % (key, c[0], c[1], c[2], m["radius"], m["frames"]))
+	for key in sorted(old_lines):
+		f.write(old_lines[key])
 	f.write("}\n")
-print("meta", len(meta))
+print("meta", len(meta), "+kept", len(old_lines))

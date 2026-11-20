@@ -48,8 +48,22 @@ func run() -> void:
 			var m := CoralPack.mesh(t, v, lod)
 			if m == null:
 				continue
-			var mi := MeshInstance3D.new()
-			mi.mesh = m
+			# через MultiMesh с оттенком экземпляра (INSTANCE_CUSTOM) — как на рифе
+			var mm := MultiMesh.new()
+			mm.transform_format = MultiMesh.TRANSFORM_3D
+			mm.use_custom_data = true
+			mm.use_colors = true   # без цветов экземпляров COLOR в шейдере обнуляется (gl_compatibility)
+			mm.mesh = m
+			mm.instance_count = 1
+			mm.set_instance_transform(0, Transform3D.IDENTITY)
+			var rng := RandomNumberGenerator.new()
+			rng.seed = 7 + v
+			var tint := CoralPack.pick_tint(t, rng)
+			tint.a = 0.5
+			mm.set_instance_custom_data(0, tint)
+			mm.set_instance_color(0, Color(1, 1, 1, 1))
+			var mi := MultiMeshInstance3D.new()
+			mi.multimesh = mm
 			mi.material_override = CoralPack.material(t, -100.0, lod)
 			holder.add_child(mi)
 			print("[test] %s v%d lod%d: %d треуг." % [t, v, lod, CoralPack.tri_count(m)])

@@ -170,9 +170,26 @@ def decimate_solid(sol, target):
 	ob = solid_to_object(sol, "dec_tmp")
 	t = tri_count_solid(sol)
 	if t > target:
-		m = ob.modifiers.new("dec", 'DECIMATE')
-		m.ratio = max(0.01, target / float(t))
-		m.use_collapse_triangulate = True
+		# несколько проходов: collapse на тонких пластинах (листовой) с одного раза не доходит до цели
+		for _pass in range(4):
+			m = ob.modifiers.new("dec%d" % _pass, 'DECIMATE')
+			m.ratio = max(0.01, target / float(t))
+			m.use_collapse_triangulate = True
+			bpy.context.view_layer.objects.active = ob
+			bpy.ops.object.modifier_apply(modifier=m.name)
+			t_prev = t
+			t = len(ob.data.polygons) and sum(len(pp.vertices) - 2 for pp in ob.data.polygons)
+			if t <= target * 1.15:
+				break
+			if t > t_prev * 0.97:
+				# collapse застрял (тонкие пластины/края листового): плоское растворение + триангуляция
+				m2 = ob.modifiers.new("pl%d" % _pass, 'DECIMATE')
+				m2.decimate_type = 'DISSOLVE'
+				m2.angle_limit = 0.12 + 0.12 * _pass
+				bpy.ops.object.modifier_apply(modifier=m2.name)
+				m3 = ob.modifiers.new("tr%d" % _pass, 'TRIANGULATE')
+				bpy.ops.object.modifier_apply(modifier=m3.name)
+				t = sum(len(pp.vertices) - 2 for pp in ob.data.polygons)
 	dg = bpy.context.evaluated_depsgraph_get()
 	me = bpy.data.meshes.new_from_object(ob.evaluated_get(dg))
 	bpy.data.objects.remove(ob)
@@ -273,7 +290,7 @@ def remesh_blob(spheres, voxel, colfn, uvfn=None):
 	"""Органический комок: набор (центр, радиус, шум, зерно) → вокс. ремеш → Solid с цветом по функции."""
 	bm = bmesh.new()
 	for (c, r, nz, sd) in spheres:
-		m = bmesh.ops.create_icosphere(bm, subdivisions=3, radius=r)
+		m = bmesh.ops.create_icosphere(bm, subdivisions=3 if r > 0.07 else 2, radius=r)
 		for v in m["verts"]:
 			d = v.co.normalized()
 			k = 1.0 + nz * noise.noise(d * 2.3 + Vector((sd, sd * 0.7, sd * 1.3)))
@@ -346,11 +363,11 @@ def gen_table(seed, tiers):
 		cx = rnd.uniform(-0.35, 0.35) * t; cy = rnd.uniform(-0.35, 0.35) * t
 		z = 0.38 + 0.17 * t + rnd.uniform(-0.03, 0.03)
 		lobes = []
-		nl = rnd.randint(4, 6)
+		nl = rnd.randint(6, 9)
 		for i in range(nl):
 			a = math.tau * i / nl + rnd.uniform(-0.45, 0.45)
-			d = R * rnd.uniform(0.4, 0.62)
-			lobes.append((Vector((math.cos(a) * d, math.sin(a) * d, 0)), R * rnd.uniform(0.36, 0.56)))
+			d = R * rnd.uniform(0.38, 0.7)
+			lobes.append((Vector((math.cos(a) * d, math.sin(a) * d, 0)), R * rnd.uniform(0.26, 0.5)))
 		lobes.append((Vector((0, 0, 0)), R * 0.48))
 		def edge_r(a, lobes=lobes):
 			dvec = Vector((math.cos(a), math.sin(a), 0))
@@ -362,10 +379,19 @@ def gen_table(seed, tiers):
 					best = max(best, b + math.sqrt(disc))
 			return best
 		ph = rnd.uniform(0, 6.28)
-		def surf(a, f, cx=cx, cy=cy, z=z, ph=ph, edge_r=edge_r):
+		# v5: у каждой лопасти своя высота/наклон — плита читается как несколько наложенных волнистых лопастей
+		lobe_h = [(math.atan2(c.y, c.x), rnd.uniform(-0.09, 0.14), rnd.uniform(0.35, 0.6)) for (c, r) in lobes if c.length > 1e-4]
+		def lobe_lift(a, lobe_h=lobe_h):
+			tot = 0.0
+			for (la, h, wdt) in lobe_h:
+				da = (a - la + math.pi) % math.tau - math.pi
+				tot += h * math.exp(-(da * da) / (2 * wdt * wdt))
+			return tot
+		def surf(a, f, cx=cx, cy=cy, z=z, ph=ph, edge_r=edge_r, lobe_lift=lobe_lift):
 			er = edge_r(a) * f
 			# кромка волной вверх, лёгкая чаша, крупная волна по лопастям
-			lift = 0.05 * f * f + 0.11 * f ** 4 * (0.5 + 0.5 * math.sin(a * 5 + ph)) + 0.03 * math.sin(a * 2 + ph * 1.3) * f
+			lift = (0.05 * f * f + 0.16 * f ** 4 * (0.5 + 0.5 * math.sin(a * 5 + ph)) + 0.06 * math.sin(a * 2 + ph * 1.3) * f
+				+ 0.05 * math.sin(a * 9 + ph * 0.7) * f ** 3 + 0.09 * smooth01((f - 0.86) / 0.14) + lobe_lift(a) * f ** 2)  # волна лопастей + загнутая вверх кромка
 			return Vector((cx + math.cos(a) * er, cy + math.sin(a) * er, z + lift))
 		RS = 72; RR = 9
 		ctop = sol.add_v(Vector((cx, cy, z + 0.03)), top, (0, 0))
@@ -398,9 +424,9 @@ def gen_table(seed, tiers):
 	# ворс: веточки по сетке с дрожанием, шаг ~3.2 см, растут вертикально, у кромки — наружу и светлее
 	for (surf, edge_r, R, t) in plates:
 		step = 0.032
-		n = int(math.pi * R * R / (step * step) * 0.62)
+		n = int(math.pi * R * R / (step * step) * 0.78)
 		for i in range(n):
-			f = math.sqrt(rnd.random())
+			f = math.sqrt(rnd.random()) ** 0.7 if rnd.random() < 0.35 else math.sqrt(rnd.random())  # гуще у кромки
 			a = rnd.random() * math.tau
 			p = surf(a, f)
 			out = Vector((math.cos(a), math.sin(a), 0))
@@ -417,7 +443,7 @@ def gen_table(seed, tiers):
 # ---------------- кустовая акропора / «оленьи рога» (preview 30–33): широкая низкая подушка-бурелом из тысяч
 # ветвящихся веточек (вилки на каждом шаге), розовато-коричневые с бледными шишковатыми кончиками, обломки вокруг.
 
-def gen_staghorn(seed, W=1.45, H=0.62):
+def gen_staghorn(seed, W=1.45, H=0.95):
 	rnd = random.Random(seed)
 	co = Coral()
 	dark = hexc("#5E3438"); mid = hexc("#8C5560"); tip = hexc("#F2D4CC")
@@ -428,7 +454,7 @@ def gen_staghorn(seed, W=1.45, H=0.62):
 			return -1.0
 		return H * (1.0 - r ** 2.4) ** 0.6 * (0.88 + 0.2 * noise.noise(Vector((x * 1.6 + ph, y * 1.6, 0.0))))
 	tips = [0]
-	MAXT = 3200
+	MAXT = 5400
 	def grow(p, d, r, depth):
 		if tips[0] > MAXT:
 			return
@@ -464,7 +490,7 @@ def gen_staghorn(seed, W=1.45, H=0.62):
 				nd = d
 			nd = (nd + out * 0.18 + Vector((0, 0, 0.12))).normalized()
 			grow(q, nd, rr, depth + 1)
-	n_tr = 26
+	n_tr = 42
 	bases = []
 	for k in range(n_tr):
 		a = math.tau * k / n_tr + rnd.uniform(-0.2, 0.2)
@@ -494,59 +520,83 @@ def gen_staghorn(seed, W=1.45, H=0.62):
 # толстых пальцев (часть с вилкой), кончики светлее; бугорчатые (узор кораллитов в шейдере).
 
 def gen_corymbose(seed, R=0.5):
+	"""Щитковидная акропора (v5): купол из сотен коротких толстых ОКРУГЛЫХ веточек — трубки по 7 граней
+	с полусферическими шишковатыми кончиками (без прореживания на LOD0 — иначе пальцы рассыпаются), часть
+	с вилкой; гладкие вершинные нормали. Цвет нейтральный, оливковый/хаки — оттенок экземпляра."""
 	rnd = random.Random(seed)
 	co = Coral()
-	base = grey(0.42); mid = grey(0.78); tip = grey(0.98)
-	core = remesh_blob([((0, 0, R * 0.12), R * 0.62, 0.2, seed)], 0.06, lambda p, n: base)
+	sol = co.solid
+	base = grey(0.40); mid = grey(0.72); tip = grey(0.96)
+	core = remesh_blob([((0, 0, R * 0.1), R * 0.58, 0.15, seed)], 0.05, lambda p, n: base)
 	clamp_floor(core)
-	co.solid = core
+	sol.join(core)
 	ga = math.pi * (3 - math.sqrt(5))
-	N = 620
+	N = 175
+	def finger(p0, dirv, length, r0, c0, c1, sd):
+		bend = Vector((rnd.uniform(-.01, .01), rnd.uniform(-.01, .01), 0))
+		p1 = p0 + dirv * length * 0.5 + bend
+		p2 = p0 + dirv * length * 0.86 + bend * 1.3
+		e = p0 + dirv * length + bend * 1.5
+		# кончик: широкий «шишак» и скругление (кольцо на 0.6r ближе к краю) — полусфера из 2 колец + вершина
+		ring_c = e + dirv * r0 * 0.38
+		sol.tube([p0, p1, p2, e, ring_c], [r0 * 1.12, r0, r0 * 1.02, r0 * 1.08, r0 * 0.72], 6,
+			[c0, lerp(c0, c1, 0.5), lerp(c0, c1, 0.8), c1, c1], [0] * 5, cap=True, ring_noise=0.1, seed=sd, tip_k=0.55)
 	for i in range(N):
-		z = 0.03 + 0.97 * (i + 0.5) / N
+		z = 0.05 + 0.95 * (i + 0.5) / N
 		r = math.sqrt(max(0.0, 1 - z * z))
 		a = ga * i
 		d = Vector((math.cos(a) * r, math.sin(a) * r, z))
-		d = (d + Vector((rnd.uniform(-.07, .07), rnd.uniform(-.07, .07), 0))).normalized()
-		start = Vector((d.x * R * 0.5, d.y * R * 0.5, R * 0.1 + d.z * R * 0.38))
-		L = R * rnd.uniform(0.42, 0.55) * (0.75 + 0.25 * d.z)
-		end = start + (d * 0.85 + Vector((0, 0, 0.25))).normalized() * L
-		rad = rnd.uniform(0.019, 0.026)
-		midp = (start + end) * 0.5 + Vector((rnd.uniform(-.01, .01), rnd.uniform(-.01, .01), 0))
-		if rnd.random() < 0.28:
-			# вилка у кончика
-			co.strand([start, midp], rad * 1.1, rad, base, mid, imp=0.5)
+		d = (d + Vector((rnd.uniform(-.09, .09), rnd.uniform(-.09, .09), 0))).normalized()
+		start = Vector((d.x * R * 0.48, d.y * R * 0.48, R * 0.08 + d.z * R * 0.34))
+		dd = (d * 0.8 + Vector((0, 0, 0.3))).normalized()
+		L = R * rnd.uniform(0.34, 0.5) * (0.75 + 0.25 * d.z)
+		rad = rnd.uniform(0.026, 0.034)
+		if rnd.random() < 0.2:
+			e = start + dd * L * 0.5
+			sol.tube([start, e], [rad * 1.15, rad * 1.05], 6, [base, mid], [0, 0], cap=False, ring_noise=0.1, seed=i)
 			for j in (-1, 1):
-				sd = (d + _perp(d) * 0.45 * j).normalized()
-				co.strand([midp, midp + sd * L * 0.5], rad * 0.95, rad * 0.85, mid, tip, imp=0.45, bulb=1.15)
+				sd = (dd + _perp(dd) * 0.45 * j).normalized()
+				finger(e, sd, L * 0.5, rad * 0.95, mid, tip, i * 3 + j)
 		else:
-			co.strand([start, midp, end], rad * 1.1, rad * 0.95, base, tip, cmid=mid, imp=0.6, bulb=1.15)
+			finger(start, dd, L, rad, base, tip, i)
 	bake_ao(co, 0.4, 0.5)
 	return co
 
-# ---------------- лопастной (preview 26–29): v0 извилистые гребни «цветная капуста», v1 длинные пальцы-гребни,
-# v2 шар из коротких толстых шипов (Pocillopora), v3 шишковатые ветвистые пальцы (фиолетовый)
-
 def gen_lobed(seed, long_fingers=False):
+	"""Лопастной (v5, preview 26): плотная «цветная капуста» из коротких толстых округлых лопастей —
+	купол-основа, из которого торчат сотни коротких пальцев-бугров (цепочки шаров, кончик чуть шире),
+	лопасти сливаются у основания и расходятся бороздами у вершин. Гладкое затенение (ремеш)."""
 	rnd = random.Random(seed)
-	R = 0.34
-	sph = [((0, 0, R * 0.25), R * 0.7, 0.15, seed)]
-	walks = 46 if not long_fingers else 30
-	for w in range(walks):
-		d = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(0.15, 1.0))).normalized()
-		step = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-1, 1))).normalized()
-		for k in range(11):
-			step = (step + Vector((rnd.uniform(-.8, .8), rnd.uniform(-.8, .8), rnd.uniform(-.8, .8)))).normalized()
-			d = (d + step * 0.15).normalized()
-			if d.z < 0.08:
-				d.z = 0.08; d = d.normalized()
-			h = 1.0 + (0.26 if long_fingers else 0.1) * math.sin(k * 0.9 + w)
-			c = (d.x * R * h, d.y * R * h, R * 0.12 + d.z * R * 0.82 * h)
-			sph.append((c, rnd.uniform(0.032, 0.046) * (0.85 if long_fingers else 1.0), 0.3, w * 3.1 + k))
+	R = 0.36
+	sph = [((0, 0, R * 0.15), R * 0.72, 0.22, seed)]
+	if long_fingers:
+		sph.append(((R * 0.35, R * 0.1, R * 0.1), R * 0.45, 0.25, seed + 1))
+	ga = math.pi * (3 - math.sqrt(5))
+	N = 150 if not long_fingers else 120
+	for i in range(N):
+		z = 0.08 + 0.92 * (i + 0.5) / N
+		r = math.sqrt(max(0.0, 1 - z * z))
+		a = ga * i * 1.003
+		d = Vector((math.cos(a) * r, math.sin(a) * r, z))
+		d = (d + Vector((rnd.uniform(-.12, .12), rnd.uniform(-.12, .12), rnd.uniform(-.05, .05)))).normalized()
+		base = Vector((0, 0, R * 0.15)) + d * R * rnd.uniform(0.55, 0.66)
+		if base.z < 0.02:
+			continue
+		L = R * (rnd.uniform(0.22, 0.38) if not long_fingers else rnd.uniform(0.32, 0.55))
+		rad = rnd.uniform(0.034, 0.046)
+		dd = (d + Vector((rnd.uniform(-.25, .25), rnd.uniform(-.25, .25), 0.15))).normalized()
+		n = 4
+		for k in range(n + 1):
+			t = k / n
+			bend = Vector((math.sin(t * 2.2 + i) * 0.01, math.cos(t * 1.9 + i) * 0.01, 0))
+			q = base + dd * L * t + bend
+			rr = rad * (1.0 + 0.12 * math.sin(t * 3.14)) * (1.12 if k == n else 1.0)
+			sph.append(((q.x, q.y, q.z), rr, 0.18, i * 0.71 + k))
 	co = Coral()
-	co.solid = remesh_blob(sph, 0.011, lambda p, n: grey(0.5 + 0.48 * max(0.0, min(1.0, (p.length / (R * 1.1)) ** 2))))
+	cen = Vector((0, 0, R * 0.15))
+	co.solid = remesh_blob(sph, 0.01 if not long_fingers else 0.016, lambda p, n: grey(0.42 + 0.55 * max(0.0, min(1.0, ((p - cen).length / (R * 1.05)) ** 2))))
 	clamp_floor(co.solid)
-	bake_ao(co, 0.4, 0.4)
+	bake_ao(co, 0.4, 0.45)
 	return co
 
 def gen_spiky_ball(seed):
@@ -774,21 +824,21 @@ def gen_leather(seed):
 	for s in range(RS):
 		sol.face((trows[-1][s], trows[-1][(s + 1) % RS], ctr))
 	# мех: щупальца, плотность растёт к краю, пустое пятно у ротового диска
-	N = 1500
+	N = 2600
 	for i in range(N):
 		a = rnd.random() * math.tau
-		f = 1.0 - rnd.random() ** 1.8 * 0.85
+		f = 1.0 - rnd.random() ** 1.4 * 0.82
 		if f < 0.2:
 			continue
 		p = top_pt(a, f) if f < 0.995 else cup_pt(a, 1.0)
 		out = Vector((math.cos(a), math.sin(a), 0))
 		edge = smooth01((f - 0.7) / 0.3)
-		d = (Vector((0, 0, 1)) + out * (0.15 + 0.9 * edge) + Vector((rnd.uniform(-.2, .2), rnd.uniform(-.2, .2), 0))).normalized()
-		L = rnd.uniform(0.04, 0.065) * (0.75 + 0.5 * edge)
-		bend = Vector((rnd.uniform(-.3, .3), rnd.uniform(-.3, .3), -0.1))
+		d = (Vector((0, 0, 1)) + out * (0.1 + 0.45 * edge) + Vector((rnd.uniform(-.08, .08), rnd.uniform(-.08, .08), 0))).normalized()
+		L = rnd.uniform(0.026, 0.034) * (0.9 + 0.25 * edge)
+		bend = Vector((rnd.uniform(-.1, .1), rnd.uniform(-.1, .1), -0.05))
 		m = p + d * L * 0.5
 		e = p + (d + bend * 0.4).normalized() * L
-		co.strand([p, m, e], 0.0062, 0.0058, fr0, fr1, flex0=0.2, flex1=1.0, soft=True, imp=0.4 + 0.4 * edge, bulb=1.3)
+		co.strand([p, m, e], 0.0066, 0.0064, fr0, fr1, flex0=0.2, flex1=1.0, soft=True, imp=0.4 + 0.4 * edge, bulb=1.5)
 	bake_ao(co, 0.35, 0.3)
 	return co
 
@@ -971,29 +1021,29 @@ def gen_mound(seed, colr):
 
 # (тип, вариант, функция, LOD0 (сплошная треуг., доля нитей), LOD1 (…, доля, ×радиус, шаг), LOD2 (…))
 SPEC = [
-	("table", 0, lambda: gen_table(11, 1), (1600, 0.3), (500, 0.12, 1.6, 1), (200, 0.03, 2.4, 1)),
-	("table", 1, lambda: gen_table(12, 2), (2000, 0.26), (650, 0.1, 1.6, 1), (240, 0.025, 2.4, 1)),
-	("table", 2, lambda: gen_table(13, 3), (2200, 0.23), (700, 0.09, 1.6, 1), (260, 0.022, 2.4, 1)),
-	("staghorn", 0, lambda: gen_staghorn(21), (0, 0.6), (0, 0.22, 1.5, 1), (0, 0.06, 2.4, 1)),
-	("staghorn", 1, lambda: gen_staghorn(22, 1.6, 0.68), (0, 0.55), (0, 0.2, 1.5, 1), (0, 0.055, 2.4, 1)),
-	("corymbose", 0, lambda: gen_corymbose(31), (900, 0.8), (300, 0.4, 1.25, 2), (120, 0.15, 1.6, 2)),
-	("corymbose", 1, lambda: gen_corymbose(32, 0.42), (800, 0.8), (300, 0.4, 1.25, 2), (120, 0.15, 1.6, 2)),
-	("lobed", 0, lambda: gen_lobed(41), (3200, 1.0), (1000, 1.0, 1.0, 1), (380, 1.0, 1.0, 1)),
-	("lobed", 1, lambda: gen_lobed(42, True), (3200, 1.0), (1000, 1.0, 1.0, 1), (380, 1.0, 1.0, 1)),
+	("table", 0, lambda: gen_table(11, 1), (1600, 0.3), (500, 0.045, 1.6, 1), (200, 0.03, 2.4, 1)),
+	("table", 1, lambda: gen_table(12, 2), (2000, 0.26), (650, 0.04, 1.6, 1), (240, 0.025, 2.4, 1)),
+	("table", 2, lambda: gen_table(13, 3), (2200, 0.23), (700, 0.035, 1.6, 1), (260, 0.022, 2.4, 1)),
+	("staghorn", 0, lambda: gen_staghorn(21), (0, 0.18), (0, 0.03, 1.5, 1), (0, 0.022, 2.4, 1)),
+	("staghorn", 1, lambda: gen_staghorn(22, 1.6, 1.05), (0, 0.17), (0, 0.03, 1.5, 1), (0, 0.022, 2.4, 1)),
+	("corymbose", 0, lambda: gen_corymbose(31), (0, 1.0), (4500, 1.0, 1.0, 1), (1600, 1.0, 1.0, 1)),
+	("corymbose", 1, lambda: gen_corymbose(32, 0.42), (0, 1.0), (4500, 1.0, 1.0, 1), (1600, 1.0, 1.0, 1)),
+	("lobed", 0, lambda: gen_lobed(41), (8000, 1.0), (2400, 1.0, 1.0, 1), (800, 1.0, 1.0, 1)),
+	("lobed", 1, lambda: gen_lobed(42, True), (8000, 1.0), (2400, 1.0, 1.0, 1), (800, 1.0, 1.0, 1)),
 	("lobed", 2, lambda: gen_spiky_ball(43), (600, 0.85), (220, 0.4, 1.3, 1), (100, 0.15, 1.8, 1)),
 	("lobed", 3, lambda: gen_knobby_branch(44), (3000, 1.0), (950, 1.0, 1.0, 1), (350, 1.0, 1.0, 1)),
 	("foliose", 0, lambda: gen_foliose(51, "#B8A870"), (3000, 1.0), (1000, 1.0, 1.0, 1), (320, 1.0, 1.0, 1)),
 	("foliose", 1, lambda: gen_foliose(52, "#C0A868"), (3000, 1.0), (1000, 1.0, 1.0, 1), (320, 1.0, 1.0, 1)),
-	("antler", 0, lambda: gen_antler(61, ["#A88050", "#EAD4AC"]), (0, 0.75), (0, 0.3, 1.4, 1), (0, 0.1, 2.0, 1)),
-	("antler", 1, lambda: gen_antler(62, ["#9A9A9A", "#E2E2DE"]), (0, 0.75), (0, 0.3, 1.4, 1), (0, 0.1, 2.0, 1)),
-	("softcoral", 0, lambda: gen_softcoral(71, "#EEE0DC", "#E8A030"), (1600, 0.24), (600, 0.15, 1.6, 1), (240, 0.04, 2.6, 1)),
-	("softcoral", 1, lambda: gen_softcoral(72, "#EED4D4", "#E87898"), (1600, 0.24), (600, 0.15, 1.6, 1), (240, 0.04, 2.6, 1)),
-	("leather", 0, lambda: gen_leather(81), (1200, 0.55), (450, 0.2, 1.5, 1), (200, 0.06, 2.4, 1)),
+	("antler", 0, lambda: gen_antler(61, ["#A88050", "#EAD4AC"]), (0, 0.75), (0, 0.14, 1.4, 1), (0, 0.1, 2.0, 1)),
+	("antler", 1, lambda: gen_antler(62, ["#9A9A9A", "#E2E2DE"]), (0, 0.75), (0, 0.14, 1.4, 1), (0, 0.1, 2.0, 1)),
+	("softcoral", 0, lambda: gen_softcoral(71, "#EEE0DC", "#E8A030"), (1600, 0.24), (600, 0.06, 1.6, 1), (240, 0.04, 2.6, 1)),
+	("softcoral", 1, lambda: gen_softcoral(72, "#EED4D4", "#E87898"), (1600, 0.24), (600, 0.06, 1.6, 1), (240, 0.04, 2.6, 1)),
+	("leather", 0, lambda: gen_leather(81), (1200, 0.55), (450, 0.09, 1.5, 1), (200, 0.06, 2.4, 1)),
 	("anemone", 0, lambda: gen_anemone(91, "#F2EEE4"), (300, 0.62), (150, 0.3, 1.3, 2), (60, 0.1, 1.8, 3)),
 	("anemone", 1, lambda: gen_anemone(92, "#DCCCA8"), (300, 0.62), (150, 0.3, 1.3, 2), (60, 0.1, 1.8, 3)),
 	("bubble", 0, lambda: gen_bubble(101), (1200, 0.55), (450, 0.22, 1.4, 1), (180, 0.07, 2.2, 1)),
-	("crinoid", 0, lambda: gen_crinoid(111), (0, 0.42), (0, 0.25, 1.4, 2), (0, 0.08, 1.8, 3)),
-	("crinoid", 1, lambda: gen_crinoid(112, "#5E5A50", "#C8C4B4"), (0, 0.42), (0, 0.25, 1.4, 2), (0, 0.08, 1.8, 3)),
+	("crinoid", 0, lambda: gen_crinoid(111), (0, 0.42), (0, 0.11, 1.4, 2), (0, 0.08, 1.8, 3)),
+	("crinoid", 1, lambda: gen_crinoid(112, "#5E5A50", "#C8C4B4"), (0, 0.42), (0, 0.11, 1.4, 2), (0, 0.08, 1.8, 3)),
 	("mound", 0, lambda: gen_mound(121, "#7A5A38"), (800, 1.0), (280, 1.0, 1.0, 1), (110, 1.0, 1.0, 1)),
 	("mound", 1, lambda: gen_mound(122, "#6A6A3A"), (800, 1.0), (280, 1.0, 1.0, 1), (110, 1.0, 1.0, 1)),
 	("millepora", 0, lambda: gen_millepora(131), (2600, 1.0), (800, 1.0, 1.0, 1), (280, 1.0, 1.0, 1)),

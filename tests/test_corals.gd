@@ -11,8 +11,8 @@ var root: Node3D
 var cam: Camera3D
 
 ## LOD0 (вблизи, ≤13–22 м) — подробные; дальше LOD1/LOD2, у твёрдых — импосторы («заранее снятые»).
-const BUDGET0 := {&"table": 20000, &"staghorn": 17000, &"corymbose": 6500, &"lobed": 4500, &"foliose": 3200,
-	&"antler": 7600, &"softcoral": 21500, &"leather": 8000, &"anemone": 7600, &"bubble": 6200, &"crinoid": 12000,
+const BUDGET0 := {&"table": 25000, &"staghorn": 22500, &"corymbose": 14000, &"lobed": 8500, &"foliose": 3200,
+	&"antler": 7600, &"softcoral": 21500, &"leather": 13000, &"anemone": 7600, &"bubble": 6200, &"crinoid": 12000,
 	&"mound": 900, &"millepora": 3000}
 
 func run() -> void:
