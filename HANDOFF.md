@@ -107,3 +107,5 @@
   - test_combat_dummy «пистоль — ноги (мимо)» — флейк разброса (randfn, σ≈0.12 м на 12 м): зерно seed() перед каждым выстрелом в fire_at.
   - test_sea_model — разово «1 resources still in use at exit», при повторе 2/2 exit=0 (тот же редкий флейк, что у bots_bridge).
   Перепрогнаны после правок: weather, combat_dummy ×3, sea_model ×2, ui_inventory, view_setting, main_menu, tutorial, sandbox, game_match, ui_scale — все exit=0. Статус не «ГОТОВО» — ждём решения пользователя.
+
+- 2026-11-20 14:25–14:55 UTC (сессия по расписанию, работа стояла ~2.5 ч): новых задач не брала (ждём пользователя). smoke 10/10 exit=0. Разобран флейк «1 resources still in use at exit» (test_sea_model 2 из 5 прогонов, test_bots_bridge): в --verbose — props-splash.wav, звук ещё играл/затухал, а раннер выходил раньше, чем AudioServer.update() освобождал воспроизведение. Исправлено: раннер после теста ждёт 8 кадров по 25 мс (tests/runner.gd); Sea._exit_tree останавливает всплески (scripts/sea/sea.gd). После правки test_sea_model 6/6 без утечки, bots_bridge 2/2 exit=0, smoke 10/10. Статус не «ГОТОВО» — ждём решения пользователя.

@@ -20,6 +20,7 @@ const LOD_NEAR := 140.0
 const LOD_FAR := 280.0
 const PACK_SKEL_DIST := 45.0        # дальше — акула из пака без скелета (VAT)
 const SPLASH_SOUND := "res://assets/sounds/sfx-kit/props-splash.wav"
+const SPLASH_STOP_WAIT_MS := 100
 
 @export var density: float = 1.0
 @export var auto_populate: bool = true
@@ -282,6 +283,15 @@ static func perf_line() -> String:
 	return "море: " + "  ".join(parts) if not parts.is_empty() else ""
 
 func _exit_tree() -> void:
+	# Всплеск, ещё звучащий при выходе, оставался в аудиосервере («1 resources still in
+	# use at exit»: props-splash.wav). Останавливаем и даём аудиопотоку отпустить его.
+	var playing := 0
+	for a in _splash_players:
+		if is_instance_valid(a) and a.playing:
+			a.stop()
+			playing += 1
+	if playing > 0:
+		OS.delay_msec(SPLASH_STOP_WAIT_MS)
 	SeaMeshes.clear_cache()
 	SharkModel.clear_cache()
 	SeaPush.clear()

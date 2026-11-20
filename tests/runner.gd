@@ -61,6 +61,13 @@ func _run_one(test_path: String) -> int:
 	# тестовых сценах без узла Flora (стройка, полигоны) — некому: останавливаем здесь.
 	Flora.stop_all_sfx()
 	CombatFx.stop_all_sounds()
+	# Остановленный звук освобождается не сразу: аудиопоток доигрывает затухание, затем
+	# AudioServer.update() на главном потоке удаляет воспроизведение. Без нескольких
+	# настоящих кадров с паузой выход успевал раньше — редкий флейк «1 resources still
+	# in use at exit» (props-splash.wav в test_sea_model, звуки в test_bots_bridge).
+	for i in 8:
+		OS.delay_msec(25)
+		await get_tree().process_frame
 	return code
 
 func _is_autoload(n: Node) -> bool:
