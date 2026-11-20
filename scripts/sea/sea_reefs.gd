@@ -217,7 +217,7 @@ func _emit() -> void:
 ## Кораллы пака — цепочка уровней по расстоянию КАЖДОГО экземпляра (полоса в шейдере, края —
 ## дизеринг; вне полосы вершины схлопываются), MultiMesh собираются в под-ячейки, чтобы далёкие
 ## под-ячейки ближних уровней вообще не рисовались (visibility range по центру под-ячейки):
-##   твёрдые (есть импостор): LOD0 0..9 м (ячейки 32 м) → LOD1 9..28 м (64 м) → импостор 28..160 м (64 м);
+##   твёрдые (есть импостор): LOD0 0..9 м (ячейки 16 м) → LOD1 9..28 м (32 м) → импостор 28..160 м (64 м);
 ##   мягкие (щупальца, без импосторов): LOD0 0..12 м (32 м) → LOD1 12..30 м, каждый 2-й (64 м).
 const PACK_HARD_L0 := 9.0
 const PACK_HARD_L1 := 28.0
@@ -239,15 +239,15 @@ func _emit_pack(t: StringName, v: int, xf: Array, col: PackedColorArray, wy: flo
 	if m0 == null:
 		return
 	if CoralPack.has_impostor(t, v):
-		_split(t, 0, xf, col, CoralPack.material_band(t, wy, 0, 0.0, PACK_HARD_L0), 32.0, PACK_HARD_L0 + PACK_FADE, 1, m0)
+		_split(t, 0, xf, col, CoralPack.material_band(t, wy, 0, 0.0, PACK_HARD_L0), 16.0, PACK_HARD_L0 + PACK_FADE, 1, m0)
 		if m1:
-			_split(t, 1, xf, col, CoralPack.material_band(t, wy, 1, PACK_HARD_L0, PACK_HARD_L1), CELL, PACK_HARD_L1 + PACK_FADE, 1, m1)
+			_split(t, 1, xf, col, CoralPack.material_band(t, wy, 1, PACK_HARD_L0, PACK_HARD_L1), 32.0, PACK_HARD_L1 + PACK_FADE, 1, m1)
 		_split(t, 3, xf, col, CoralPack.impostor_band(t, v, wy, PACK_HARD_L1, LO_END), CELL, LO_END + 3.0, 1, CoralPack.impostor_mesh(t, v))
 		return
 	if not (t in CoralPack.HARD):
 		_split(t, 0, xf, col, CoralPack.material_band(t, wy, 0, 0.0, PACK_SOFT_L0), 32.0, PACK_SOFT_L0 + PACK_FADE, 1, m0)
 		if m1:
-			_split(t, 1, xf, col, CoralPack.material_band(t, wy, 1, PACK_SOFT_L0, PACK_SOFT_L1), CELL, PACK_SOFT_L1 + PACK_FADE, 2, m1)
+			_split(t, 1, xf, col, CoralPack.material_band(t, wy, 1, PACK_SOFT_L0, PACK_SOFT_L1), 32.0, PACK_SOFT_L1 + PACK_FADE, 2, m1)
 		return
 	# твёрдый без импостора — прежняя схема
 	var big := t in PACK_BIG
