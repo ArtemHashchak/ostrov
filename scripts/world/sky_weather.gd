@@ -400,7 +400,7 @@ func _apply(_dt: float) -> void:
 		# погодный туман + граница «Дальности видимости» (дымка густеет до 100 % на её краю)
 		ViewDistance.apply_fog(_env, float(_cur.fog))
 		# в дождь/шторм небо затянуто: дымка заметно перекрывает небо (серое, а не чёрное)
-		_env.fog_sky_affect = clampf(0.15 + float(_cur.fog) * 14.0 + 0.45 * storm + 0.25 * rain, 0.15, 0.9)
+		_env.fog_sky_affect = maxf(clampf(0.15 + float(_cur.fog) * 14.0 + 0.45 * storm + 0.25 * rain, 0.15, 0.9), ViewDistance.sky_affect_min())
 		_env.fog_light_energy = 1.0 + _flash * 1.0
 
 func _update_lightning(dt: float, cam: Camera3D) -> void:

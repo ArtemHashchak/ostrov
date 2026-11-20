@@ -117,6 +117,12 @@ static func apply(tree: SceneTree) -> void:
 ## доходит до 100 % ровно на границе дальности, так что обрез рельефа/деревьев не
 ## виден. Кривая плавно переходит от «экспоненты» (дальность ≈ погоде) к «чистый
 ## воздух вблизи, дымка у края» (дальность много короче погоды) — без скачка при смене погоды.
+static var _sky_min := 0.0
+
+## Минимальная доля тумана на небе для текущей дальности (SkyWeather берёт max с погодной).
+static func sky_affect_min() -> float:
+	return _sky_min
+
 static func apply_fog(env: Environment, weather_density: float) -> void:
 	if env == null:
 		return
@@ -125,8 +131,22 @@ static func apply_fog(env: Environment, weather_density: float) -> void:
 	if is_max() or vd >= wvis * 1.25:
 		env.fog_mode = Environment.FOG_MODE_EXPONENTIAL
 		env.fog_density = weather_density
+		env.fog_aerial_perspective = 0.5
+		_sky_min = 0.0
 		return
 	var t := clampf((wvis / vd - 1.0) / 2.0, 0.0, 1.0)
+	# короткая дальность: дымка берёт цвет неба у горизонта (aerial perspective) и
+	# частично закрывает само небо — иначе на границе виден серый «забор» под ярким небом
+	var near_k := clampf((2500.0 - vd) / 1900.0, 0.0, 1.0)
+	env.fog_aerial_perspective = lerpf(0.5, 0.95, near_k)
+	_sky_min = lerpf(0.15, 0.6, near_k)
+	# цвет дымки — к голубому горизонту той же яркости (на случай, когда рендер не
+	# окрашивает туман небом: Compatibility); ночью/в шторм яркость остаётся прежней
+	var fc := env.fog_light_color
+	var lum := fc.get_luminance()
+	var horizon := Color(0.66, 0.78, 0.92)
+	var hz := horizon * (lum / maxf(horizon.get_luminance(), 0.001))
+	env.fog_light_color = fc.lerp(Color(hz.r, hz.g, hz.b, fc.a), 0.55 * near_k)
 	env.fog_mode = Environment.FOG_MODE_DEPTH
 	env.fog_density = 1.0
 	env.fog_depth_begin = 0.0
