@@ -56,6 +56,11 @@ func _run_one(test_path: String) -> int:
 			n.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
+	# Звуки, ещё играющие к концу теста, остаются в аудиосервере («resources still in
+	# use at exit»). В матче их останавливают Flora/Combat при выходе из дерева, а в
+	# тестовых сценах без узла Flora (стройка, полигоны) — некому: останавливаем здесь.
+	Flora.stop_all_sfx()
+	CombatFx.stop_all_sounds()
 	return code
 
 func _is_autoload(n: Node) -> bool:

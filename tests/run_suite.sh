@@ -52,7 +52,7 @@ run_one() {  # имя  режим(logic|render)
 N="${LOGIC_SLOTS:-2}"
 for n in "${LIST[@]}"; do
   [ -f "tests/$n.gd" ] || { echo "нет tests/$n.gd"; continue; }
-  if [ "$MODE" = "full" ] && is_render "$n"; then
+  if is_render "$n"; then   # рендер-тесты в любом режиме — под xvfb (headless им не годится)
     run_one "$n" render &
   else
     # не больше N логических одновременно (сами слоты тоже держат очередь)

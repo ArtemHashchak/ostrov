@@ -53,7 +53,7 @@ func run() -> void:
 	var jump := 0.0
 	var prev := w.wave_height(sea_pt.x, sea_pt.z)
 	for i in 120:
-		await get_tree().process_frame
+		await wait_frames(1)
 		var h := w.wave_height(sea_pt.x, sea_pt.z)
 		lo = minf(lo, h)
 		hi = maxf(hi, h)
