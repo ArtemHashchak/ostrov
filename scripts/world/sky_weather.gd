@@ -388,15 +388,15 @@ func _apply(_dt: float) -> void:
 		var nk := (1.0 - dl) * overcast
 		# тучи ночью подсвечены рассеянной луной/далёкими огнями — сине-серая «крыша»,
 		# на её фоне читаются силуэты островов (а не чёрное в чёрном)
-		var fog_night := Color(0.05, 0.07, 0.1).lerp(Color(0.15, 0.18, 0.23), overcast)
+		var fog_night := Color(0.05, 0.07, 0.1).lerp(Color(0.21, 0.25, 0.31), overcast)
 		_env.fog_light_color = fog_night.lerp(fog_day, dl)
 		# небо ночью почти чёрное → рассеянный свет берём из «облачного» цвета и поднимаем
 		# его энергию в пасмурную ночь: волны, пена, песок и силуэты видны без молнии
 		_env.ambient_light_color = Color(0.17, 0.2, 0.26)
 		_env.ambient_light_sky_contribution = 1.0 - 0.75 * nk
-		_env.ambient_light_energy = AMBIENT_BASE + 1.15 * nk
+		_env.ambient_light_energy = AMBIENT_BASE + 1.6 * nk
 		# грейд в шторм затемнял ещё и ночь — ночью под тучами его ослабляем
-		_env.adjustment_brightness += 0.1 * storm * nk + 0.06 * nk
+		_env.adjustment_brightness += 0.14 * storm * nk + 0.08 * nk
 		# погодный туман + граница «Дальности видимости» (дымка густеет до 100 % на её краю)
 		ViewDistance.apply_fog(_env, float(_cur.fog))
 		# в дождь/шторм небо затянуто: дымка заметно перекрывает небо (серое, а не чёрное)

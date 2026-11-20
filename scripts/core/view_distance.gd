@@ -144,9 +144,12 @@ static func apply_fog(env: Environment, weather_density: float) -> void:
 	# окрашивает туман небом: Compatibility); ночью/в шторм яркость остаётся прежней
 	var fc := env.fog_light_color
 	var lum := fc.get_luminance()
-	var horizon := Color(0.66, 0.78, 0.92)
+	var horizon := Color(0.62, 0.78, 0.96)
 	var hz := horizon * (lum / maxf(horizon.get_luminance(), 0.001))
-	env.fog_light_color = fc.lerp(Color(hz.r, hz.g, hz.b, fc.a), 0.55 * near_k)
+	# ясный день — к голубому горизонту полностью; в тёмную дымку (ночь, дождь, шторм)
+	# небо у горизонта и так серое — оттенок не трогаем
+	var clear := clampf(1.0 - (0.78 - lum) * 4.0, 0.0, 1.0)
+	env.fog_light_color = fc.lerp(Color(hz.r, hz.g, hz.b, fc.a), 0.9 * near_k * clear)
 	env.fog_mode = Environment.FOG_MODE_DEPTH
 	env.fog_density = 1.0
 	env.fog_depth_begin = 0.0
