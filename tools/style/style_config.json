@@ -12,7 +12,10 @@
     "bark":          {"y": [0.05, 0.14], "y_max": 0.40, "sat_max": 0.35, "delight": 0.2,  "rough": [0.80, 0.94], "metal": 0, "detail": {"kind": "fibres",  "size": 0.010, "amp": 0.12}},
     "foliage":       {"y": [0.05, 0.13], "y_max": 0.40, "sat_max": 0.58, "delight": 0.0,  "rough": [0.55, 0.72], "metal": 0, "detail": null},
     "algae":         {"y": [0.04, 0.16], "y_max": 0.45, "sat_max": 0.62, "delight": 0.0,  "rough": [0.35, 0.55], "metal": 0, "detail": null},
-    "special_keep":  {"keep": true}
+    "special_keep":  {"keep": true},
+    "reptile_skin":  {"y": [0.03, 0.60], "y_max": 0.75, "sat_max": 0.70, "delight": 0.25, "rough": [0.50, 0.78], "metal": 0, "detail": {"kind": "scales",  "size": 0.004, "amp": 0.14}, "_comment": "ящерица: окраска — палитра по яркости в шейдере user_lizard, медиана яркости не сдвигается (широкий диапазон), снимается только запечённый свет"},
+    "bat_skin":      {"y": [0.02, 0.09], "y_max": 0.35, "sat_max": 0.35, "delight": 0.3,  "rough": [0.70, 0.90], "metal": 0, "detail": {"kind": "pores",   "size": 0.003, "amp": 0.10}},
+    "rock":          {"y": [0.10, 0.35], "y_max": 0.70, "sat_max": 0.25, "delight": 0.12, "rough": [0.72, 0.90], "metal": 0, "detail": null}
   },
   "density": {
     "_comment": "Плотность текселей, px/м: [мин, макс]. Выше макс — текстура уменьшается (не ниже 256 px), ниже мин — отмечается в отчёте.",
@@ -34,7 +37,11 @@
   ],
   "png_models": [
     {"name": "crab", "mesh": "animals/crab/crab_user.glb", "game_size": 0.566, "density": "animal_small", "class": "crustacean",
-     "albedo": "animals/crab/crab_albedo.png", "orm": "animals/crab/crab_orm.png", "normal": "animals/crab/crab_normal.png"}
+     "albedo": "animals/crab/crab_albedo.png", "orm": "animals/crab/crab_orm.png", "normal": "animals/crab/crab_normal.png"},
+    {"name": "lizard", "mesh": "animals/lizard/lizard_user.glb", "game_size": 1.25, "density": "animal_small", "class": "reptile_skin",
+     "albedo": "animals/lizard/lizard_albedo.png", "normal": "animals/lizard/lizard_normal.png"},
+    {"name": "bat", "mesh": "animals/bat/bat_user.glb", "game_size": 0.3, "density": "animal_small", "class": "bat_skin",
+     "albedo": "animals/bat/bat_material_0_baseColor.png", "normal": "animals/bat/bat_material_0_normal.png"}
   ],
   "sea_res": [
     {"path": "sea/fish_discus.res",           "class": "fish_scales", "game_size": 0.22, "density": "animal_small"},
@@ -45,6 +52,11 @@
     {"path": "sea/squid_biolum.res",          "class": "cephalopod",  "game_size": 0.9,  "density": "animal_small"}
   ],
   "atlas": [
-    {"path": "seaweed/seaweed_algae_atlas.png", "class": "algae"}
+    {"path": "seaweed/seaweed_algae_atlas.png", "class": "algae"},
+    {"path": "rocks/tex/stone002_albedo.png", "class": "rock"},
+    {"path": "rocks/tex/stone004_albedo.png", "class": "rock"},
+    {"path": "rocks/tex/stone005_albedo.png", "class": "rock"},
+    {"path": "rocks/tex/stone006_albedo.png", "class": "rock"},
+    {"path": "rocks/tex/stone007_albedo.png", "class": "rock"}
   ]
 }
