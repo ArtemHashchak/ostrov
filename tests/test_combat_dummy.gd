@@ -238,10 +238,20 @@ func run() -> void:
 	var origin := bot.global_position
 	var fired := Combat.fire(bot, &"musket", origin, Combat.aim_dir(origin, body, &"musket"))
 	check(not fired and Combat.is_reloading(bot), "бот: fire без заряда начинает перезарядку")
-	await wait(5.7)
+	# перезарядка 5.5 с: ждём по состоянию, а не фиксированные 5.7 с (в --fast запас 0.2 с изредка не хватал)
+	var tr := 0.0
+	while not Combat.is_loaded(bot, &"musket") and tr < 9.0:
+		await wait(0.1)
+		tr += 0.1
 	var nb := dummy.hits.size()
+	seed(20261121) # разброс ADS σ≈0.06 м на 20 м — проверяем API, не разброс
 	fired = Combat.fire(bot, &"musket", origin, Combat.aim_dir(origin, body, &"musket"), {"ads": true})
-	await wait(0.4)
+	var th := 0.0
+	while dummy.hits.size() == nb and th < 1.0:
+		await wait(0.05)
+		th += 0.05
+	if not (fired and dummy.hits.size() > nb):
+		print("[test] диагностика бота: fired=%s заряжен_через=%.1f с перезарядка=%s last_shot=%s" % [fired, tr, Combat.is_reloading(bot), Combat.last_shot])
 	check(fired and dummy.hits.size() > nb, "бот: выстрел из мушкета попал")
 	var b2 := Node3D.new()
 	scene.add_child(b2)
