@@ -42,11 +42,11 @@ static func make_spider(root: Node3D) -> UserSpiderRig:
 	r.rig = _node(root, "Rig", Vector3.ZERO)
 	if _sp_scene == null:
 		_sp_scene = load(SPIDER_SCENE) as PackedScene
-	var turn := _node(r.rig, "Turn", Vector3.ZERO)
+	var turn := _node(r.rig, "Body", Vector3.ZERO)   # «Rig/Body» — как у остальных моделей
 	turn.rotation.y = PI          # у автора — головой в +Z
 	turn.scale = Vector3.ONE * K
 	var inst := _sp_scene.instantiate() as Node3D
-	inst.name = "Body"
+	inst.name = "Tarantula"
 	turn.add_child(inst)
 	root.set_meta(&"body", inst)
 	r.skel = _find_skeleton(inst)
