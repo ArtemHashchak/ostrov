@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://i816ibkdr0ou"
-path="res://.godot/imported/animal_fish_sardine_vat_sard_school_orm.png-13e4dd9b853ea047a5721a7c933245cd.ctex"
+path.s3tc="res://.godot/imported/animal_fish_sardine_vat_sard_school_orm.png-13e4dd9b853ea047a5721a7c933245cd.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_fish_sardine_vat_sard_school_orm.png-13e4dd9b853ea047a5721a7c933245cd.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "05d431e3ab60100ac54cb2e39fe81d47"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_fish_sardine_vat_sard_school_orm.png"
-dest_files=["res://.godot/imported/animal_fish_sardine_vat_sard_school_orm.png-13e4dd9b853ea047a5721a7c933245cd.ctex"]
+dest_files=["res://.godot/imported/animal_fish_sardine_vat_sard_school_orm.png-13e4dd9b853ea047a5721a7c933245cd.s3tc.ctex", "res://.godot/imported/animal_fish_sardine_vat_sard_school_orm.png-13e4dd9b853ea047a5721a7c933245cd.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

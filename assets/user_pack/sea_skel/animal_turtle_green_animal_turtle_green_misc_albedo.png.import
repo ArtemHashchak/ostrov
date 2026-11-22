@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://7klxprqn5ge"
-path="res://.godot/imported/animal_turtle_green_animal_turtle_green_misc_albedo.png-8c6e22198eac19f707467e4fd8cdbd53.ctex"
+path.s3tc="res://.godot/imported/animal_turtle_green_animal_turtle_green_misc_albedo.png-8c6e22198eac19f707467e4fd8cdbd53.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_turtle_green_animal_turtle_green_misc_albedo.png-8c6e22198eac19f707467e4fd8cdbd53.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "44c68d618dd6a1fdcb149334c2825e97"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_turtle_green_animal_turtle_green_misc_albedo.png"
-dest_files=["res://.godot/imported/animal_turtle_green_animal_turtle_green_misc_albedo.png-8c6e22198eac19f707467e4fd8cdbd53.ctex"]
+dest_files=["res://.godot/imported/animal_turtle_green_animal_turtle_green_misc_albedo.png-8c6e22198eac19f707467e4fd8cdbd53.s3tc.ctex", "res://.godot/imported/animal_turtle_green_animal_turtle_green_misc_albedo.png-8c6e22198eac19f707467e4fd8cdbd53.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

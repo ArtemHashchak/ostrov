@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cnh7m1n6t21h7"
-path="res://.godot/imported/animal_moray_eel_animal_moray_eel_orm.png-59c9008d5552d4c7b648d5d479aecb00.ctex"
+path.s3tc="res://.godot/imported/animal_moray_eel_animal_moray_eel_orm.png-59c9008d5552d4c7b648d5d479aecb00.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_moray_eel_animal_moray_eel_orm.png-59c9008d5552d4c7b648d5d479aecb00.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "caf870fcb1e2dbf134846c4084c7c82b"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_moray_eel_animal_moray_eel_orm.png"
-dest_files=["res://.godot/imported/animal_moray_eel_animal_moray_eel_orm.png-59c9008d5552d4c7b648d5d479aecb00.ctex"]
+dest_files=["res://.godot/imported/animal_moray_eel_animal_moray_eel_orm.png-59c9008d5552d4c7b648d5d479aecb00.s3tc.ctex", "res://.godot/imported/animal_moray_eel_animal_moray_eel_orm.png-59c9008d5552d4c7b648d5d479aecb00.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

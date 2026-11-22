@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c780ie65y0ywy"
-path="res://.godot/imported/animal_fish_barracuda_Barracuda_ORM.png-0ec1987bd5ea99d89af2aac81c3505dc.ctex"
+path.s3tc="res://.godot/imported/animal_fish_barracuda_Barracuda_ORM.png-0ec1987bd5ea99d89af2aac81c3505dc.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_fish_barracuda_Barracuda_ORM.png-0ec1987bd5ea99d89af2aac81c3505dc.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "84f92c03af3a8090fddb7d9745e1f479"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_fish_barracuda_Barracuda_ORM.png"
-dest_files=["res://.godot/imported/animal_fish_barracuda_Barracuda_ORM.png-0ec1987bd5ea99d89af2aac81c3505dc.ctex"]
+dest_files=["res://.godot/imported/animal_fish_barracuda_Barracuda_ORM.png-0ec1987bd5ea99d89af2aac81c3505dc.s3tc.ctex", "res://.godot/imported/animal_fish_barracuda_Barracuda_ORM.png-0ec1987bd5ea99d89af2aac81c3505dc.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

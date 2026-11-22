@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dkocvennyw5q1"
-path="res://.godot/imported/animal_moray_eel_animal_moray_eel_albedo_proj.png-4801f749e98aa0804e7962c29ed9e4da.ctex"
+path.s3tc="res://.godot/imported/animal_moray_eel_animal_moray_eel_albedo_proj.png-4801f749e98aa0804e7962c29ed9e4da.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_moray_eel_animal_moray_eel_albedo_proj.png-4801f749e98aa0804e7962c29ed9e4da.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "9983a1e45caf54b106e25c81302134ce"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_moray_eel_animal_moray_eel_albedo_proj.png"
-dest_files=["res://.godot/imported/animal_moray_eel_animal_moray_eel_albedo_proj.png-4801f749e98aa0804e7962c29ed9e4da.ctex"]
+dest_files=["res://.godot/imported/animal_moray_eel_animal_moray_eel_albedo_proj.png-4801f749e98aa0804e7962c29ed9e4da.s3tc.ctex", "res://.godot/imported/animal_moray_eel_animal_moray_eel_albedo_proj.png-4801f749e98aa0804e7962c29ed9e4da.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

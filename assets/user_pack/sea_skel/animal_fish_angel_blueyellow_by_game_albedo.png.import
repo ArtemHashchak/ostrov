@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cbq0twjlcwdqj"
-path="res://.godot/imported/animal_fish_angel_blueyellow_by_game_albedo.png-c3b1a99536f8d10b038b1535e41e4fc6.ctex"
+path.s3tc="res://.godot/imported/animal_fish_angel_blueyellow_by_game_albedo.png-c3b1a99536f8d10b038b1535e41e4fc6.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_fish_angel_blueyellow_by_game_albedo.png-c3b1a99536f8d10b038b1535e41e4fc6.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "4a0e2bf70212572dc5a40a7dc727bb64"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_fish_angel_blueyellow_by_game_albedo.png"
-dest_files=["res://.godot/imported/animal_fish_angel_blueyellow_by_game_albedo.png-c3b1a99536f8d10b038b1535e41e4fc6.ctex"]
+dest_files=["res://.godot/imported/animal_fish_angel_blueyellow_by_game_albedo.png-c3b1a99536f8d10b038b1535e41e4fc6.s3tc.ctex", "res://.godot/imported/animal_fish_angel_blueyellow_by_game_albedo.png-c3b1a99536f8d10b038b1535e41e4fc6.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

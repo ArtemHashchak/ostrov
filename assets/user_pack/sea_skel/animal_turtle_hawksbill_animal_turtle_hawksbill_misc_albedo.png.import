@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ce5qvwenqc12n"
-path="res://.godot/imported/animal_turtle_hawksbill_animal_turtle_hawksbill_misc_albedo.png-10dbdfc0ef6859e31857346deed9151a.ctex"
+path.s3tc="res://.godot/imported/animal_turtle_hawksbill_animal_turtle_hawksbill_misc_albedo.png-10dbdfc0ef6859e31857346deed9151a.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_turtle_hawksbill_animal_turtle_hawksbill_misc_albedo.png-10dbdfc0ef6859e31857346deed9151a.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "c1173d7c08094c7b8c13ad98f6435d0c"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_turtle_hawksbill_animal_turtle_hawksbill_misc_albedo.png"
-dest_files=["res://.godot/imported/animal_turtle_hawksbill_animal_turtle_hawksbill_misc_albedo.png-10dbdfc0ef6859e31857346deed9151a.ctex"]
+dest_files=["res://.godot/imported/animal_turtle_hawksbill_animal_turtle_hawksbill_misc_albedo.png-10dbdfc0ef6859e31857346deed9151a.s3tc.ctex", "res://.godot/imported/animal_turtle_hawksbill_animal_turtle_hawksbill_misc_albedo.png-10dbdfc0ef6859e31857346deed9151a.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

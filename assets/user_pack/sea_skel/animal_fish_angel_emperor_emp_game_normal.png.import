@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dxb3th8gx5ido"
-path="res://.godot/imported/animal_fish_angel_emperor_emp_game_normal.png-aaa788fe08e1ab0fb3d9b6be074d25c1.ctex"
+path.s3tc="res://.godot/imported/animal_fish_angel_emperor_emp_game_normal.png-aaa788fe08e1ab0fb3d9b6be074d25c1.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_fish_angel_emperor_emp_game_normal.png-aaa788fe08e1ab0fb3d9b6be074d25c1.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "29334d0cd9bc830ba8ff6162ca98c5ca"
@@ -14,17 +16,17 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_fish_angel_emperor_emp_game_normal.png"
-dest_files=["res://.godot/imported/animal_fish_angel_emperor_emp_game_normal.png-aaa788fe08e1ab0fb3d9b6be074d25c1.ctex"]
+dest_files=["res://.godot/imported/animal_fish_angel_emperor_emp_game_normal.png-aaa788fe08e1ab0fb3d9b6be074d25c1.s3tc.ctex", "res://.godot/imported/animal_fish_angel_emperor_emp_game_normal.png-aaa788fe08e1ab0fb3d9b6be074d25c1.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1

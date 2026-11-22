@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ci06wc6dwotgm"
-path="res://.godot/imported/animal_turtle_green_animal_turtle_green_skin_orm.png-2372a59292d105ee16dbc3d85c8ebc3f.ctex"
+path.s3tc="res://.godot/imported/animal_turtle_green_animal_turtle_green_skin_orm.png-2372a59292d105ee16dbc3d85c8ebc3f.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_turtle_green_animal_turtle_green_skin_orm.png-2372a59292d105ee16dbc3d85c8ebc3f.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "fb5747fb26f36dcd188a59f5c1ce0b54"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_turtle_green_animal_turtle_green_skin_orm.png"
-dest_files=["res://.godot/imported/animal_turtle_green_animal_turtle_green_skin_orm.png-2372a59292d105ee16dbc3d85c8ebc3f.ctex"]
+dest_files=["res://.godot/imported/animal_turtle_green_animal_turtle_green_skin_orm.png-2372a59292d105ee16dbc3d85c8ebc3f.s3tc.ctex", "res://.godot/imported/animal_turtle_green_animal_turtle_green_skin_orm.png-2372a59292d105ee16dbc3d85c8ebc3f.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

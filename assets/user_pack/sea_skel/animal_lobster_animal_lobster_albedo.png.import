@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ise81n41e0eb"
-path="res://.godot/imported/animal_lobster_animal_lobster_albedo.png-001d19d1067b6d63e911a9ceb2906a72.ctex"
+path.s3tc="res://.godot/imported/animal_lobster_animal_lobster_albedo.png-001d19d1067b6d63e911a9ceb2906a72.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_lobster_animal_lobster_albedo.png-001d19d1067b6d63e911a9ceb2906a72.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "09a9b7b7299f780e6b98556a18760680"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_lobster_animal_lobster_albedo.png"
-dest_files=["res://.godot/imported/animal_lobster_animal_lobster_albedo.png-001d19d1067b6d63e911a9ceb2906a72.ctex"]
+dest_files=["res://.godot/imported/animal_lobster_animal_lobster_albedo.png-001d19d1067b6d63e911a9ceb2906a72.s3tc.ctex", "res://.godot/imported/animal_lobster_animal_lobster_albedo.png-001d19d1067b6d63e911a9ceb2906a72.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

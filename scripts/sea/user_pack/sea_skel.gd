@@ -241,25 +241,10 @@ func _build(p_id: String, p_len: float, seed_i: int) -> void:
 		pivot.rotation.y = PI
 		off = Vector3(-off.x, off.y, -off.z)   # разворот вокруг Y: смещение тоже
 	pivot.position = off * scale_k
-	var files: Array = [String(d["file"])]
+	_add_lod(0)
 	if d.has("lod1") and ResourceLoader.exists(DIR + String(d["lod1"])):
-		files.append(String(d["lod1"]))
-	for i in files.size():
-		var inst := scene(files[i], d).instantiate() as Node3D
-		inst.name = "LOD%d" % i
-		pivot.add_child(inst)
-		inst.visible = i == 0
-		lods.append(inst)
-		for mi: MeshInstance3D in inst.find_children("*", "MeshInstance3D", true, false):
-			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if game_len > 0.5 \
-				else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		var aps := inst.find_children("*", "AnimationPlayer", true, false)
-		var ap: AnimationPlayer = aps[0] if not aps.is_empty() else null
-		players.append(ap)
-		if ap:
-			ap.playback_default_blend_time = BLEND
-			if i > 0:
-				ap.process_mode = Node.PROCESS_MODE_DISABLED
+		lods.append(null)               # облегчённый — создаётся при первом удалении (память)
+		players.append(null)
 	if players[0]:
 		for a in players[0].get_animation_list():
 			_has[String(a)] = true
@@ -267,6 +252,25 @@ func _build(p_id: String, p_len: float, seed_i: int) -> void:
 		players[0].seek(_rng.randf() * 1.5, true)
 	_extra_cd = _rng.randf_range(3.0, 8.0)
 	set_meta(&"display_name", String(d.get("name", id)))
+
+func _add_lod(i: int) -> void:
+	var file := String(d["file"]) if i == 0 else String(d["lod1"])
+	var inst := scene(file, d).instantiate() as Node3D
+	inst.name = "LOD%d" % i
+	pivot.add_child(inst)
+	for mi: MeshInstance3D in inst.find_children("*", "MeshInstance3D", true, false):
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if game_len > 0.5 \
+			else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var aps := inst.find_children("*", "AnimationPlayer", true, false)
+	var ap: AnimationPlayer = aps[0] if not aps.is_empty() else null
+	if ap:
+		ap.playback_default_blend_time = BLEND
+	if i < lods.size():
+		lods[i] = inst
+		players[i] = ap
+	else:
+		lods.append(inst)
+		players.append(ap)
 
 func clip(role: String) -> String:
 	var cl: Dictionary = d.get("clips", {})
@@ -406,6 +410,8 @@ func _switch_lod(to: int) -> void:
 	if old:
 		old.process_mode = Node.PROCESS_MODE_DISABLED
 	lod = to
+	if lods[lod] == null:
+		_add_lod(lod)
 	lods[lod].visible = true
 	var ap := player()
 	if ap and _cur != "":

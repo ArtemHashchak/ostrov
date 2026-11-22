@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://1lui2v5d2ns7"
-path="res://.godot/imported/animal_fish_triggerfish_clown_trig_game_albedo.png-a7551cd433ed293a32a0324f298b930b.ctex"
+path.s3tc="res://.godot/imported/animal_fish_triggerfish_clown_trig_game_albedo.png-a7551cd433ed293a32a0324f298b930b.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_fish_triggerfish_clown_trig_game_albedo.png-a7551cd433ed293a32a0324f298b930b.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "6092853bb5bce69217f031a7108e9818"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_fish_triggerfish_clown_trig_game_albedo.png"
-dest_files=["res://.godot/imported/animal_fish_triggerfish_clown_trig_game_albedo.png-a7551cd433ed293a32a0324f298b930b.ctex"]
+dest_files=["res://.godot/imported/animal_fish_triggerfish_clown_trig_game_albedo.png-a7551cd433ed293a32a0324f298b930b.s3tc.ctex", "res://.godot/imported/animal_fish_triggerfish_clown_trig_game_albedo.png-a7551cd433ed293a32a0324f298b930b.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

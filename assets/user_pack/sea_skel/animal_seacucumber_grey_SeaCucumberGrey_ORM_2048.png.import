@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bot68qbfcwrug"
-path="res://.godot/imported/animal_seacucumber_grey_SeaCucumberGrey_ORM_2048.png-6a308fbdcb823a8420525880ddfe709e.ctex"
+path.s3tc="res://.godot/imported/animal_seacucumber_grey_SeaCucumberGrey_ORM_2048.png-6a308fbdcb823a8420525880ddfe709e.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_seacucumber_grey_SeaCucumberGrey_ORM_2048.png-6a308fbdcb823a8420525880ddfe709e.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "fe057be9f339fe7f4540e2edeb76126d"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_seacucumber_grey_SeaCucumberGrey_ORM_2048.png"
-dest_files=["res://.godot/imported/animal_seacucumber_grey_SeaCucumberGrey_ORM_2048.png-6a308fbdcb823a8420525880ddfe709e.ctex"]
+dest_files=["res://.godot/imported/animal_seacucumber_grey_SeaCucumberGrey_ORM_2048.png-6a308fbdcb823a8420525880ddfe709e.s3tc.ctex", "res://.godot/imported/animal_seacucumber_grey_SeaCucumberGrey_ORM_2048.png-6a308fbdcb823a8420525880ddfe709e.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

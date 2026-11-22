@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://52cc764j72ie"
-path="res://.godot/imported/animal_fish_discus_dis_game_albedo.png-61ec5266847b21d41cfa13e393aa2c76.ctex"
+path.s3tc="res://.godot/imported/animal_fish_discus_dis_game_albedo.png-61ec5266847b21d41cfa13e393aa2c76.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_fish_discus_dis_game_albedo.png-61ec5266847b21d41cfa13e393aa2c76.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "29020bcfb35f05ec08ed6a13afe62cb1"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_fish_discus_dis_game_albedo.png"
-dest_files=["res://.godot/imported/animal_fish_discus_dis_game_albedo.png-61ec5266847b21d41cfa13e393aa2c76.ctex"]
+dest_files=["res://.godot/imported/animal_fish_discus_dis_game_albedo.png-61ec5266847b21d41cfa13e393aa2c76.s3tc.ctex", "res://.godot/imported/animal_fish_discus_dis_game_albedo.png-61ec5266847b21d41cfa13e393aa2c76.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

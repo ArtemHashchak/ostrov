@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dsmrcpr4etvtq"
-path="res://.godot/imported/animal_squid_red_Squid_Normal.png-11dbfd28e139e9ecf73e87a7342ebd9e.ctex"
+path.s3tc="res://.godot/imported/animal_squid_red_Squid_Normal.png-11dbfd28e139e9ecf73e87a7342ebd9e.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_squid_red_Squid_Normal.png-11dbfd28e139e9ecf73e87a7342ebd9e.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "e4272d395ceec54e4c35e5514ed3e2bf"
@@ -14,17 +16,17 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_squid_red_Squid_Normal.png"
-dest_files=["res://.godot/imported/animal_squid_red_Squid_Normal.png-11dbfd28e139e9ecf73e87a7342ebd9e.ctex"]
+dest_files=["res://.godot/imported/animal_squid_red_Squid_Normal.png-11dbfd28e139e9ecf73e87a7342ebd9e.s3tc.ctex", "res://.godot/imported/animal_squid_red_Squid_Normal.png-11dbfd28e139e9ecf73e87a7342ebd9e.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1

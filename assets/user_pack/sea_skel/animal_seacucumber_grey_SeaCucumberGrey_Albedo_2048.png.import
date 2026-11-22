@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://8i0hhehjfv0d"
-path="res://.godot/imported/animal_seacucumber_grey_SeaCucumberGrey_Albedo_2048.png-e7e417c6bb065e6158c82749796a8f28.ctex"
+path.s3tc="res://.godot/imported/animal_seacucumber_grey_SeaCucumberGrey_Albedo_2048.png-e7e417c6bb065e6158c82749796a8f28.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_seacucumber_grey_SeaCucumberGrey_Albedo_2048.png-e7e417c6bb065e6158c82749796a8f28.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "3e6f7970348d8829277b96242d2323f1"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_seacucumber_grey_SeaCucumberGrey_Albedo_2048.png"
-dest_files=["res://.godot/imported/animal_seacucumber_grey_SeaCucumberGrey_Albedo_2048.png-e7e417c6bb065e6158c82749796a8f28.ctex"]
+dest_files=["res://.godot/imported/animal_seacucumber_grey_SeaCucumberGrey_Albedo_2048.png-e7e417c6bb065e6158c82749796a8f28.s3tc.ctex", "res://.godot/imported/animal_seacucumber_grey_SeaCucumberGrey_Albedo_2048.png-e7e417c6bb065e6158c82749796a8f28.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

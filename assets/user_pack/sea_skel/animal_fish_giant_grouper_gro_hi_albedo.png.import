@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d0uhn8b47i524"
-path="res://.godot/imported/animal_fish_giant_grouper_gro_hi_albedo.png-e1837e1399bb60b93b39945e11cd80af.ctex"
+path.s3tc="res://.godot/imported/animal_fish_giant_grouper_gro_hi_albedo.png-e1837e1399bb60b93b39945e11cd80af.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_fish_giant_grouper_gro_hi_albedo.png-e1837e1399bb60b93b39945e11cd80af.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "5f82d7ba6f8eae7b2f88a0cfde49247f"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_fish_giant_grouper_gro_hi_albedo.png"
-dest_files=["res://.godot/imported/animal_fish_giant_grouper_gro_hi_albedo.png-e1837e1399bb60b93b39945e11cd80af.ctex"]
+dest_files=["res://.godot/imported/animal_fish_giant_grouper_gro_hi_albedo.png-e1837e1399bb60b93b39945e11cd80af.s3tc.ctex", "res://.godot/imported/animal_fish_giant_grouper_gro_hi_albedo.png-e1837e1399bb60b93b39945e11cd80af.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

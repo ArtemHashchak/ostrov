@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dlksvyak4juvc"
-path="res://.godot/imported/animal_fish_tang_blue_animal_fish_tang_blue_albedo.png-11a69c48a64416658d053725714af335.ctex"
+path.s3tc="res://.godot/imported/animal_fish_tang_blue_animal_fish_tang_blue_albedo.png-11a69c48a64416658d053725714af335.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_fish_tang_blue_animal_fish_tang_blue_albedo.png-11a69c48a64416658d053725714af335.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "7e41899054f2e7172f5196e033bc43c1"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_fish_tang_blue_animal_fish_tang_blue_albedo.png"
-dest_files=["res://.godot/imported/animal_fish_tang_blue_animal_fish_tang_blue_albedo.png-11a69c48a64416658d053725714af335.ctex"]
+dest_files=["res://.godot/imported/animal_fish_tang_blue_animal_fish_tang_blue_albedo.png-11a69c48a64416658d053725714af335.s3tc.ctex", "res://.godot/imported/animal_fish_tang_blue_animal_fish_tang_blue_albedo.png-11a69c48a64416658d053725714af335.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bcu3uxuaeo4vx"
-path="res://.godot/imported/animal_dolphin_bottlenose_Dolphin_BaseColor.png-9b0ffff066ff6ce588d4da3e75c0893a.ctex"
+path.s3tc="res://.godot/imported/animal_dolphin_bottlenose_Dolphin_BaseColor.png-9b0ffff066ff6ce588d4da3e75c0893a.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_dolphin_bottlenose_Dolphin_BaseColor.png-9b0ffff066ff6ce588d4da3e75c0893a.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "08aa62797b127bac6d9fa2adf860c7ef"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_dolphin_bottlenose_Dolphin_BaseColor.png"
-dest_files=["res://.godot/imported/animal_dolphin_bottlenose_Dolphin_BaseColor.png-9b0ffff066ff6ce588d4da3e75c0893a.ctex"]
+dest_files=["res://.godot/imported/animal_dolphin_bottlenose_Dolphin_BaseColor.png-9b0ffff066ff6ce588d4da3e75c0893a.s3tc.ctex", "res://.godot/imported/animal_dolphin_bottlenose_Dolphin_BaseColor.png-9b0ffff066ff6ce588d4da3e75c0893a.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

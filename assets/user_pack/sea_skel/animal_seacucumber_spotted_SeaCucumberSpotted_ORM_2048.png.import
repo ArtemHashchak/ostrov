@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cp268e011shry"
-path="res://.godot/imported/animal_seacucumber_spotted_SeaCucumberSpotted_ORM_2048.png-00d65a751b18441f875fe21e66946edf.ctex"
+path.s3tc="res://.godot/imported/animal_seacucumber_spotted_SeaCucumberSpotted_ORM_2048.png-00d65a751b18441f875fe21e66946edf.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_seacucumber_spotted_SeaCucumberSpotted_ORM_2048.png-00d65a751b18441f875fe21e66946edf.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "272b86b300e6e88f0a45169e22662e2f"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_seacucumber_spotted_SeaCucumberSpotted_ORM_2048.png"
-dest_files=["res://.godot/imported/animal_seacucumber_spotted_SeaCucumberSpotted_ORM_2048.png-00d65a751b18441f875fe21e66946edf.ctex"]
+dest_files=["res://.godot/imported/animal_seacucumber_spotted_SeaCucumberSpotted_ORM_2048.png-00d65a751b18441f875fe21e66946edf.s3tc.ctex", "res://.godot/imported/animal_seacucumber_spotted_SeaCucumberSpotted_ORM_2048.png-00d65a751b18441f875fe21e66946edf.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

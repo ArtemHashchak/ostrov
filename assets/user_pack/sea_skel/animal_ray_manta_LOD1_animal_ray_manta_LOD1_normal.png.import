@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c6buv7khnso3s"
-path="res://.godot/imported/animal_ray_manta_LOD1_animal_ray_manta_LOD1_normal.png-4de60807f4cca77284eb7ac13fc2c7cb.ctex"
+path.s3tc="res://.godot/imported/animal_ray_manta_LOD1_animal_ray_manta_LOD1_normal.png-4de60807f4cca77284eb7ac13fc2c7cb.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_ray_manta_LOD1_animal_ray_manta_LOD1_normal.png-4de60807f4cca77284eb7ac13fc2c7cb.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "4035e57313ffa76626cb129e49c383f7"
@@ -14,17 +16,17 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_ray_manta_LOD1_animal_ray_manta_LOD1_normal.png"
-dest_files=["res://.godot/imported/animal_ray_manta_LOD1_animal_ray_manta_LOD1_normal.png-4de60807f4cca77284eb7ac13fc2c7cb.ctex"]
+dest_files=["res://.godot/imported/animal_ray_manta_LOD1_animal_ray_manta_LOD1_normal.png-4de60807f4cca77284eb7ac13fc2c7cb.s3tc.ctex", "res://.godot/imported/animal_ray_manta_LOD1_animal_ray_manta_LOD1_normal.png-4de60807f4cca77284eb7ac13fc2c7cb.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1

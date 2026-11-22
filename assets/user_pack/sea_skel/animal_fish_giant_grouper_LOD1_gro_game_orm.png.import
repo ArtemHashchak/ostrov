@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bupjl0wok6nwh"
-path="res://.godot/imported/animal_fish_giant_grouper_LOD1_gro_game_orm.png-080f4d8b35794a3ea956f5e128498641.ctex"
+path.s3tc="res://.godot/imported/animal_fish_giant_grouper_LOD1_gro_game_orm.png-080f4d8b35794a3ea956f5e128498641.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_fish_giant_grouper_LOD1_gro_game_orm.png-080f4d8b35794a3ea956f5e128498641.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "84009af1ba815cf85d7003578fbb2bf0"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_fish_giant_grouper_LOD1_gro_game_orm.png"
-dest_files=["res://.godot/imported/animal_fish_giant_grouper_LOD1_gro_game_orm.png-080f4d8b35794a3ea956f5e128498641.ctex"]
+dest_files=["res://.godot/imported/animal_fish_giant_grouper_LOD1_gro_game_orm.png-080f4d8b35794a3ea956f5e128498641.s3tc.ctex", "res://.godot/imported/animal_fish_giant_grouper_LOD1_gro_game_orm.png-080f4d8b35794a3ea956f5e128498641.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

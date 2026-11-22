@@ -26,7 +26,7 @@ static func _mat(key: String) -> StandardMaterial3D:
 			m.albedo_color = Color(1.0, 0.97, 0.85, 0.9)
 			m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 		"ink":
-			m.albedo_color = Color(0.05, 0.03, 0.06, 0.85)
+			m.albedo_color = Color(0.06, 0.04, 0.07, 0.5)
 			m.roughness = 1.0
 			m.disable_receive_shadows = true
 	_mats[key] = m
@@ -61,14 +61,14 @@ static func cavitation(parent: Node, pos: Vector3, delay: float = 0.0) -> void:
 		var fl := _sphere(parent, pos, 0.01, "flash")
 		var b := _sphere(parent, pos, 0.005, "bubble")
 		var t := parent.create_tween().set_parallel(true)
-		t.tween_property(fl, "scale", Vector3.ONE * 0.05, 0.06)
-		t.tween_property(b, "scale", Vector3.ONE * 0.035, 0.12).set_ease(Tween.EASE_OUT)
+		t.tween_property(fl, "scale", Vector3.ONE * 0.018, 0.05)
+		t.tween_property(b, "scale", Vector3.ONE * 0.014, 0.12).set_ease(Tween.EASE_OUT)
 		t.chain().tween_property(b, "scale", Vector3.ONE * 0.002, 0.08).set_ease(Tween.EASE_IN)
 		t.chain().tween_callback(func() -> void:
 			fl.queue_free()
 			b.queue_free())
 		for i in 5:
-			var s := _sphere(parent, pos + Vector3(randf_range(-0.01, 0.01), 0.0, randf_range(-0.01, 0.01)), randf_range(0.004, 0.008), "bubble")
+			var s := _sphere(parent, pos + Vector3(randf_range(-0.01, 0.01), 0.0, randf_range(-0.01, 0.01)), randf_range(0.002, 0.004), "bubble")
 			var u := parent.create_tween()
 			u.tween_property(s, "global_position", s.global_position + Vector3(randf_range(-0.03, 0.03), randf_range(0.12, 0.3), randf_range(-0.03, 0.03)), randf_range(0.7, 1.2))
 			u.tween_callback(s.queue_free))
@@ -77,10 +77,10 @@ static func cavitation(parent: Node, pos: Vector3, delay: float = 0.0) -> void:
 static func ink(parent: Node, pos: Vector3, size: float) -> void:
 	if parent == null or not parent.is_inside_tree():
 		return
-	var c := _sphere(parent, pos, size * 0.2, "ink")
+	var c := _sphere(parent, pos, size * 0.15, "ink")
 	var m := _mat("ink").duplicate() as StandardMaterial3D
 	c.material_override = m
 	var t := parent.create_tween().set_parallel(true)
-	t.tween_property(c, "scale", Vector3(1.2, 0.9, 1.4) * size * 1.6, 2.8).set_ease(Tween.EASE_OUT)
+	t.tween_property(c, "scale", Vector3(1.2, 0.9, 1.4) * size * 1.2, 2.8).set_ease(Tween.EASE_OUT)
 	t.tween_property(m, "albedo_color:a", 0.0, 3.0).set_ease(Tween.EASE_IN)
 	t.chain().tween_callback(c.queue_free)

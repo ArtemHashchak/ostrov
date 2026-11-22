@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ula0wg1mbml"
-path="res://.godot/imported/animal_ray_manta_animal_ray_manta_albedo.png-53c23849878c7c62a7b3b4f22ba90fff.ctex"
+path.s3tc="res://.godot/imported/animal_ray_manta_animal_ray_manta_albedo.png-53c23849878c7c62a7b3b4f22ba90fff.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_ray_manta_animal_ray_manta_albedo.png-53c23849878c7c62a7b3b4f22ba90fff.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "3554de21bee8c8260818debb22e426d2"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_ray_manta_animal_ray_manta_albedo.png"
-dest_files=["res://.godot/imported/animal_ray_manta_animal_ray_manta_albedo.png-53c23849878c7c62a7b3b4f22ba90fff.ctex"]
+dest_files=["res://.godot/imported/animal_ray_manta_animal_ray_manta_albedo.png-53c23849878c7c62a7b3b4f22ba90fff.s3tc.ctex", "res://.godot/imported/animal_ray_manta_animal_ray_manta_albedo.png-53c23849878c7c62a7b3b4f22ba90fff.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -46,7 +46,9 @@ func run() -> void:
 		if ap and s.has_role("swim"):
 			check(ap.get_animation(s.clip("swim")).loop_mode == Animation.LOOP_LINEAR, "%s: плавание зациклено" % id)
 		if d.has("lod1"):
-			check(s.lods.size() == 2, "%s: облегчённый LOD1" % id)
+			check(s.lods.size() == 2, "%s: слот облегчённого LOD1" % id)
+			s._switch_lod(1)
+			check(s.lods[1] != null and s.player() != null and s.lods[1].visible and not s.lods[0].visible, "%s: LOD1 создаётся и включается" % id)
 		# центровка: габарит тела вокруг начала координат (донные — низ на нуле)
 		var ab := SeaSkel.bounds(id)
 		var L := float(d.len)

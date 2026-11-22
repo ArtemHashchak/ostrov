@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bjpl68b1g4ns1"
-path="res://.godot/imported/animal_shrimp_pistol_animal_shrimp_pistol_albedo.png-3ee10b5ab00dfaa8f5ffbb06d1757c84.ctex"
+path.s3tc="res://.godot/imported/animal_shrimp_pistol_animal_shrimp_pistol_albedo.png-3ee10b5ab00dfaa8f5ffbb06d1757c84.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_shrimp_pistol_animal_shrimp_pistol_albedo.png-3ee10b5ab00dfaa8f5ffbb06d1757c84.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "b18926647a7a0a6b58a3722046e76894"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_shrimp_pistol_animal_shrimp_pistol_albedo.png"
-dest_files=["res://.godot/imported/animal_shrimp_pistol_animal_shrimp_pistol_albedo.png-3ee10b5ab00dfaa8f5ffbb06d1757c84.ctex"]
+dest_files=["res://.godot/imported/animal_shrimp_pistol_animal_shrimp_pistol_albedo.png-3ee10b5ab00dfaa8f5ffbb06d1757c84.s3tc.ctex", "res://.godot/imported/animal_shrimp_pistol_animal_shrimp_pistol_albedo.png-3ee10b5ab00dfaa8f5ffbb06d1757c84.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d0wwi170fpip8"
-path="res://.godot/imported/animal_starfish_spiny_StarfishSpiny_ORM_2048.png-4af1e441d1ff7c25dd4eb4f2648b173c.ctex"
+path.s3tc="res://.godot/imported/animal_starfish_spiny_StarfishSpiny_ORM_2048.png-4af1e441d1ff7c25dd4eb4f2648b173c.s3tc.ctex"
+path.etc2="res://.godot/imported/animal_starfish_spiny_StarfishSpiny_ORM_2048.png-4af1e441d1ff7c25dd4eb4f2648b173c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "5090d43fd91f6c55076be9a33a3508ce"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/user_pack/sea_skel/animal_starfish_spiny_StarfishSpiny_ORM_2048.png"
-dest_files=["res://.godot/imported/animal_starfish_spiny_StarfishSpiny_ORM_2048.png-4af1e441d1ff7c25dd4eb4f2648b173c.ctex"]
+dest_files=["res://.godot/imported/animal_starfish_spiny_StarfishSpiny_ORM_2048.png-4af1e441d1ff7c25dd4eb4f2648b173c.s3tc.ctex", "res://.godot/imported/animal_starfish_spiny_StarfishSpiny_ORM_2048.png-4af1e441d1ff7c25dd4eb4f2648b173c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
