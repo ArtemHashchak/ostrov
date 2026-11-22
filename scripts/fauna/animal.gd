@@ -104,6 +104,15 @@ var lod: int = 0
 var _acc: float = 0.0
 var _attack_cd: float = 0.0
 var _warn_t: float = 0.0
+## Паук-птицеед: ствол, по которому лазает (центр у земли, радиус), высота подъёма, прыжок.
+## climb_post — свой «ствол» (Vector4 x, y, z, радиус) для загонов полигона и тестов, иначе — дерево Flora.
+var climb_post: Variant = null
+var _tree_c := Vector3.ZERO
+var _tree_r := 0.2
+var _tree_h := 2.0
+var _tree_out := Vector3.FORWARD
+var _climb_y := 0.0
+var _jump_v := Vector3.ZERO
 var _anim_t: float = 0.0
 var _hurt_flash: float = 0.0
 var _sound_cd: float = 0.0
@@ -351,6 +360,8 @@ func _think() -> void:
 	var d := INF
 	if pl:
 		d = pl.global_position.distance_to(global_position)
+	if species == &"spider" and _think_spider_tree(pl, d):
+		return
 	if species == &"crab":
 		_think_crab(pl, d)
 		temper = &"_crab"
@@ -405,6 +416,9 @@ func _think() -> void:
 func _act(dt: float) -> void:
 	var walk := float(cfg["walk"])
 	var run := float(cfg["run"])
+	if state in [&"climb", &"on_tree", &"jump"]:
+		_act_tree(dt)
+		return
 	match state:
 		&"burrow":
 			speed = move_toward(speed, 0.0, dt * 8.0)
@@ -477,6 +491,14 @@ func _act(dt: float) -> void:
 				_bite(target)
 		&"steal":
 			_act_steal(dt)
+		&"to_tree":
+			var to := Vector3(_tree_c.x - global_position.x, 0.0, _tree_c.z - global_position.z)
+			if to.length() < _tree_r + 0.12:
+				_tree_out = -to.normalized() if to.length() > 0.01 else Vector3.FORWARD
+				_climb_y = 0.0
+				_set_state(&"climb")
+			else:
+				_steer(_tree_c, walk, dt)
 		&"to_water":
 			_steer(move_to, float(cfg.get("swim", walk)) if _in_water() else walk, dt)
 			if _flat_dist(move_to) < 1.0:
@@ -675,6 +697,129 @@ func _think_hermit(pl: Node3D, d: float) -> void:
 			if pl and d < fr:
 				_warn_t = _rng.randf_range(3.0, 6.0)
 				_set_state(&"hide")
+
+# ---------------------------- паук: дерево ----------------------------
+## Паук-птицеед иногда идёт к стволу, взбирается на 1–3.5 м, сидит, затем спрыгивает —
+## прочь от ствола или на человека, если тот подошёл (укус при приземлении рядом).
+## true — состояние «дерева» ведёт этот метод (обычный нрав не думает).
+func _think_spider_tree(pl: Node3D, d: float) -> bool:
+	if tamed:
+		return false
+	match state:
+		&"to_tree":
+			if state_t > 15.0 or (pl and d < float(cfg["aggro_r"])):
+				_set_state(&"idle")
+				return false
+			return true
+		&"climb":
+			return true
+		&"on_tree":
+			if pl and d < 2.6 and state_t > 0.8:
+				_spider_jump(pl)
+			elif state_t > _warn_t:
+				_spider_jump(null)
+			return true
+		&"jump":
+			return true
+	if state == &"idle" and state_t > 1.5 and (pl == null or d > 4.0) and _rng.randf() < 0.07:
+		if _find_trunk():
+			_set_state(&"to_tree")
+			return true
+	return false
+
+## Ближайший ствол: свой столб (climb_post) или дерево Flora/группы trees в 10 м.
+func _find_trunk() -> bool:
+	if climb_post is Vector4:
+		var v4: Vector4 = climb_post
+		_tree_c = Vector3(v4.x, v4.y, v4.z)
+		_tree_r = v4.w
+		_tree_h = _rng.randf_range(1.0, 2.0)
+		return true
+	var fl := Flora.instance()
+	if fl:
+		var best: Dictionary = {}
+		var bd := INF
+		for e: Dictionary in fl.nodes_near(global_position, 10.0, &"tree"):
+			var rec: Dictionary = e["rec"]
+			var dd := global_position.distance_to(rec["pos"])
+			if dd < bd:
+				bd = dd
+				best = rec
+		if not best.is_empty():
+			var v := FloraLib.variant(best["kind"], int(best["idx"]))
+			var xf := Transform3D(Basis(Vector3.UP, float(best["yaw"])), best["pos"])
+			_tree_c = xf * FloraLib.trunk_point(v, 0.6)
+			_tree_r = FloraLib.trunk_radius(v, 0.6)
+			_tree_h = _rng.randf_range(1.2, minf(3.5, float(v["H"]) * 0.45))
+			return true
+	var p := _nearest_tree_pos(global_position, 10.0, Vector3.INF)
+	if p != Vector3.INF:
+		_tree_c = p
+		_tree_r = 0.2
+		_tree_h = _rng.randf_range(1.2, 3.0)
+		return true
+	return false
+
+func _spider_jump(pl: Node3D) -> void:
+	var dir := _tree_out
+	if pl:
+		var to := pl.global_position - global_position
+		to.y = 0.0
+		if to.length() > 0.1 and to.normalized().dot(_tree_out) > -0.2:
+			dir = to.normalized()
+			target = pl
+	var reach := clampf(_climb_y * 0.6 + 0.8, 1.0, 2.6)
+	if pl and target == pl:
+		reach = clampf(Vector2(pl.global_position.x - global_position.x, pl.global_position.z - global_position.z).length(), 0.8, 3.0)
+	# время полёта по высоте и толчку вверх 1.2 м/с
+	var h := maxf(0.2, global_position.y - Fauna.ground_y_at(self, global_position.x, global_position.z))
+	var tf := (1.2 + sqrt(1.44 + 2.0 * 9.8 * h)) / 9.8
+	_jump_v = dir * (reach / tf) + Vector3.UP * 1.2
+	heading = atan2(-dir.x, -dir.z)
+	anim_event(&"jump")
+	_set_state(&"jump")
+
+## Положение на стволе / в полёте (без привязки к земле).
+func _act_tree(dt: float) -> void:
+	var walk := float(cfg["walk"])
+	match state:
+		&"climb", &"on_tree":
+			if state == &"climb":
+				speed = move_toward(speed, walk * 0.8, dt * 3.0)
+				_climb_y += speed * dt
+				if _climb_y >= _tree_h:
+					_warn_t = _rng.randf_range(5.0, 12.0)
+					_set_state(&"on_tree")
+			else:
+				speed = move_toward(speed, 0.0, dt * 4.0)
+			var g := Fauna.ground_y_at(self, _tree_c.x, _tree_c.z)
+			var pos := Vector3(_tree_c.x, g, _tree_c.z) + _tree_out * (_tree_r + 0.01)
+			pos.y = g + _climb_y
+			global_position = global_position.lerp(pos, clampf(dt * 12.0, 0.0, 1.0)) if _climb_y > 0.05 else pos
+			heading = lerp_angle(heading, atan2(_tree_out.x, _tree_out.z), clampf(dt * 10.0, 0.0, 1.0))
+			rotation = Vector3(0.0, heading, 0.0)
+			# головой вверх по стволу, брюхом к коре
+			var up := clampf(_climb_y / 0.12, 0.0, 1.0)
+			_model.rotation.x = lerpf(_model.rotation.x, PI * 0.5 * up, clampf(dt * 10.0, 0.0, 1.0))
+			_model.rotation.z = 0.0
+		&"jump":
+			speed = 0.0
+			_jump_v.y -= 9.8 * dt
+			global_position += _jump_v * dt
+			rotation = Vector3(0.0, heading, 0.0)
+			# в полёте разворачивается брюхом вниз, слегка носом вниз
+			_model.rotation.x = lerp_angle(_model.rotation.x, -0.25, clampf(dt * 9.0, 0.0, 1.0))
+			var g := Fauna.ground_y_at(self, global_position.x, global_position.z)
+			if global_position.y <= g and _jump_v.y < 0.0:
+				global_position.y = g
+				_model.rotation.x = 0.0
+				_climb_y = 0.0
+				if target and _alive(target) and _flat_dist(target.global_position) < float(cfg["reach"]) + 0.4:
+					_set_state(&"attack")
+					_bite(target)
+				else:
+					target = null
+					_set_state(&"idle")
 
 func _think_turtle(pl: Node3D, d: float) -> void:
 	if state == &"nest" or state == &"to_water":
@@ -1120,6 +1265,12 @@ func _tick_dead(dt: float) -> void:
 			_model.rotation.z = move_toward(_model.rotation.z, PI * 0.5, dt * 3.0)
 	elif own_death:
 		pass
+	elif species == &"spider" and (state in [&"climb", &"on_tree", &"jump"] or _model.rotation.x != 0.0):
+		# сорвался со ствола: падает на землю и переворачивается брюхом вверх
+		var gs := Fauna.ground_y_at(self, global_position.x, global_position.z)
+		global_position.y = move_toward(global_position.y, gs, dt * 6.0)
+		_model.rotation.x = move_toward(_model.rotation.x, 0.0, dt * 4.0)
+		_model.rotation.z = move_toward(_model.rotation.z, PI, dt * 4.0)
 	elif species in [&"crab", &"scorpion", &"spider", &"turtle"]:
 		_model.rotation.z = move_toward(_model.rotation.z, PI, dt * 4.0)
 	else:

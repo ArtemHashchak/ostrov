@@ -252,6 +252,8 @@ func _fauna(root: Node3D) -> void:
 			var a := _penned(fa, sp, s, r)
 			if a:
 				nm = String(a.cfg.get("name", sp))
+				if sp == &"spider" and UserSpiderRig.spider_available():
+					SandboxLand2.climb_post(root, s.x + 0.7, s.y + 0.5, a, self)   # паук лазает по столбу
 		P.tag(root, s.x, s.y + r + 0.4, nm, 1.5, 30.0)
 	# птицы — стайками над рядами
 	if fa:
@@ -347,6 +349,8 @@ func _respawn(e: Dictionary) -> void:
 				_own(&"fauna", a)
 				_pens.append({"a": a, "c": Vector3(s.x, 0.0, s.y), "r": maxf(0.6, float(e.r) - 0.5)})
 				e.node = a
+				if e.has("post"):
+					a.climb_post = e.post
 		&"bird":
 			if fa == null:
 				return

@@ -81,9 +81,12 @@ const VARIANTS := {
 }
 
 ## Клипы, которые крутятся по кругу (остальные — один раз).
-const LOOPS := ["idle", "crawl", "walk", "run", "swim", "crawl_fast", "idle_perch", "fly", "glide", "stance", "bask"]
-## Клипы-позы: доиграв, держат последний кадр (пока длится состояние).
-const HOLDS := ["coil", "rear_up", "hide_in_shell", "defend", "death"]
+const LOOPS := ["idle", "crawl", "walk", "run", "swim", "crawl_fast", "idle_perch", "fly", "glide", "bask"]
+## Клипы-позы: доиграв, держат последний кадр (пока длится состояние). Стойка змеи — поза
+## (тело поднимается S-образно за 1.5 с и замирает), в цикле она бы каждые 1.5 с падала на землю.
+const HOLDS := ["coil", "stance", "rear_up", "hide_in_shell", "defend", "death"]
+## Позы, у которых пик — в середине клипа (дальше автор возвращает в покой): держим кадр пика.
+const HOLD_AT := {"rear_up": 0.55}
 
 const BLEND := 0.25
 const SPEED_MIN := 0.45
@@ -363,9 +366,19 @@ func _play_hold(c: String) -> void:
 	if not _ok(c):
 		c = _clip(&"idle")
 	if _cur != c:
+		var from := _cur
 		_play(c, 0.18)
-	elif not player.is_playing() and not (c in HOLDS) and c != "stance":
+		# после броска/удара — сразу в конечную позу стойки (бросок начинается из неё же),
+		# а не заново с земли
+		if c in HOLDS and from in [_clip(&"attack"), _clip(&"lunge"), _clip(&"hurt")]:
+			var an := player.get_animation(c)
+			player.seek(an.length * float(HOLD_AT.get(c, 1.0)) - 0.01, true)
+	elif not player.is_playing() and not (c in HOLDS):
 		_play(c, 0.0)
+	if HOLD_AT.has(c) and _cur == c:
+		var an2 := player.get_animation(c)
+		if player.current_animation_position >= an2.length * float(HOLD_AT[c]):
+			player.speed_scale = 0.0   # замереть на пике позы
 
 func _idle(an: Animal, dt: float) -> void:
 	var idle := _clip(&"idle")

@@ -54,12 +54,17 @@ func _look(from: Vector3, at: Vector3, fov: float = 40.0) -> void:
 	cam.look_at(at)
 	cam.fov = fov
 
-## Камера сбоку-спереди на расстоянии по длине животного.
+## Камера сбоку-спереди по ходу животного (справа от него), на расстоянии по длине;
+## у птиц — по высоте модели, взгляд на середину тела.
 func _frame(a: Animal, side := 1.0, up := 0.45) -> void:
 	var L := float(a._model.get_meta(&"length", 0.5)) * a.growth
-	var d := maxf(L * 1.25, 0.35)
+	var b := a.global_transform.basis
 	var c := a.global_position + Vector3(0, L * 0.08, 0)
-	_look(c + Vector3(d * 0.8 * side, d * up, -d * 0.75), c, 40.0)
+	var d := maxf(L * 1.25, 0.35)
+	if a.cfg.get("fly", false):
+		d = maxf(L * 2.4, 0.8)
+		c = a.global_position + Vector3(0, L * 0.5, 0)
+	_look(c + b.x * d * 0.9 * side - b.z * d * 0.45 + Vector3(0, d * up, 0), c, 40.0)
 
 func _only() -> PackedStringArray:
 	var s := OS.get_environment("LAND2_ONLY")
@@ -157,7 +162,7 @@ func _variant(sp: StringName, vi: int, pos: Vector3) -> void:
 		a._set_state(&"warn")
 		a.target = dummy
 		a._warn_t = 99.0
-		await _run([a], 1.6)
+		await _run([a], 2.9)
 		var w := String(v["clips"]["warn"])
 		var w2 := String(v["clips"].get("warn2", w))
 		check(r._cur in [w, w2] or r._oneshot != "", "%s: угроза — %s (сейчас %s)" % [tag, w, r._cur])

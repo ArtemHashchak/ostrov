@@ -548,6 +548,11 @@ static func _scorpion() -> Node3D:
 
 # ---------------------------- паук (птицеед) ----------------------------
 static func _spider() -> Node3D:
+	if UserSpiderRig.spider_available():
+		var ur := _root(&"spider", 0.22)
+		UserSpiderRig.make_spider(ur)     # паук-птицеед пользователя (скелет автора + IK)
+		ur.set_meta(&"length", 0.22)
+		return ur
 	var root := _root(&"spider", 0.15)
 	ArthropodRig.build_spider(root, root.get_meta(&"mat"))
 	root.set_meta(&"length", 0.15)

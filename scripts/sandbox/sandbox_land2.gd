@@ -50,6 +50,16 @@ static func build(zones: SandboxZones, root: Node3D, c: Vector2) -> void:
 			zones._point(id, "Пак: " + String(v["name"]),
 				Vector3(x - r * 0.7, P.ground(x - r * 0.7, z - r - 1.6) + 0.9, z - r - 1.6),
 				Vector3(x, P.ground(x, z) + 0.15, z))
+	# паук-птицеед: загон со «стволом» — взбирается, сидит, спрыгивает (на человека, если тот рядом)
+	if UserSpiderRig.spider_available():
+		var x := x0 + (slot % COLS) * STEP_X
+		var z := z0 + (slot / COLS) * STEP_Z
+		slot += 1
+		P.pen(root, x, z, 2.6)
+		var a: Animal = zones._penned(fa, &"spider", Vector2(x, z), 2.6) if fa else null
+		climb_post(root, x + 0.8, z + 0.6, a, zones)
+		P.tag(root, x, z + 3.1, "Паук-птицеед (Паук_птицеед.blend) · 14.4k треуг. + 4.1k карточек волосков · 64 кости автора\nбез упрощения: процедурные материалы запечены в текстуры\nIK ног, тетраподы, дыбы, укус; лазает по стволу, сидит, спрыгивает — на человека рядом", 1.9, 30.0)
+		zones._point(&"pack3_spider", "Пак: паук-птицеед", Vector3(x - 1.8, P.ground(x - 1.8, z - 2.6) + 0.9, z - 2.6), Vector3(x + 0.4, P.ground(x, z) + 0.4, z + 0.3))
 	# попугаи: жёрдочка с обоими видами (клипы по кругу) + живая стайка над загонами
 	if UserClipRig.available(&"parrot"):
 		var x := x0 + (slot % COLS) * STEP_X
@@ -63,6 +73,25 @@ static func build(zones: SandboxZones, root: Node3D, c: Vector2) -> void:
 		zones._point(&"pack3_parrots", "Пак: попугаи", Vector3(x - 1.6, P.ground(x - 1.6, z - 2.2) + 1.6, z - 2.2), Vector3(x, P.ground(x, z) + 1.4, z))
 		if fa:
 			zones._flock(fa, &"parrot", Vector3(x0 + 10.0, P.ground(x0 + 10.0, z0 + 8.0) + 6.0, z0 + 8.0), 4)
+
+## Столб-«ствол» для паука в загоне (радиус 0.14 м, 2.4 м): паук лазает по нему (Animal.climb_post).
+static func climb_post(root: Node3D, x: float, z: float, a: Animal, zones: SandboxZones = null) -> void:
+	var g := P.ground(x, z)
+	var mi := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.11
+	cm.bottom_radius = 0.15
+	cm.height = 2.4
+	mi.mesh = cm
+	mi.material_override = P._post_mat()
+	root.add_child(mi)
+	mi.global_position = Vector3(x, g + 1.2, z)
+	if a:
+		a.climb_post = Vector4(x, g, z, 0.13)
+		if zones:
+			for e: Dictionary in zones._respawns:   # возрождённый паук получит тот же столб
+				if e.get("node") == a:
+					e["post"] = a.climb_post
 
 static func _info(sp: StringName, v: Dictionary) -> String:
 	var clips: Array = []
