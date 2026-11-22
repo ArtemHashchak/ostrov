@@ -1,0 +1,45 @@
+{
+ "key": "animal_fish_sardine",
+ "lod": "school",
+ "tris": 550,
+ "bones": 5,
+ "clips": [
+  {
+   "name": "swim",
+   "frames": 21,
+   "seconds": 0.67,
+   "loop": true
+  },
+  {
+   "name": "swim_fast",
+   "frames": 11,
+   "seconds": 0.33,
+   "loop": true
+  },
+  {
+   "name": "turn_L",
+   "frames": 17,
+   "seconds": 0.53,
+   "loop": false
+  },
+  {
+   "name": "turn_R",
+   "frames": 17,
+   "seconds": 0.53,
+   "loop": false
+  },
+  {
+   "name": "startle",
+   "frames": 17,
+   "seconds": 0.53,
+   "loop": false
+  }
+ ],
+ "length_m": 0.186,
+ "height_m": 0.062,
+ "width_m": 0.037,
+ "materials": [
+  "animal_fish_sardine_body",
+  "animal_fish_sardine_fins"
+ ]
+}

@@ -1,0 +1,45 @@
+{
+ "vertices": 328,
+ "frames_total": 83,
+ "texture": "animal_fish_sardine_vat_offsets.exr",
+ "layout": "x = vertex (UV2.x, sample at texel centre), y = frame row (row 0 = first frame of first clip, v=(row+0.5)/H with v=0 at the top of the image, as Godot samples)",
+ "value": "RGB = offset in metres in glTF/Godot model space (add to VERTEX); A=1",
+ "max_abs_offset_m": 0.08275233954191208,
+ "clips": [
+  {
+   "name": "swim",
+   "row_start": 0,
+   "frames": 21,
+   "fps": 30,
+   "loop": true
+  },
+  {
+   "name": "swim_fast",
+   "row_start": 21,
+   "frames": 11,
+   "fps": 30,
+   "loop": true
+  },
+  {
+   "name": "turn_L",
+   "row_start": 32,
+   "frames": 17,
+   "fps": 30,
+   "loop": false
+  },
+  {
+   "name": "turn_R",
+   "row_start": 49,
+   "frames": 17,
+   "fps": 30,
+   "loop": false
+  },
+  {
+   "name": "startle",
+   "row_start": 66,
+   "frames": 17,
+   "fps": 30,
+   "loop": false
+  }
+ ]
+}
