@@ -146,7 +146,12 @@ func run() -> void:
 		trunk.on_hit(p, {"position": hp, "normal": Vector3.UP, "tool": &"axe", "damage": 14.0})
 		k += 1
 	var logs: Array = get_tree().get_nodes_in_group(&"log").filter(func(l: Node) -> bool: return l is FloraLog)
-	check(logs.size() >= 2 and segs0 >= 2, "распилено на брёвна: %d (было сегментов %d, ударов %d, всего в группе log %d→%d)" % [logs.size(), segs0, k, logs_before, get_tree().get_nodes_in_group(&"log").size()])
+	# у дерева пака (зонтичная крона) ствол до развилки короткий — брёвна дают и толстые ветви кроны
+	var pack_tree := tree.variant.has("pack")
+	if not pack_tree:
+		check(logs.size() >= 2 and segs0 >= 2, "распилено на брёвна: %d (было сегментов %d, ударов %d, всего в группе log %d→%d)" % [logs.size(), segs0, k, logs_before, get_tree().get_nodes_in_group(&"log").size()])
+	else:
+		check(logs.size() >= 1 and segs0 >= 1, "ствол распилен: %d (сегментов %d)" % [logs.size(), segs0])
 	# крона → листья и палки
 	var kk := 0
 	while is_instance_valid(trunk) and trunk.has_crown() and kk < 30:
@@ -154,6 +159,9 @@ func run() -> void:
 		kk += 1
 	await wait(1.2)
 	check(Flora.count_of(p, &"leaf") > leaves0, "крона дала листья: %d" % Flora.count_of(p, &"leaf"))
+	if pack_tree:
+		logs = get_tree().get_nodes_in_group(&"log").filter(func(l: Node) -> bool: return l is FloraLog)
+		check(logs.size() >= 2, "ствол + ветви кроны — брёвна: %d" % logs.size())
 	var sticks_on_ground := 0
 	for c in flora.get_children() + scene.get_children():
 		if c is FloraPickup and c.item_id == &"stick" and c.global_position.distance_to(tp) < 25.0:

@@ -39,7 +39,12 @@ func _case(kind: StringName, idx: int, at: Vector3) -> void:
 	hitter.global_position = tree.global_position + Vector3(-1.3, 1.0, 0)
 	# ---- стоящее дерево: ствол — один меш без торцов
 	var tm := (tree.get_node("Trunk") as MeshInstance3D).mesh
-	check(tm.get_surface_count() == 1, "%s: стоящий ствол — одна поверхность коры (%d)" % [kind, tm.get_surface_count()])
+	if v.has("pack"):
+		# модель пака: стоящее дерево — авторский меш (кора + листва), процедурного ствола нет до удара
+		var cm := (tree.get_node("Crown") as MeshInstance3D).mesh
+		check(tm == null and cm != null and cm.get_surface_count() == 2, "%s: стоящее дерево — модель пака (%s)" % [kind, v["pack"]])
+	else:
+		check(tm.get_surface_count() == 1, "%s: стоящий ствол — одна поверхность коры (%d)" % [kind, tm.get_surface_count()])
 	var n := 0
 	while not tree.felled and n < 60:
 		tree.on_hit(hitter, {"position": tree.global_position + Vector3(-0.3, 1.0, 0), "normal": Vector3.LEFT, "tool": &"axe", "damage": 14.0})
@@ -60,7 +65,9 @@ func _case(kind: StringName, idx: int, at: Vector3) -> void:
 		t += 0.25
 	await wait(0.3)
 	var segs0 := trunk.logs_left()
-	check(segs0 >= 2, "%s: участков-брёвен %d" % [kind, segs0])
+	# у зонтичного дерева пака ствол до развилки — одно бревно (ещё брёвна дают ветви кроны)
+	var multi := segs0 >= 2 or not v.has("pack")
+	check(segs0 >= (2 if not v.has("pack") else 1), "%s: участков-брёвен %d" % [kind, segs0])
 	check(trunk.piece_count() == 1, "%s: до распила ствол — ОДИН цельный меш (кусков %d)" % [kind, trunk.piece_count()])
 	var same := true
 	for s: Dictionary in trunk.segments:
@@ -87,7 +94,7 @@ func _case(kind: StringName, idx: int, at: Vector3) -> void:
 	check(trunk.logs_left() == segs0, "%s: два удара ещё не отделили бревно" % kind)
 	check(trunk.piece_count() == 1, "%s: с надпилом ствол всё ещё цельный" % kind)
 	var pm2 := (trunk.segments[0]["mesh"] as MeshInstance3D).mesh
-	check(pm2.get_surface_count() == 3, "%s: надпил виден после удара (%d поверхн.)" % [kind, pm2.get_surface_count()])
+	check(not multi or pm2.get_surface_count() == 3, "%s: надпил виден после удара (%d поверхн.)" % [kind, pm2.get_surface_count()])
 	var nh: float = trunk._notch.get("h", 0.0)
 	var np := trunk.global_transform * FloraLib.trunk_point(v, nh)
 	_look(np + side * 1.8 + Vector3.UP * 1.4 + along * 0.4, np)
@@ -100,6 +107,9 @@ func _case(kind: StringName, idx: int, at: Vector3) -> void:
 		k += 1
 	check(trunk.logs_left() == segs0 - 1, "%s: отделено бревно (%d → %d)" % [kind, segs0, trunk.logs_left()])
 	await wait(0.1)
+	if not multi:
+		hitter.queue_free()
+		return
 	var runs := 1 if si == 0 or si == segs0 - 1 else 2
 	check(trunk.piece_count() == runs, "%s: после распила кусков %d (ждали %d)" % [kind, trunk.piece_count(), runs])
 	var caps_ok := true

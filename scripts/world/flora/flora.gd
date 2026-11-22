@@ -56,6 +56,12 @@ enum { T_TREE, T_NODE, T_ROCK, T_PICKUP }
 
 const TREE_KINDS: Array[StringName] = [&"palm", &"broadleaf", &"mangrove", &"banyan"]
 const VARIANTS := {&"palm": 5, &"broadleaf": 4, &"mangrove": 3, &"banyan": 2}
+
+## Число вариантов вида: у деревьев из пака пользователя (FloraPack) — по числу моделей.
+static func variants_of(kind: StringName) -> int:
+	if FloraPack.has_tree(kind):
+		return FloraPack.tree_count(kind)
+	return int(VARIANTS.get(kind, 1))
 const CROPS: Array[StringName] = [&"wild_taro", &"wild_maize", &"wild_melon"]
 
 ## Предмет / группа → виды узлов, из которых его добыть (для ботов).
@@ -209,7 +215,7 @@ func _fade_material(mesh: Mesh, base: float) -> Material:
 	if _fade_mats.has(key):
 		return _fade_mats[key]
 	var m: Material = null
-	if src is ShaderMaterial and (src as ShaderMaterial).shader == preload("res://scripts/world/flora/foliage.gdshader"):
+	if src is ShaderMaterial and ((src as ShaderMaterial).shader == preload("res://scripts/world/flora/foliage.gdshader") or (src as ShaderMaterial).shader == preload("res://scripts/world/flora/pack_leaf.gdshader")):
 		m = (src as ShaderMaterial).duplicate()
 	elif src is StandardMaterial3D:
 		var sm := (src as StandardMaterial3D).duplicate() as StandardMaterial3D
@@ -396,6 +402,8 @@ func _place(what: StringName, p: Vector3, rng: RandomNumberGenerator, c: Vector2
 	match what:
 		&"palm", &"broadleaf", &"banyan":
 			var rec := _add_tree(what, p, rng, c)
+			if what != &"palm" and b == &"jungle" and FloraPack.available() and rng.randf() < 0.3:
+				_add_epiphytes(rec, rng)
 			if what != &"palm" and b == &"jungle" and rng.randf() < (0.85 if what == &"banyan" else 0.33) * minf(_cat(prof, "res"), 1.5):
 				_add_liana(rec, rng)
 				if what == &"banyan":
@@ -406,10 +414,13 @@ func _place(what: StringName, p: Vector3, rng: RandomNumberGenerator, c: Vector2
 		&"mangrove_s":
 			_add_tree(&"mangrove" if p.y < 2.2 else &"broadleaf", p, rng, c)
 		&"bush":
-			var key := "%d|%d|%d" % [rng.randi_range(0, 3), int(floor(p.x / BUSH_CHUNK)), int(floor(p.z / BUSH_CHUNK))]
+			var bc := Vector2i(int(floor(p.x / BUSH_CHUNK)), int(floor(p.z / BUSH_CHUNK)))
+			# подлесок из пака: виды палитры биома, в чанке — несколько видов пятнами
+			var pid := FloraPack.pick_plant(b, bc, rng) if FloraPack.available() else ""
+			var key := "%s|%d|%d" % [pid if pid != "" else str(rng.randi_range(0, 3)), bc.x, bc.y]
 			if not _bush.has(key):
 				_bush[key] = []
-			var bs := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.7, 1.3))
+			var bs := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * (rng.randf_range(0.85, 1.15) if pid != "" else rng.randf_range(0.7, 1.3)))
 			(_bush[key] as Array).append(Transform3D(bs, p))
 			stats["bush"] += 1
 		&"stick", &"stone":
@@ -461,7 +472,7 @@ func _add_rock(p: Vector3, rng: RandomNumberGenerator, ore: StringName) -> void:
 		"units": rng.randi_range(3, 5) if ore != &"" else rng.randi_range(5, 9)})
 
 func _add_tree(kind: StringName, p: Vector3, rng: RandomNumberGenerator, c: Vector2) -> Dictionary:
-	var idx := rng.randi_range(0, int(VARIANTS[kind]) - 1)
+	var idx := rng.randi_range(0, variants_of(kind) - 1)
 	var yaw := rng.randf() * TAU
 	if kind == &"palm":
 		# пальмы клонятся к морю
@@ -471,6 +482,29 @@ func _add_tree(kind: StringName, p: Vector3, rng: RandomNumberGenerator, c: Vect
 	var rec := _add_rec({"t": T_TREE, "kind": kind, "idx": idx, "pos": p + Vector3(0, -0.12, 0), "yaw": yaw, "lianas": []})
 	_tree_recs.append(rec)
 	return rec
+
+## Орхидеи-эпифиты пака на стволе дерева джунглей (группы кустов; при рубке гаснут).
+func _add_epiphytes(tree: Dictionary, rng: RandomNumberGenerator) -> void:
+	var v := FloraLib.variant(tree["kind"], tree["idx"])
+	var H: float = v["H"]
+	var tb := Basis(Vector3.UP, float(tree["yaw"]))
+	var tp: Vector3 = tree["pos"]
+	var list: Array = []
+	for i in rng.randi_range(1, 2):
+		var h := rng.randf_range(minf(0.7, H * 0.5), maxf(H * 0.9, 0.8))
+		var a := rng.randf() * TAU
+		var out := Vector3(cos(a), 0, sin(a))
+		var lp := FloraLib.trunk_point(v, h) + out * (FloraLib.trunk_radius(v, h) * 0.92)
+		var wp := tp + tb * lp
+		var bs := (tb * Basis(Vector3.UP, -a)).scaled(Vector3.ONE * rng.randf_range(0.8, 1.15))
+		var id: String = FloraPack.EPIPHYTES[rng.randi_range(0, FloraPack.EPIPHYTES.size() - 1)]
+		var key := "%s|%d|%d" % [id, int(floor(wp.x / BUSH_CHUNK)), int(floor(wp.z / BUSH_CHUNK))]
+		if not _bush.has(key):
+			_bush[key] = []
+		list.append([key, (_bush[key] as Array).size()])
+		(_bush[key] as Array).append(Transform3D(bs, wp))
+		stats["epiphyte"] = int(stats.get("epiphyte", 0)) + 1
+	tree["epi"] = list
 
 func _add_liana(tree: Dictionary, rng: RandomNumberGenerator) -> void:
 	var v := FloraLib.variant(tree["kind"], tree["idx"])
@@ -490,6 +524,8 @@ static func _xf(rec: Dictionary, hidden: bool = false, k: float = 1.0) -> Transf
 static func _far_k(rec: Dictionary) -> float:
 	var v := FloraLib.variant(rec["kind"], rec["idx"])
 	var v0 := FloraLib.variant(rec["kind"], 0)
+	if v.has("height"):
+		return float(v["height"]) / float(v0["height"])
 	return (float(v["H"]) + float(v.get("crown_r", 0.0))) / (float(v0["H"]) + float(v0.get("crown_r", 0.0)))
 
 func _build_trees() -> void:
@@ -504,12 +540,15 @@ func _build_trees() -> void:
 		rec["mi"] = (g["xf"] as Array).size()
 		(g["xf"] as Array).append(_xf(rec))
 		# LOD1 — та же сетка, что LOD0: переключение по центру чанка без дыр
-		var fk := "%s|%d|%d" % [rec["kind"], ck.x, ck.y]
+		# модели пака сильно различаются силуэтом — LOD1 по вариантам (авторский LOD2, 0.5–3k треуг.)
+		var pk: bool = FloraPack.has_tree(rec["kind"])
+		var fk := ("%s_%d|%d|%d" % [rec["kind"], rec["idx"], ck.x, ck.y]) if pk else ("%s|%d|%d" % [rec["kind"], ck.x, ck.y])
 		if not _fgroups.has(fk):
-			_fgroups[fk] = {"v": FloraLib.variant(rec["kind"], 0), "xf": []}
+			_fgroups[fk] = {"v": FloraLib.variant(rec["kind"], rec["idx"] if pk else 0), "xf": []}
 		rec["gf"] = fk
+		rec["fk1"] = 1.0 if pk else _far_k(rec)
 		rec["fi"] = (_fgroups[fk]["xf"] as Array).size()
-		(_fgroups[fk]["xf"] as Array).append(_xf(rec, false, _far_k(rec)))
+		(_fgroups[fk]["xf"] as Array).append(_xf(rec, false, float(rec["fk1"])))
 		var gck := Vector2i(int(floor(p.x / FAR_CHUNK)), int(floor(p.z / FAR_CHUNK)))
 		var gk2 := "%s|%d|%d" % [rec["kind"], gck.x, gck.y]
 		if not _ggroups.has(gk2):
@@ -528,7 +567,7 @@ func _build_trees() -> void:
 		var sck := Vector2i(int(floor(p.x / SCHUNK)), int(floor(p.z / SCHUNK)))
 		# пальмы — по вариантам (наклон ствола заметен в тени на песке), лиственные/мангры/баньяны —
 		# один меш на вид (вариант 0 в масштабе высоты; смещение кроны ≤0.6 м на фоне R 3–7 м)
-		var per_var: bool = rec["kind"] == &"palm"
+		var per_var: bool = rec["kind"] == &"palm" or pk
 		var sk2 := ("%s_%d|%d|%d" % [rec["kind"], rec["idx"], sck.x, sck.y]) if per_var else ("%s|%d|%d" % [rec["kind"], sck.x, sck.y])
 		if not _sgroups.has(sk2):
 			_sgroups[sk2] = {"v": FloraLib.variant(rec["kind"], rec["idx"] if per_var else 0), "xf": []}
@@ -545,6 +584,23 @@ func _build_trees() -> void:
 			add_child(body)
 			_colliders[ck] = body
 		var v: Dictionary = g["v"]
+		var body2: FloraColliders = _colliders[ck]
+		if v.has("pack") and not FloraPack.hulls(v["pack"]).is_empty():
+			# выпуклые коллайдеры автора (общие на вариант), повёрнутые как дерево
+			var xf := Transform3D(Basis(Vector3.UP, float(rec["yaw"])), p)
+			var more: Array = []
+			for hsh in FloraPack.hulls(v["pack"]):
+				var hcs := CollisionShape3D.new()
+				hcs.shape = hsh
+				hcs.transform = xf
+				body2.add_child(hcs)
+				body2.recs[hcs.get_instance_id()] = rec
+				if rec.has("cs"):
+					more.append(hcs)
+				else:
+					rec["cs"] = hcs
+			rec["cs_more"] = more
+			continue
 		var sk := "%s_%d" % [rec["kind"], rec["idx"]]
 		if not _shapes.has(sk):
 			var cyl := CylinderShape3D.new()
@@ -556,7 +612,6 @@ func _build_trees() -> void:
 		cs.shape = shape
 		var lx := FloraLib.trunk_point(v, shape.height * 0.5).x * 0.5
 		cs.position = p + Basis(Vector3.UP, float(rec["yaw"])) * Vector3(lx, shape.height * 0.5, 0)
-		var body2: FloraColliders = _colliders[ck]
 		body2.add_child(cs)
 		body2.recs[cs.get_instance_id()] = rec
 		rec["cs"] = cs
@@ -667,7 +722,7 @@ func _set_mm_visible(rec: Dictionary, vis: bool) -> void:
 		return
 	(g["mm"] as MultiMesh).set_instance_transform(int(rec["mi"]), _xf(rec, not vis))
 	var f: Dictionary = _fgroups[rec["gf"]]
-	(f["mm"] as MultiMesh).set_instance_transform(int(rec["fi"]), _xf(rec, not vis, _far_k(rec)))
+	(f["mm"] as MultiMesh).set_instance_transform(int(rec["fi"]), _xf(rec, not vis, float(rec.get("fk1", _far_k(rec)))))
 	var gs: Dictionary = _sgroups.get(rec.get("gs", ""), {})
 	if not gs.is_empty():
 		(gs["mm"] as MultiMesh).set_instance_transform(int(rec["si"]), _xf(rec, not vis, float(rec.get("sks", 1.0))))
@@ -703,8 +758,7 @@ func promote(rec: Dictionary) -> ChoppableTree:
 	rec["node"] = t
 	rec["pt"] = _now
 	_set_mm_visible(rec, false)
-	if rec.has("cs"):
-		(rec["cs"] as CollisionShape3D).disabled = true
+	set_tree_collision(rec, false)
 	_promoted.append(rec)
 	trees.append(t)
 	return t
@@ -715,12 +769,22 @@ func _demote(rec: Dictionary) -> void:
 	t.queue_free()
 	rec["node"] = null
 	_set_mm_visible(rec, true)
+	set_tree_collision(rec, true)
+
+## Коллизия дерева в общем теле чанка (у деревьев пака — несколько выпуклых форм).
+func set_tree_collision(rec: Dictionary, on: bool) -> void:
 	if rec.has("cs"):
-		(rec["cs"] as CollisionShape3D).disabled = false
+		(rec["cs"] as CollisionShape3D).disabled = not on
+	for c in rec.get("cs_more", []):
+		(c as CollisionShape3D).disabled = not on
 
 func _on_tree_felled(_t: ChoppableTree, rec: Dictionary) -> void:
 	rec["state"] = 1 # пень навсегда (узел остаётся)
 	_promoted.erase(rec)
+	for e in rec.get("epi", []):
+		var bmm: MultiMesh = _bush_mm.get(e[0])
+		if bmm:
+			bmm.set_instance_transform(int(e[1]), Transform3D(Basis().scaled(Vector3.ONE * 0.0001), (_bush[e[0]][int(e[1])] as Transform3D).origin))
 	for l in rec.get("lianas", []):
 		if int(l["state"]) == 0:
 			l["state"] = 2
@@ -730,13 +794,17 @@ func _on_tree_felled(_t: ChoppableTree, rec: Dictionary) -> void:
 				(n as Node).queue_free()
 			l["node"] = null
 
+var _bush_mm: Dictionary = {}
 func _build_bushes() -> void:
 	for key in _bush:
 		var parts := String(key).split("|")
 		var xs: Array = _bush[key]
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.mesh = FloraLib.bush_mesh(int(parts[0]))
+		mm.mesh = FloraLib.bush_mesh(int(parts[0])) if parts[0].is_valid_int() else FloraPack.mesh(parts[0], 1)
+		if mm.mesh == null:
+			continue
+		_bush_mm[key] = mm
 		mm.instance_count = xs.size()
 		for i in xs.size():
 			mm.set_instance_transform(i, xs[i])
@@ -962,6 +1030,7 @@ func _gen_decor(k: Vector2i) -> Array:
 	rng.seed = hash(Vector3i(k.x, k.y, seed + 101))
 	var sets: Dictionary = {}
 	var gstep := 1.7 / sqrt(density)
+	var pack := FloraPack.available()
 	var n := int(ceil(CHUNK / gstep))
 	var ox := k.x * CHUNK
 	var oz := k.y * CHUNK
@@ -982,14 +1051,16 @@ func _gen_decor(k: Vector2i) -> Array:
 					if r < 0.42:
 						type = "grass"
 					elif r < 0.62:
-						type = "fern%d" % rng.randi_range(0, 3)
+						type = _fern_type(b, rng)
 						s0 = 0.8; s1 = 1.6
+						if pack:
+							s0 = 0.85; s1 = 1.25
 				&"meadow":
 					if r < 0.7:
 						type = "grass"
 						s0 = 0.75; s1 = 1.45
 					elif r < 0.74:
-						type = "fern%d" % rng.randi_range(0, 3)
+						type = _fern_type(b, rng)
 				&"beach":
 					if y > 0.9 and r < 0.12:
 						type = "grass"; s0 = 0.5; s1 = 0.9
@@ -1007,11 +1078,17 @@ func _gen_decor(k: Vector2i) -> Array:
 				sets[type] = []
 			var bs := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(s0, s1))
 			(sets[type] as Array).append(Transform3D(bs, Vector3(x, y - 0.04, z)))
-			stats["fern" if type.begins_with("fern") else "grass"] += 1
+			stats["grass" if type == "grass" else "fern"] += 1
 	var out: Array = []
 	var ferns := ["fern_02_a", "fern_02_b", "fern_02_c", "fern_02_d"]
 	for type in sets:
-		var mesh: Mesh = FloraLib.grass_mesh() if type == "grass" else FloraLib.first_mesh("res://assets/models/polyhaven/%s.glb" % ferns[int(String(type).substr(4))])
+		var mesh: Mesh
+		if type == "grass":
+			mesh = FloraLib.grass_mesh()
+		elif String(type).begins_with("pf:"):
+			mesh = FloraPack.mesh(String(type).substr(3), 1)   # папоротники/куркулиго пака
+		else:
+			mesh = FloraLib.first_mesh("res://assets/models/polyhaven/%s.glb" % ferns[int(String(type).substr(4))])
 		if mesh == null:
 			continue
 		var xs: Array = sets[type]
@@ -1031,6 +1108,13 @@ func _gen_decor(k: Vector2i) -> Array:
 	return out
 
 # --------------------------------------------------------------- API для ботов/модулей
+
+## Низкий покров: папоротники пака по биому (без пака — прежние polyhaven).
+func _fern_type(b: StringName, rng: RandomNumberGenerator) -> String:
+	if FloraPack.available():
+		var ids := FloraPack.ground_ids(b)
+		return "pf:" + String(ids[rng.randi_range(0, ids.size() - 1)])
+	return "fern%d" % rng.randi_range(0, 3)
 
 func _kinds_for(kind: StringName) -> Array:
 	if kind == &"":

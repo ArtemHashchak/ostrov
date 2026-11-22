@@ -47,6 +47,9 @@ func _ready() -> void:
 	crown.name = "Crown"
 	crown.mesh = FloraLib.crown_mesh(variant)
 	add_child(crown)
+	if variant.has("pack"):
+		# крона пака — вся модель выше развилки; кору ниже рисуют процедурные брёвна по оси
+		FloraPack.clip(crown, FloraLib.trunk_point(variant, H).y - 0.03)
 	crown_shape = CollisionShape3D.new()
 	var sph := SphereShape3D.new()
 	var cc := FloraLib.crown_center(variant)
@@ -291,6 +294,10 @@ func _split_log(near: Vector3) -> void:
 	if segments.is_empty() and crown == null:
 		queue_free()
 	else:
+		# остался только «крона» (короткий ствол модели пака): тело не должно остаться без форм
+		if segments.is_empty() and crown_shape:
+			crown_shape.set_deferred(&"disabled", false)
+			center_of_mass = crown_shape.position
 		_wake()
 
 func _hit_crown(by: Node, dmg: float, pos: Vector3) -> void:
@@ -306,6 +313,13 @@ func _hit_crown(by: Node, dmg: float, pos: Vector3) -> void:
 	Flora.give(by, &"leaf", randi_range(3, 5))
 	Flora.give(by, &"stick", randi_range(2, 4))
 	var cp := global_transform * FloraLib.crown_center(variant)
+	if variant.has("pack") and variant["kind"] != &"palm":
+		# у дерева пака ствол до развилки короткий: толстые ветви кроны — ещё брёвна
+		var H: float = variant["H"]
+		var nb := clampi(int(round(float(variant.get("crown_r", 3.0)) / 3.0)), 1, 3)
+		for i in nb:
+			var lg := FloraLog.from_segment(variant, H + FloraLib.LOG_LEN * i, H + FloraLib.LOG_LEN * (i + 1), global_transform)
+			get_parent().add_child(lg)
 	for i in coconuts_left:
 		var c := FloraPickup.make_coconut()
 		get_parent().add_child(c)

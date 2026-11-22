@@ -35,7 +35,7 @@ func _add_showcase() -> void:
 		match kind:
 			&"palm", &"broadleaf", &"banyan", &"mangrove":
 				var rec := _add_tree(kind, p, rng, Vector2(p.x, p.z) + Vector2(0, 30))
-				rec["idx"] = clampi(int(e.get("idx", 0)), 0, int(VARIANTS[kind]) - 1)
+				rec["idx"] = clampi(int(e.get("idx", 0)), 0, variants_of(kind) - 1)
 				rec["yaw"] = 0.4 + float(e.get("idx", 0)) * 1.3
 				last_tree = rec
 				_show_recs.append(rec)
@@ -80,8 +80,7 @@ func reset_showcase(area: Rect2) -> void:
 		if rec["t"] == T_TREE:
 			_promoted.erase(rec)
 			_set_mm_visible(rec, true)
-			if rec.has("cs"):
-				(rec["cs"] as CollisionShape3D).disabled = false
+			set_tree_collision(rec, true)
 			for l: Dictionary in rec.get("lianas", []):
 				var ln: Variant = l.get("node")
 				if ln != null and is_instance_valid(ln):

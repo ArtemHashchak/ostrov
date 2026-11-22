@@ -20,20 +20,8 @@ static var seaweed_mat: ShaderMaterial
 static func build(zones: SandboxZones, root: Node3D, c: Vector2) -> void:
 	var rep := _report()
 	P.signpost(root, c.x - 10.0, c.y - 9.0, "ПАК МОДЕЛЕЙ", "Модели пользователя после выравнивания по бюджету\nслева — оригинал, справа — в игре")
-	# --- пальма: три экземпляра (разные повороты) + сравнение
-	var palm_ps := load(PALM) as PackedScene
-	if palm_ps:
-		for i in 3:
-			var p := palm_ps.instantiate() as Node3D
-			root.add_child(p)
-			var x := c.x - 6.0 + i * 6.0
-			var z := c.y + 6.0
-			p.global_position = Vector3(x, P.ground(x, z) - 0.05, z)
-			p.rotation.y = i * 2.1
-		var r: Dictionary = rep.get("tree_palm_coconut_user", {})
-		P.tag(root, c.x, c.y + 2.0, "Кокосовая пальма (SpeedTree)\n%s → %s треуг. · %d → %d материалов\nтекстур в архиве нет — кора проекта, листва цветом" % [
-			_n(r.get("before_tris")), _n(r.get("after_tris")), int(r.get("before_surfaces", 0)), int(r.get("after_surfaces", 0))], 2.6, 45.0)
-		_board(root, Vector3(c.x - 14.0, 0.0, c.y + 6.0), DIR + "preview/palm_compare.png", "Пальма: оригинал (без текстур) → в игре")
+	# --- растения пака (кокосовая пальма v5 заменила старую SpeedTree-пальму): «Сад пака» рядом
+	SandboxFloraPack.build(root, c)
 	# --- акула: экспонат
 	var shark_ps := load(SHARK) as PackedScene
 	if shark_ps:
@@ -75,7 +63,8 @@ static func build(zones: SandboxZones, root: Node3D, c: Vector2) -> void:
 		var g := P.ground(cx, cz)
 		zones._point(&"pack_crab", "Пак: краб", Vector3(cx - 1.6, P.ground(cx - 1.6, cz - 2.4) + 0.2, cz - 2.4), Vector3(cx, g + 0.1, cz))
 	# --- ящерица пользователя: игуана и варан (одна модель, разная окраска/размер), в загонах
-	if UserLizardRig.available():
+	# (если игуана и варан уже из пака №3 с клипами автора — их загоны в SandboxLand2)
+	if UserLizardRig.available() and not UserClipRig.available(&"iguana"):
 		var fa2 := Fauna.instance()
 		var specs := [[&"iguana", "Игуана", 1.25], [&"monitor", "Варан", 1.7]]
 		for i in specs.size():

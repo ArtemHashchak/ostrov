@@ -12,6 +12,7 @@ uniform bool has_normal = false;
 uniform sampler2D rough_tex : hint_roughness_r, filter_linear_mipmap, repeat_enable;
 uniform bool has_rough = false;
 uniform float roughness_v = 1.0;
+uniform vec4 rough_mask = vec4(1.0, 0.0, 0.0, 0.0);
 uniform sampler2D ao_tex : hint_default_white, filter_linear_mipmap, repeat_enable;
 uniform bool has_ao = false;
 uniform vec3 uv_scale = vec3(1.0);
@@ -33,7 +34,7 @@ void fragment() {
 	}
 	float r = roughness_v;
 	if (has_rough) {
-		r *= texture(rough_tex, UV).r;
+		r *= dot(texture(rough_tex, UV), rough_mask);
 	}
 	ALBEDO = c * (1.0 - 0.3 * weather_wetness);
 	ROUGHNESS = mix(r, 0.3, weather_wetness * 0.8);

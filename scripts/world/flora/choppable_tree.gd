@@ -48,6 +48,10 @@ func _rebuild_coconuts() -> void:
 	_coconut_mi.material_override = FloraLib.sway_of(FloraLib.coconut_material())
 var _notch: MeshInstance3D
 var _shape: CollisionShape3D
+## Модель из пака пользователя (FloraPack): дерево целиком — авторский меш, процедурные только
+## полоса с зарубкой, срез пня и брёвна падающего ствола (по оси, замеренной при импорте).
+var _pack := false
+var _hull_shapes: Array[CollisionShape3D] = []
 var _last_hitter: Node = null
 var _shake_t: float = 0.0
 
@@ -94,9 +98,10 @@ func _ready() -> void:
 	add_to_group(&"choppable")
 	add_to_group(&"trees")
 	set_process(false) # _process нужен только во время тряски кроны (_shake включает)
+	_pack = variant.has("pack")
 	_trunk = MeshInstance3D.new()
 	_trunk.name = "Trunk"
-	_trunk.mesh = _trunk_full_mesh()
+	_trunk.mesh = null if _pack else _trunk_full_mesh()
 	_trunk.visibility_range_end = Flora.TREE_VIS_RANGE
 	add_child(_trunk)
 	_crown = MeshInstance3D.new()
@@ -117,7 +122,9 @@ func _ready() -> void:
 		var top := FloraLib.trunk_point(variant, variant["H"])
 		var rng := RandomNumberGenerator.new()
 		rng.seed = int(variant["seed"]) + get_instance_id()
-		for i in coconuts:
+		if _pack:
+			_coconut_pos = FloraPack.coconut_spots(variant, coconuts, rng)
+		for i in (0 if _pack else coconuts):
 			var a := TAU * float(i) / float(maxi(coconuts, 1)) + rng.randf_range(-0.3, 0.3)
 			_coconut_pos.append(top + Vector3(cos(a) * 0.22, -0.32 - rng.randf() * 0.18, sin(a) * 0.22))
 		# все кокосы дерева — один меш (было по узлу на кокос: 4–6 вызовов отрисовки на пальму)
@@ -135,6 +142,15 @@ func _ready() -> void:
 	_shape.shape = cyl
 	_shape.position = Vector3(FloraLib.trunk_point(variant, hh * 0.5).x * 0.5, hh * 0.5, 0)
 	add_child(_shape)
+	if _pack:
+		# коллизия ствола — выпуклые коллайдеры автора (наклонный ствол пальмы тоже)
+		for sh in FloraPack.hulls(variant["pack"]):
+			var cs := CollisionShape3D.new()
+			cs.shape = sh
+			add_child(cs)
+			_hull_shapes.append(cs)
+		if not _hull_shapes.is_empty():
+			_shape.disabled = true
 
 func _trunk_full_mesh() -> Mesh:
 	var key := "trunkfull_%s_%d" % [variant["kind"], variant["idx"]]
@@ -210,6 +226,15 @@ func _shake(t: float) -> void:
 func _update_notch() -> void:
 	var k := clampf(1.0 - health / max_health, 0.0, 1.0)
 	var depth := 0.12 + 0.6 * k
+	if _pack:
+		# полоса ствола с зарубкой вместо коры модели на этой высоте (шейдер вырезает полосу)
+		var lo := maxf(0.0, cut_h - 0.4)
+		var hi := cut_h + 0.75
+		var band := FloraLib.trunk_mesh(variant, lo, hi, 0, 12, Vector3.ZERO, {"h": cut_h, "dir": notch_side, "depth": depth})
+		band.surface_set_material(0, FloraLib.sway_of(FloraLib.bark_material(variant["bark"])))
+		_trunk.mesh = band
+		FloraPack.clip(_crown, -1000.0, 1000.0, Vector2(lo + 0.02, hi - 0.02))
+		return
 	# та же верхняя граница, что у целого ствола — макушка не «прыгает» при первом ударе
 	_trunk.mesh = FloraLib.trunk_mesh(variant, 0.0, (variant["H"] as float) * (1.0 if kind == &"palm" else 1.02), 0, 12, Vector3.ZERO, {"h": cut_h, "dir": notch_side, "depth": depth})
 
@@ -245,9 +270,19 @@ func fell(by: Node) -> void:
 		if d.length() > 0.05:
 			away = d.normalized()
 	# пень
-	_trunk.mesh = FloraLib.trunk_mesh(variant, 0.0, cut_h, 2, 12)
+	if _pack:
+		# пень — нижняя часть модели (корни, у мангров — ходули) + процедурный срез с кольцами
+		_trunk.mesh = FloraLib.trunk_mesh(variant, maxf(0.0, cut_h - 0.35), cut_h, 2, 12)
+		FloraPack.clip(_crown, -1000.0, cut_h, Vector2(maxf(0.0, cut_h - 0.33), cut_h + 2000.0))
+		_crown.visibility_range_end = 160.0
+		for cs in _hull_shapes:
+			cs.queue_free()
+		_hull_shapes.clear()
+		_shape.disabled = false
+	else:
+		_trunk.mesh = FloraLib.trunk_mesh(variant, 0.0, cut_h, 2, 12)
+		_crown.visible = false
 	_trunk.visibility_range_end = 160.0
-	_crown.visible = false
 	_set_shadow_proxy(false)
 	var left_coconuts := coconuts
 	_coconut_pos.clear()

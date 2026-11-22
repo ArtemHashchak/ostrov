@@ -28,6 +28,8 @@ static func foliage_material(tex_name: String, tint: Color = Color.WHITE, wind: 
 	return m
 
 static func bark_material(set_name: String) -> StandardMaterial3D:
+	if set_name.begins_with("pack:"):
+		return FloraPack.bark_std(set_name.substr(5))
 	if set_name == "bark_light":
 		return bark_light_material()
 	var key := "bark_" + set_name
@@ -59,6 +61,9 @@ static func sway_of(mat: Material) -> Material:
 	m.set_shader_parameter(&"has_rough", sm.roughness_texture != null)
 	if sm.roughness_texture:
 		m.set_shader_parameter(&"rough_tex", sm.roughness_texture)
+		# ORM пака: шероховатость в G
+		var ch := [Vector4(1, 0, 0, 0), Vector4(0, 1, 0, 0), Vector4(0, 0, 1, 0), Vector4(0, 0, 0, 1), Vector4(0.33, 0.33, 0.33, 0)]
+		m.set_shader_parameter(&"rough_mask", ch[sm.roughness_texture_channel])
 	m.set_shader_parameter(&"roughness_v", sm.roughness)
 	m.set_shader_parameter(&"has_ao", sm.ao_enabled and sm.ao_texture != null)
 	if sm.ao_texture:
@@ -112,6 +117,12 @@ static func coconut_material() -> StandardMaterial3D:
 static func coconut_mesh() -> Mesh:
 	if _mesh_cache.has("coconut"):
 		return _mesh_cache["coconut"]
+	# зелёный кокос пака (Задание_кокосы: на пальме и у её основания — зелёные)
+	if FloraPack.available():
+		var pm := FloraPack.mesh("coconut_green", 1)
+		if pm:
+			_mesh_cache["coconut"] = pm
+			return pm
 	var sm := SphereMesh.new()
 	sm.radius = 0.12
 	sm.height = 0.27
@@ -130,6 +141,10 @@ static func variant(kind: StringName, idx: int) -> Dictionary:
 		return _variants[key]
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(key)
+	if FloraPack.has_tree(kind):
+		var pv := FloraPack.tree_variant(kind, idx)
+		_variants[key] = pv
+		return pv
 	var v := {"kind": kind, "idx": idx}
 	if kind == &"palm":
 		v["H"] = rng.randf_range(7.5, 12.5)
@@ -189,6 +204,8 @@ static func variant(kind: StringName, idx: int) -> Dictionary:
 
 ## Точка оси ствола на высоте h (локально: основание в 0, наклон вдоль +X).
 static func trunk_point(v: Dictionary, h: float) -> Vector3:
+	if v.has("axis"):
+		return FloraPack.axis_point(v, h)
 	var H: float = v["H"]
 	var t := clampf(h / H, 0.0, 1.05)
 	var lean: float = v["lean"]
@@ -201,6 +218,8 @@ static func trunk_point(v: Dictionary, h: float) -> Vector3:
 static func trunk_arc(v: Dictionary, h: float) -> float:
 	if h <= 0.0:
 		return 0.0
+	if v.has("axis"):
+		return h
 	var n := maxi(1, int(ceil(h / 0.1)))
 	var acc := 0.0
 	var prev := trunk_point(v, 0.0)
@@ -211,6 +230,8 @@ static func trunk_arc(v: Dictionary, h: float) -> float:
 	return acc
 
 static func trunk_radius(v: Dictionary, h: float) -> float:
+	if v.has("axis"):
+		return FloraPack.axis_radius(v, h)
 	var H: float = v["H"]
 	var t := clampf(h / H, 0.0, 1.0)
 	var r0: float = v["r0"]
@@ -405,6 +426,8 @@ static func _cap(st: SurfaceTool, v: Dictionary, h: float, dir: float, sides: in
 
 ## Крона в локальных координатах дерева (основание ствола в нуле).
 static func crown_mesh(v: Dictionary, lod: int = 0) -> ArrayMesh:
+	if v.has("pack"):
+		return FloraPack.mesh(v["pack"], 1 if lod == 0 else 2)
 	var key := "crown_%s_%d_%d" % [v["kind"], v["idx"], lod]
 	if _mesh_cache.has(key):
 		return _mesh_cache[key]
@@ -417,6 +440,8 @@ static func crown_mesh(v: Dictionary, lod: int = 0) -> ArrayMesh:
 	return mesh
 
 static func crown_center(v: Dictionary) -> Vector3:
+	if v.has("crown_c"):
+		return v["crown_c"]
 	if v["kind"] == &"palm":
 		return trunk_point(v, v["H"]) + Vector3(0, -0.4, 0)
 	return trunk_point(v, v["H"]) + Vector3(0, (v["crown_r"] as float) * 0.55 * float(v.get("flat", 1.0)), 0)
@@ -650,6 +675,8 @@ static func first_mesh(scene_path: String) -> Mesh:
 ## Корни: мангр — ходульные дуги от ствола к земле; баньян — контрфорсы + воздушные корни из кроны.
 ## Пустой меш для пальмы/лиственного. lod 1 — меньше граней.
 static func roots_mesh(v: Dictionary, lod: int = 0) -> ArrayMesh:
+	if v.has("pack"):
+		return ArrayMesh.new()   # корни — часть модели пака
 	var key := "roots_%s_%d_%d" % [v["kind"], v["idx"], lod]
 	if _mesh_cache.has(key):
 		return _mesh_cache[key]
@@ -727,6 +754,8 @@ static func _bezier_tube(st: SurfaceTool, a: Vector3, c: Vector3, b: Vector3, r0
 ## Меш дерева целиком (ствол + крона + корни [+ кокосы]) для MultiMesh: lod 0 — ближний, 1 — дальний.
 ## Поверхности с одинаковым материалом сливаются (меньше draw call).
 static func tree_mesh(v: Dictionary, lod: int) -> ArrayMesh:
+	if v.has("pack"):
+		return FloraPack.mesh(v["pack"], lod + 1)
 	var key := "tree_%s_%d_%d" % [v["kind"], v["idx"], lod]
 	if _mesh_cache.has(key):
 		return _mesh_cache[key]
@@ -775,6 +804,8 @@ const OPAQUE_UV := {"palm_frond": Vector2(0.283, 0.32), "mangrove_cluster": Vect
 	"broadleaf_cluster": Vector2(0.473, 0.52), "broadleaf_cluster_b": Vector2(0.426, 0.535)}
 
 static func shadow_tree_mesh(v: Dictionary, single: bool = false) -> ArrayMesh:
+	if v.has("pack"):
+		return FloraPack.mesh(v["pack"], 2)
 	var key := "tree_shadow_%s_%d_%d" % [v["kind"], v["idx"], int(single)]
 	if _mesh_cache.has(key):
 		return _mesh_cache[key]
