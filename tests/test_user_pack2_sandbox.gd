@@ -17,7 +17,10 @@ func run() -> void:
 	if not sb.is_built:
 		return
 	var z := sb.zones
-	for id in [&"pack_iguana", &"pack_monitor", &"pack_bat", &"pack_rocks"]:
+	# игуана и варан — модели пака №3 с клипами автора (SandboxLand2), если они в проекте
+	var new_liz := UserClipRig.available(&"iguana")
+	var ids: Array = [&"pack3_iguana_green", &"pack3_varan_komodo"] if new_liz else [&"pack_iguana", &"pack_monitor"]
+	for id in ids + [&"pack_bat", &"pack_rocks"]:
 		check(z.points.has(id), "есть точка перемещения: %s" % id)
 		if not z.points.has(id):
 			continue
@@ -30,6 +33,8 @@ func run() -> void:
 		await shot(String(id))
 	# в загонах — модели пользователя
 	var liz := get_tree().root.find_children("UserLizard", "", true, false)
+	if new_liz:
+		liz = get_tree().root.find_children("iguana_green", "", true, false) + get_tree().root.find_children("varan_komodo", "", true, false)
 	check(liz.size() >= 2, "в загонах ящерицы пользователя (%d)" % liz.size())
 	var rocks := 0
 	for mi in get_tree().root.find_children("*", "MeshInstance3D", true, false):

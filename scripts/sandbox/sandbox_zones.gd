@@ -37,8 +37,8 @@ const FLORA_NAMES := {
 	&"wild_maize": "Дикая кукуруза", &"wild_melon": "Дикая дыня", &"berries": "Ягодный куст", &"cotton": "Хлопок",
 	&"stick": "Палка", &"stone": "Камень", &"boulder": "Валун", &"iron_ore": "Железная руда", &"sulfur": "Сера",
 }
-const SPECIES_ORDER: Array[StringName] = [&"boar", &"croc", &"monkey", &"monitor", &"snake", &"iguana", &"crab",
-	&"scorpion", &"spider", &"turtle"]
+const SPECIES_ORDER: Array[StringName] = [&"boar", &"croc", &"monkey", &"monitor", &"snake", &"python", &"iguana", &"crab",
+	&"hermit_crab", &"scorpion", &"spider", &"centipede", &"salamander", &"turtle"]
 const BIRDS: Array[StringName] = [&"parrot", &"gull", &"bat"]
 
 var world: World
@@ -130,6 +130,7 @@ func build_zone(id: StringName) -> void:
 		&"pack":
 			SandboxPack.build(self, root, ZONES[&"pack"].c)
 			SandboxPack.build_sea(self, root)
+			SandboxLand2.build(self, root, ZONES[&"pack"].c)      # пак №3: рептилии и птицы с клипами автора
 			SandboxSeaPack.build(self, root, ZONES[&"pack"].c)   # морская часть пака
 			SandboxSeaPack.build_sea(self, root)
 			SandboxSeaSkel.build(self, root, ZONES[&"pack"].c)    # море: модели со скелетом и клипами автора
@@ -235,15 +236,15 @@ func _flora(root: Node3D) -> void:
 func _fauna(root: Node3D) -> void:
 	P.signpost(root, 30.0, -55.0, "ЖИВОТНЫЕ", "Все виды в ряд · еду можно дать с руки (E)\nубитые появляются снова через %d с" % int(RESPAWN_S))
 	var fa := Fauna.instance()
-	# два ряда по 6 загонов вплотную: 10 видов + приручение + стол с кормом
+	# два ряда по 8 загонов вплотную: 14 видов + приручение + стол с кормом
 	var slots: Array[Vector2] = []
 	for row in 2:
-		for col in 6:
-			slots.append(Vector2(33.0 + col * 7.5, -74.0 + row * 11.0))
+		for col in 8:
+			slots.append(Vector2(33.0 + col * 6.5, -74.0 + row * 11.0))
 	for i in SPECIES_ORDER.size():
 		var sp := SPECIES_ORDER[i]
 		var s := slots[i]
-		var small := sp in [&"crab", &"scorpion", &"spider", &"snake", &"iguana"]
+		var small := sp in [&"crab", &"scorpion", &"spider", &"snake", &"iguana", &"python", &"hermit_crab", &"centipede", &"salamander"]
 		var r := 2.6 if small else 3.4
 		P.pen(root, s.x, s.y, r)
 		var nm := sp as String
@@ -275,13 +276,16 @@ func _fauna(root: Node3D) -> void:
 	_stand(&"fauna", "Животные", 52.0, -54.0, 52.0, -70.0, 0.5)
 
 ## Животное в загоне: держится внутри ограды, пока не приручено; убитое появляется снова.
-func _penned(fa: Fauna, sp: StringName, s: Vector2, r: float) -> Animal:
+## variant ≥ 0 — вариант модели вида (UserClipRig: зелёная/синяя куфия, кеа…), и после возрождения тот же.
+func _penned(fa: Fauna, sp: StringName, s: Vector2, r: float, variant: int = -1) -> Animal:
+	UserClipRig.next_variant = variant
 	var a := fa.spawn(sp, Vector3(s.x, P.ground(s.x, s.y) + 0.3, s.y), r * 0.45)
+	UserClipRig.next_variant = -1
 	if a:
 		_own(&"fauna", a)
 		var pen := {"a": a, "c": Vector3(s.x, 0.0, s.y), "r": maxf(0.6, r - 0.5)}
 		_pens.append(pen)
-		_track({"kind": &"pen", "sp": sp, "s": s, "r": r, "node": a})
+		_track({"kind": &"pen", "sp": sp, "s": s, "r": r, "node": a, "variant": variant})
 	return a
 
 func _flock(fa: Fauna, sp: StringName, c: Vector3, n: int) -> void:
@@ -336,7 +340,9 @@ func _respawn(e: Dictionary) -> void:
 			if fa == null:
 				return
 			var s: Vector2 = e.s
+			UserClipRig.next_variant = int(e.get("variant", -1))
 			var a := fa.spawn(e.sp, Vector3(s.x, P.ground(s.x, s.y) + 0.3, s.y), float(e.r) * 0.45)
+			UserClipRig.next_variant = -1
 			if a:
 				_own(&"fauna", a)
 				_pens.append({"a": a, "c": Vector3(s.x, 0.0, s.y), "r": maxf(0.6, float(e.r) - 0.5)})

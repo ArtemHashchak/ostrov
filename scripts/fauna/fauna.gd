@@ -212,6 +212,12 @@ func _populate_island(isl: Dictionary) -> void:
 			var p: Variant = pick.call([&"beach"])
 			if p != null:
 				_try_spawn(&"turtle", p, 20.0)
+	# раки-отшельники — кучками у кромки пляжа (модели пака, 2026-11-22)
+	for i in count.call(1.5 * area_k):
+		var p: Variant = pick.call([&"beach"])
+		if p == null: break
+		for k in _rng.randi_range(2, 4):
+			_try_spawn(&"hermit_crab", p + Vector3(_rng.randf_range(-1.5, 1.5), 0, _rng.randf_range(-1.5, 1.5)), 6.0)
 	if buckets.has(&"beach") and _room(6):
 		var p: Variant = pick.call([&"beach"])
 		spawn_flock(&"gull", p, _rng.randi_range(4, 7), R * 0.9)
@@ -228,10 +234,24 @@ func _populate_island(isl: Dictionary) -> void:
 		if p != null:
 			for k in _rng.randi_range(2, 4):
 				_try_spawn(&"monkey", p + Vector3(_rng.randf_range(-3, 3), 0, _rng.randf_range(-3, 3)), 30.0)
-	for i in count.call(1.6 * area_k * danger):
+	for i in count.call(1.2 * area_k * danger):
 		var p: Variant = pick.call([&"jungle", &"swamp", &"meadow"])
 		if p == null: break
 		_try_spawn(&"snake", p, 12.0)
+	# питоны — джунгли и болото; сколопендры — подстилка джунглей и скалы; саламандры — сырые места
+	for i in count.call(0.6 * area_k * danger):
+		var p: Variant = pick.call([&"jungle", &"swamp"])
+		if p == null: break
+		_try_spawn(&"python", p, 14.0)
+	for i in count.call(0.9 * area_k * danger):
+		var p: Variant = pick.call([&"jungle", &"rocky"])
+		if p == null: break
+		_try_spawn(&"centipede", p, 6.0)
+	for i in count.call(1.0 * area_k):
+		var p: Variant = pick.call([&"swamp", &"jungle"])
+		if p == null: break
+		for k in _rng.randi_range(1, 2):
+			_try_spawn(&"salamander", p + Vector3(_rng.randf_range(-1, 1), 0, _rng.randf_range(-1, 1)), 5.0)
 	for i in count.call(1.4 * area_k * danger):
 		var p: Variant = pick.call([&"jungle"])
 		if p == null: break

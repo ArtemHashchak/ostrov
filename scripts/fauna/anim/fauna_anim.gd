@@ -59,6 +59,9 @@ static func _ensure() -> void:
 	if _inited:
 		return
 	_inited = true
+	# существа пака пользователя с клипами автора (змеи, питоны, варан, игуана, саламандра,
+	# сколопендра, рак-отшельник, попугаи) — раньше процедурных ригов
+	UserClipRig.register_all()
 	# риги млекопитающих и птиц (агент анимации C); другие агенты — через register_builder
 	if not _builders.has(&"boar"):
 		_builders[&"boar"] = CreatureRigs.boar

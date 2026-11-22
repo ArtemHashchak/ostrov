@@ -14,10 +14,13 @@ const SPECIES := {
 	&"crab": {"name": "Краб", "hp": 8.0, "walk": 0.7, "run": 2.6, "dmg": 2.0, "reach": 0.5, "cd": 1.5,
 		"temper": &"timid", "aggro_r": 0.0, "flee_r": 3.5, "box": Vector3(0.45, 0.25, 0.35), "box_y": 0.08,
 		"drops": [{"id": &"crab_meat", "n": 1}], "sound": &"crab_click", "hurt": &"crab_click"},
-	&"snake": {"name": "Змея", "hp": 16.0, "walk": 0.45, "run": 2.2, "dmg": 5.0, "reach": 1.3, "cd": 2.6,
-		"temper": &"territorial", "aggro_r": 3.2, "flee_r": 0.0, "box": Vector3(0.5, 0.25, 1.4), "box_y": 0.1,
-		"poison": [1.5, 12.0], "warn": 1.0,
+	&"snake": {"name": "Змея", "hp": 16.0, "walk": 0.3, "run": 0.6, "dmg": 5.0, "reach": 0.9, "cd": 2.6,
+		"temper": &"territorial", "aggro_r": 2.0, "flee_r": 0.0, "box": Vector3(0.35, 0.2, 0.85), "box_y": 0.05,
+		"poison": [1.5, 12.0], "warn": 1.6,
 		"drops": [{"id": &"meat_raw", "n": 1}], "sound": &"hiss", "hurt": &"hiss"},
+	&"python": {"name": "Питон", "hp": 30.0, "walk": 0.35, "run": 0.7, "dmg": 4.0, "reach": 0.9, "cd": 2.5,
+		"temper": &"territorial", "aggro_r": 1.4, "flee_r": 0.0, "box": Vector3(0.4, 0.25, 1.4), "box_y": 0.05, "warn": 1.2,
+		"drops": [{"id": &"meat_raw", "n": 2}, {"id": &"hide", "n": 1}], "sound": &"hiss", "hurt": &"hiss"},
 	&"croc": {"name": "Крокодил", "hp": 160.0, "walk": 0.8, "run": 7.5, "dmg": 28.0, "reach": 2.3, "cd": 2.2,
 		"temper": &"ambush", "aggro_r": 8.0, "flee_r": 0.0, "box": Vector3(0.9, 0.6, 3.3), "box_y": 0.25,
 		"drops": [{"id": &"meat_raw", "n": 5}, {"id": &"hide", "n": 3}], "sound": &"croc_growl", "hurt": &"croc_growl"},
@@ -26,14 +29,23 @@ const SPECIES := {
 		"drops": [{"id": &"meat_raw", "n": 1}, {"id": &"hide", "n": 1}],
 		"tame": true, "food": [&"banana", &"mango", &"coconut", &"berries", &"papaya"], "trust": 2,
 		"sound": &"monkey", "hurt": &"monkey"},
-	&"iguana": {"name": "Игуана", "hp": 18.0, "walk": 0.6, "run": 3.5, "dmg": 0.0, "reach": 0.6, "cd": 2.0,
-		"temper": &"timid", "aggro_r": 0.0, "flee_r": 4.0, "box": Vector3(0.45, 0.3, 1.2), "box_y": 0.1,
+	&"iguana": {"name": "Игуана", "hp": 18.0, "walk": 0.35, "run": 2.0, "dmg": 0.0, "reach": 0.6, "cd": 2.0,
+		"temper": &"timid", "aggro_r": 0.0, "flee_r": 4.0, "box": Vector3(0.4, 0.3, 1.4), "box_y": 0.1,
 		"drops": [{"id": &"meat_raw", "n": 1}],
 		"tame": true, "food": [&"leaf", &"berries", &"banana", &"mango", &"papaya", &"fiber"], "trust": 2,
 		"sound": &"lizard", "hurt": &"lizard"},
-	&"monitor": {"name": "Варан", "hp": 45.0, "walk": 0.8, "run": 4.5, "dmg": 7.0, "reach": 1.3, "cd": 1.6,
-		"temper": &"territorial", "aggro_r": 2.6, "flee_r": 0.0, "box": Vector3(0.55, 0.4, 1.7), "box_y": 0.15, "warn": 0.6,
+	&"monitor": {"name": "Варан", "hp": 70.0, "walk": 0.55, "run": 3.2, "dmg": 9.0, "reach": 1.5, "cd": 1.6,
+		"temper": &"territorial", "aggro_r": 4.5, "flee_r": 0.0, "box": Vector3(0.8, 0.6, 2.4), "box_y": 0.15, "warn": 1.2, "swim": 0.8,
 		"drops": [{"id": &"meat_raw", "n": 2}, {"id": &"hide", "n": 1}], "sound": &"lizard", "hurt": &"hiss"},
+	&"salamander": {"name": "Саламандра", "hp": 3.0, "walk": 0.07, "run": 0.18, "dmg": 0.0, "reach": 0.3, "cd": 2.0,
+		"temper": &"timid", "aggro_r": 0.0, "flee_r": 1.2, "box": Vector3(0.12, 0.06, 0.22), "box_y": 0.0,
+		"drops": [], "sound": &"lizard", "hurt": &"lizard"},
+	&"centipede": {"name": "Сколопендра", "hp": 5.0, "walk": 0.16, "run": 0.4, "dmg": 4.0, "reach": 0.45, "cd": 2.0,
+		"temper": &"territorial", "aggro_r": 1.0, "flee_r": 0.0, "box": Vector3(0.15, 0.1, 0.55), "box_y": 0.02,
+		"poison": [1.5, 12.0], "warn": 0.7, "drops": [], "sound": &"scorpion", "hurt": &"scorpion"},
+	&"hermit_crab": {"name": "Рак-отшельник", "hp": 4.0, "walk": 0.06, "run": 0.12, "dmg": 1.0, "reach": 0.3, "cd": 2.0,
+		"temper": &"hermit", "aggro_r": 0.0, "flee_r": 1.5, "box": Vector3(0.25, 0.15, 0.25), "box_y": 0.0,
+		"drops": [{"id": &"crab_meat", "n": 1}], "sound": &"crab_click", "hurt": &"crab_click"},
 	&"scorpion": {"name": "Скорпион", "hp": 5.0, "walk": 0.25, "run": 1.4, "dmg": 3.0, "reach": 0.8, "cd": 2.0,
 		"temper": &"territorial", "aggro_r": 1.3, "flee_r": 0.0, "box": Vector3(0.3, 0.2, 0.3), "box_y": 0.05,
 		"poison": [1.0, 10.0], "warn": 0.4, "drops": [], "sound": &"scorpion", "hurt": &"scorpion"},
@@ -137,7 +149,7 @@ func _ready() -> void:
 	heading = _rng.randf() * TAU
 	_model = AnimalModels.build(species)
 	add_child(_model)
-	_mat = _model.get_meta(&"mat")
+	_mat = _model.get_meta(&"mat") if _model.has_meta(&"mat") else null   # модели с клипами — свои материалы
 	_legs = _model.get_meta(&"legs")
 	_wings = _model.get_meta(&"wings")
 	# get_meta(…, null) в Godot 4 ругается при отсутствии ключа — сначала has_meta
@@ -169,6 +181,8 @@ func _ready() -> void:
 # ============================== API ==============================
 
 func display_name() -> String:
+	if _model and _model.has_meta(&"display_name"):
+		return String(_model.get_meta(&"display_name"))   # вариант модели (зелёная куфия, кеа…)
 	return String(cfg["name"])
 
 func is_dead() -> bool:
@@ -381,6 +395,8 @@ func _think() -> void:
 			_think_monkey(pl, d)
 		&"turtle":
 			_think_turtle(pl, d)
+		&"hermit":
+			_think_hermit(pl, d)
 	if state == &"idle" and state_t > _rng.randf_range(2.0, 6.0):
 		_pick_wander()
 	elif state == &"wander" and (global_position.distance_to(move_to) < 0.6 or state_t > 20.0):
@@ -392,7 +408,7 @@ func _act(dt: float) -> void:
 	match state:
 		&"burrow":
 			speed = move_toward(speed, 0.0, dt * 8.0)
-		&"idle", &"stay", &"ambush", &"nest", &"warn":
+		&"idle", &"stay", &"ambush", &"nest", &"warn", &"hide", &"peek":
 			speed = move_toward(speed, 0.0, dt * 4.0)
 			if state == &"warn" and target and species == &"crab":
 				_face(target.global_position, dt * 5.0)
@@ -638,6 +654,28 @@ func _take_from(n: Node3D) -> void:
 			stolen.append({"id": id, "n": take})
 
 # ---------------------------- черепаха ----------------------------
+## Рак-отшельник: человек ближе flee_r — прячется в раковину на 3–6 с, выглядывает и уползает прочь.
+func _think_hermit(pl: Node3D, d: float) -> void:
+	var fr := float(cfg["flee_r"])
+	match state:
+		&"hide":
+			if state_t > _warn_t:
+				_set_state(&"peek")
+		&"peek":
+			if pl and d < fr * 0.6:
+				_warn_t = _rng.randf_range(3.0, 6.0)
+				_set_state(&"hide")
+			elif state_t > 1.2:
+				target = pl
+				_set_state(&"flee" if pl else &"idle")
+		&"flee":
+			if pl == null or d > fr * 3.0 or state_t > 6.0:
+				_set_state(&"idle")
+		_:
+			if pl and d < fr:
+				_warn_t = _rng.randf_range(3.0, 6.0)
+				_set_state(&"hide")
+
 func _think_turtle(pl: Node3D, d: float) -> void:
 	if state == &"nest" or state == &"to_water":
 		return
@@ -868,7 +906,7 @@ func _bite(t: Node3D) -> void:
 	if pz != null and fauna:
 		fauna.apply_poison(t, float(pz[0]), float(pz[1]))
 		if t.is_in_group(&"player"):
-			Events.toast.emit("Вас укусил%s %s — яд!" % ["а" if species == &"snake" else "", display_name().to_lower()])
+			Events.toast.emit("Вас укусил%s %s — яд!" % ["а" if species in [&"snake", &"centipede"] else "", display_name().to_lower()])
 	if species == &"croc" and t is Node3D:
 		# тащит к воде
 		var to_w := _towards_water(global_position) - (t as Node3D).global_position
@@ -913,6 +951,8 @@ func _can_stand(p: Vector3) -> bool:
 			return g > wl - 8.0
 		&"crab":
 			return g > wl - 0.4 and g < wl + 3.0
+		&"hermit_crab":
+			return g > wl + 0.05 and g < wl + 3.0
 	return g > wl + 0.15
 
 func _towards_water(from: Vector3) -> Vector3:
@@ -1072,10 +1112,14 @@ func _tick_dead(dt: float) -> void:
 	_dead_t += dt
 	if anim_ctrl and anim_ctrl.has_method(&"animate_dead"):
 		anim_ctrl.call(&"animate_dead", self, dt)
+	var own_death: bool = anim_ctrl != null and anim_ctrl.get(&"owns_death") == true   # клип death сам кладёт тушку
 	if cfg.get("fly", false):
 		var g := Fauna.ground_y_at(self, global_position.x, global_position.z)
 		global_position.y = move_toward(global_position.y, g + 0.05, dt * 9.0)
-		_model.rotation.z = move_toward(_model.rotation.z, PI * 0.5, dt * 3.0)
+		if not own_death:
+			_model.rotation.z = move_toward(_model.rotation.z, PI * 0.5, dt * 3.0)
+	elif own_death:
+		pass
 	elif species in [&"crab", &"scorpion", &"spider", &"turtle"]:
 		_model.rotation.z = move_toward(_model.rotation.z, PI, dt * 4.0)
 	else:
