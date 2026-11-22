@@ -116,6 +116,8 @@ static func _collect() -> Array[Dictionary]:
 				var sk := String(vis.get("species", "reef"))
 				if shark_names.has(sk) or seen.has("shark_" + sk):
 					continue
+		if String(d.get("name", "")) in SHARK_IDS.values():
+			continue                             # та же акула, что и «акула с ИИ» выше
 		out.append({"id": id, "name": String(d.get("name", id)), "src": "roster", "kind": kind, "cat": "sea"})
 		seen[id] = true
 	# --- виды пака пользователя, не занятые составом

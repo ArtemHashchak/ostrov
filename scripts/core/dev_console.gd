@@ -595,7 +595,7 @@ func _c_weather(args: PackedStringArray) -> String:
 		sb.get(&"cheats").call(&"set_weather", wv)
 	else:
 		w.call(&"set_weather", wv, false)
-	return "Погода: " + String(wv)
+	return "Погода: " + String(SandboxCheats.WEATHER_NAMES.get(wv, wv))
 
 func _c_god() -> String:
 	var sb := _sandbox()

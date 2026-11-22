@@ -11,9 +11,16 @@ var _filter: LineEdit
 var _status: Label
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_CENTER)
-	custom_minimum_size = Vector2(980, 640)
-	position = Vector2(-490, -320)
+	# по центру экрана, 80×80 % (поверх меню F1)
+	anchor_left = 0.1
+	anchor_right = 0.9
+	anchor_top = 0.08
+	anchor_bottom = 0.92
+	offset_left = 0
+	offset_right = 0
+	offset_top = 0
+	offset_bottom = 0
+	mouse_filter = Control.MOUSE_FILTER_STOP
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.05, 0.08, 0.1, 0.95)
 	sb.border_color = Color(0.3, 0.75, 0.7)

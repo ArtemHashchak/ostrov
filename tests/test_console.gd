@@ -56,6 +56,8 @@ func run() -> void:
 	var p := sb.player
 	var beach: Vector3 = sb.zones.points[&"beach"].pos if sb.zones.points.has(&"beach") else p.global_position
 	sb.cheats.teleport(beach)
+	con.call(&"execute", "time 13")
+	p.look(Vector2(0.0, 0.5))      # взгляд под ноги — крабы в кадре
 	await wait(1.0)
 	var base_ms: float = await _frame_ms(60)
 	var res := String(con.call(&"execute", "spawn краб 100"))
@@ -89,6 +91,9 @@ func run() -> void:
 	var cl := String(con.call(&"execute", "clear"))
 	await wait_frames(2)
 	check(cs.spawned.is_empty(), "clear убрал всё созданное (%s)" % cl)
+	await wait(1.0)
+	var after_ms: float = await _frame_ms(60)
+	print("[test] PERF после clear: кадр %.2f мс" % after_ms)
 
 	# ---- море: настоящие особи в воде
 	var sea_ids: Array[String] = []
