@@ -52,7 +52,8 @@ func run() -> void:
 		# центровка: габарит тела вокруг начала координат (донные — низ на нуле)
 		var ab := SeaSkel.bounds(id)
 		var L := float(d.len)
-		check(absf(ab.size.z - L) < L * 0.12, "%s: длина модели %.2f ≈ %.2f м" % [id, ab.size.z, L])
+		var Lm := ab.size.y if bool(d.get("upright", false)) else ab.size.z    # конёк: рост
+		check(absf(Lm - L) < L * 0.12, "%s: длина модели %.2f ≈ %.2f м" % [id, Lm, L])
 		s.queue_free()
 	# корень обнулён: gulp групера, jump дельфина
 	for pair: Array in [["giant_grouper", "gulp"], ["dolphin", "jump"]]:

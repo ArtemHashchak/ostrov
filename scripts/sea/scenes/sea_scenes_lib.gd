@@ -816,24 +816,33 @@ class TurtleGrazing extends SeaScene:
 					phase = 0
 					phase_t = 0.0
 
-## Морские коньки держатся хвостом за траву и покачиваются вместе с ней.
+## Морские коньки держатся хвостом за траву и покачиваются вместе с ней: завиток хвоста обвит вокруг
+## выгнутого листа (у одного — веточки коралла), тело торчком качается клипом grip, конёк кормится
+## (наклон головы и щелчок рылом) и косится глазами, не отпуская; пловца рядом провожает взглядом.
 class SeahorseGrass extends SeaScene:
 	var horses: Array[SeaCritter] = []
-	var anchors: Array = []
+	var stalks: Array[SeaHoldfast] = []
 	func _begin() -> void:
 		duration = 60.0
 		plant_patch("turtle_grass", at, 2.5, 45)
 		plant_patch("caulerpa", at, 2.5, 10)
 		for i in 3:
-			var a := in_water(Vector3(rng.randf_range(-1.5, 1.5), 0, rng.randf_range(-1.5, 1.5)), 0.35)
-			anchors.append(a)
-			var c := critter("seahorse", a)
+			var a := in_water(Vector3(rng.randf_range(-1.5, 1.5), 0, rng.randf_range(-1.5, 1.5)), 0.3)
+			var fl := floor_y(a.x, a.z)
+			var hs := SeaHoldfast.create(clampf(a.y - fl, 0.22, 0.4), "coral" if i == 2 else "grass", float(i) * 2.1)
+			add_child(hs)
+			hs.global_position = Vector3(a.x, fl, a.z)
+			hs.rotation.y = rng.randf() * TAU
+			stalks.append(hs)
+			var c := critter("seahorse", hs.grip_point())
 			if c:
+				c.yaw = hs.rotation.y
+				c.cling(hs.grip_point(), -hs.global_basis.z)
 				horses.append(c)
 	func _step(_dt: float) -> void:
 		for i in horses.size():
-			var a: Vector3 = anchors[i]
-			horses[i].hold(a + Vector3(sin(t * 0.7 + i) * 0.04, 0, cos(t * 0.6 + i) * 0.03), Vector3(cos(t * 0.1 + i), 0, sin(t * 0.1 + i)))
+			var hs := stalks[i]
+			horses[i].cling(hs.grip_point(), -hs.global_basis.z)
 
 ## Морской луг с мальками: стайка снуёт над травой и ныряет в неё, если подплыть.
 class SeagrassNursery extends SeaScene:

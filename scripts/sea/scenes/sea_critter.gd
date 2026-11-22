@@ -49,6 +49,9 @@ var reflexes := true
 ## существ сами — у них выключено (SeaScene.critter), остаются клипы-реакции.
 var reflex_moves := true
 var _rx_cd := 0.0
+## Держится хвостом (морской конёк): cling_at — точка стебля (мир), куда приходится завиток хвоста.
+var clinging := false
+var cling_at := Vector3.ZERO
 var _rx_t := 0.0                 # таймер вида (вдох черепахи, кормёжка манты, бросок групера…)
 var _rx_state := ""
 var _act_cd := 0.0
@@ -110,7 +113,7 @@ func _setup(p_sp: Dictionary, vis: Dictionary, p_sea: Object, pos: Vector3, seed
 		floor_clear = SeaSkel.bounds(vid).size.y * 0.5 * _scale
 		if vid == "moray":
 			min_above_floor = 0.0
-		_rx_t = _rng.randf_range(20.0, 60.0)
+		_rx_t = _rng.randf_range(20.0, 60.0) if not vid.begins_with("seahorse") else _rng.randf_range(2.0, 6.0)
 	elif String(vis.kind) == "pack":
 		var e: Dictionary = vis.entry
 		actor = UserSeaActor.new()
@@ -185,6 +188,24 @@ func hold(p: Vector3, face: Vector3 = Vector3.ZERO) -> void:
 	face_dir = face
 	want_speed = 0.0
 
+## Держаться хвостом за стебель/ветку: завиток хвоста (кость tail_grip) — в точке p, морда — по face.
+## Тело стоит торчком (без тангажа/крена), качается клипом grip; действия (кормёжка, взгляд) — не отпуская.
+func cling(p: Vector3, face: Vector3 = Vector3.ZERO) -> void:
+	mode = M.HOLD
+	clinging = true
+	cling_at = p
+	face_dir = face
+	want_speed = 0.0
+	if skel:
+		skel.rest_pose = "grip"
+
+## Отпустить стебель (и снять позу «держится»).
+func release() -> void:
+	clinging = false
+	if skel:
+		skel.rest_pose = ""
+		skel.pose("")
+
 func orbit(c: Vector3, r: float, dir: float = 1.0, spd: float = -1.0) -> void:
 	mode = M.ORBIT
 	orbit_c = c
@@ -248,6 +269,9 @@ func tick(dt: float) -> void:
 	var p := global_position
 	var desired := Vector3.ZERO
 	var spd := want_speed
+	if clinging and mode == M.HOLD:
+		_tick_cling(dt)
+		return
 	match mode:
 		M.HOLD:
 			var to := goal - p
@@ -328,6 +352,24 @@ func tick(dt: float) -> void:
 	var g := String(sp.get("group", ""))
 	roll = lerpf(roll, -_turn * (0.35 if g in ["ray", "mammal", "shark"] else 0.1), clampf(dt * 3.0, 0.0, 1.0))
 	rotation = Vector3(pitch if not bottom else 0.0, yaw, roll if not bottom else 0.0)
+	_anim(dt)
+
+func _tick_cling(dt: float) -> void:
+	if face_dir.length() > 0.01:
+		var dy := atan2(-face_dir.x, -face_dir.z)
+		yaw += clampf(wrapf(dy - yaw, -PI, PI), -turn_k * 0.6 * dt, turn_k * 0.6 * dt)
+	pitch = lerpf(pitch, 0.0, clampf(dt * 4.0, 0.0, 1.0))
+	roll = lerpf(roll, 0.0, clampf(dt * 4.0, 0.0, 1.0))
+	rotation = Vector3(pitch, yaw, roll)
+	speed = 0.0
+	_turn = 0.0
+	var off := Vector3.ZERO
+	if skel:
+		var g: Variant = skel.bone_point("tail_grip")
+		if g != null:
+			off = (g as Vector3) * skel.scale
+	var want := cling_at - Basis.from_euler(rotation) * off
+	global_position = global_position.lerp(want, clampf(dt * 10.0, 0.0, 1.0)) if global_position.distance_to(want) < 0.5 else want
 	_anim(dt)
 
 func _clamp(p: Vector3) -> Vector3:
@@ -496,6 +538,20 @@ func _reflex(dt: float) -> void:
 				skel.pose("contract")
 			elif dist > 1.4 and skel.posing() != "":
 				skel.pose("")
+		"seahorse_yellow", "seahorse_lilac", "seahorse_red":
+			# конёк: держась за стебель — кормится (наклон головы и щелчок рылом) и косится глазами,
+			# пловца рядом провожает взглядом; свободный — кормёжка/взгляды вставками, испуг вплотную
+			if clinging:
+				if not skel.busy():
+					if dist < 1.2 and _act_cd <= 0.0:
+						skel.act("grip_look")
+						_act_cd = 4.0
+					elif _rx_t <= 0.0:
+						skel.act("grip_eat" if _rng.randf() < 0.6 else "grip_look")
+						_rx_t = _rng.randf_range(4.0, 10.0)
+			elif dist < 0.6 and _act_cd <= 0.0 and pp != null:
+				startle(pp as Vector3)
+				_act_cd = 3.0
 		_:
 			# рифовые рыбы: испуг в 1–2 м (C-изгиб и рывок)
 			if dist < clampf(L * 8.0, 1.0, 2.0) and _act_cd <= 0.0 and pp != null:

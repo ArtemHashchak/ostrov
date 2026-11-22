@@ -4,7 +4,8 @@ extends Node3D
 ## 2026-11-22): рифовые рыбы (клоун, хирурги, ангелы, спинорог, бабочка-пинцетник, мандаринка,
 ## аулонокара, дискус), барракуда, гигантский групер, мурена, хвостокол, манта, дельфин,
 ## красный кальмар, черепахи (зелёная, бисса), лобстер, креветка-щелкун, звёзды, голотурии,
-## сардина (стая — VAT, см. SeaSchool).
+## сардина (стая — VAT, см. SeaSchool); морской конёк (3 расцветки) — у автора только .blend без
+## скелета и клипов: скелет и клипы процедурные (tools/seahorse/build_seahorse.py), меш — как есть.
 ##
 ## Тело — экземпляр игрового GLB (AnimationPlayer автора). Клип выбирается по состоянию
 ## (стоит / плывёт / быстро / поворот) с плавным переходом; события (испуг, укус, щелчок, чернила,
@@ -24,10 +25,15 @@ const SPEED_MAX := 2.2
 ## Наборы клипов (роль → клип).
 const FISH_CLIPS := {"idle": "idle_hover", "swim": "swim", "fast": "swim_fast", "turn_l": "turn_L", "turn_r": "turn_R",
 	"startle": "startle", "eat": "eat", "death": "death"}
+## Морской конёк: зависает стоя, трепещет спинной плавник, хвост держится за траву/коралл (grip — цикл,
+## пока держится; grip_eat/grip_look — действия, не отпуская), наклон головы к добыче и щелчок рылом (eat),
+## глаза ходят независимо (look).
+const SEAHORSE_CLIPS := {"idle": "idle_hover", "swim": "swim", "fast": "swim_fast", "startle": "startle", "eat": "eat",
+	"look": "look", "grip": "grip", "grip_eat": "grip_eat", "grip_look": "grip_look", "death": "death"}
 const CRUST_CLIPS := {"idle": "idle", "swim": "walk", "fast": "swim", "flip": "tail_flip", "hit": "hit", "death": "death"}
 
 ## Модели: file — игровой GLB, lod1 — облегчённый; len — длина модели автора, м; flip — голова в +Z;
-## ground — донное (низ габарита на нуле); clips — роли; ref — скорость (м/с, масштаб автора),
+## ground — донное (низ габарита на нуле); upright — стоит торчком (конёк: len — рост, по Y); clips — роли; ref — скорость (м/с, масштаб автора),
 ## при которой клип плавания идёт со скоростью 1; loops — зацикленные клипы; zero_root — клипы
 ## без хода корня; extras — вставки в покое [роль, вес]; tris — треугольники игрового GLB.
 const DEFS := {
@@ -104,6 +110,12 @@ const DEFS := {
 	"seacucumber_grey": {"name": "Голотурия серая", "file": "animal_seacucumber_grey.glb", "len": 0.23, "ground": true, "ref": 0.01,
 		"tris": 2228, "clips": {"idle": "idle", "swim": "crawl", "fast": "crawl", "feed": "feed", "contract": "contract", "death": "death"},
 		"loops": ["feed"], "extras": [["feed", 2.0]]},
+	"seahorse_yellow": {"name": "Морской конёк (жёлтый)", "file": "animal_seahorse_yellow.glb", "len": 0.158, "upright": true, "ref": 0.05,
+		"tris": 14932, "clips": SEAHORSE_CLIPS, "loops": ["grip"], "extras": [["eat", 1.5], ["look", 1.0]]},
+	"seahorse_lilac": {"name": "Морской конёк (сиреневый)", "file": "animal_seahorse_lilac.glb", "len": 0.158, "upright": true, "ref": 0.05,
+		"tris": 14932, "clips": SEAHORSE_CLIPS, "loops": ["grip"], "extras": [["eat", 1.5], ["look", 1.0]]},
+	"seahorse_red": {"name": "Морской конёк (красный)", "file": "animal_seahorse_red.glb", "len": 0.158, "upright": true, "ref": 0.05,
+		"tris": 14932, "clips": SEAHORSE_CLIPS, "loops": ["grip"], "extras": [["eat", 1.5], ["look", 1.0]]},
 	"sardine": {"name": "Сардина", "file": "animal_fish_sardine.glb", "len": 0.186, "ref": 0.25, "tris": 550,
 		"clips": {"idle": "swim", "swim": "swim", "fast": "swim_fast", "turn_l": "turn_L", "turn_r": "turn_R", "startle": "startle"}},
 }
@@ -212,6 +224,7 @@ var _rng := RandomNumberGenerator.new()
 var _paused := false
 var _lod_cd := 0.0
 var on_event: Callable          # (имя события, существо) — щелчок креветки, укус, чернила…
+var rest_pose := ""             # роль-поза, в которую существо возвращается после действий (конёк: grip)
 
 ## Существо вида id длиной game_len (м).
 static func create(p_id: String, p_len: float = -1.0, seed_i: int = 0) -> SeaSkel:
@@ -339,6 +352,10 @@ func drive(dt: float, speed: float, cruise: float, turn: float, still: bool) -> 
 		if _oneshot_t > 0.05:
 			return
 		_oneshot = ""
+	if _pose == "" and rest_pose != "" and has_role(rest_pose):
+		_pose = clip(rest_pose)
+		_play(_pose, 0.3)
+		return
 	if _pose != "" and _pose != clip("death") and _pose in HOLDS and speed > maxf(cruise * 0.6, 0.02):
 		_pose = ""                      # тронулся с места — поза снимается
 	if _pose != "":
@@ -419,6 +436,18 @@ func _switch_lod(to: int) -> void:
 		ap.play(_cur, 0.0)
 		ap.seek(t, true)
 		ap.speed_scale = spd
+
+## Точка кости bone (в позе текущего кадра) в координатах существа; null — нет такой кости.
+## Конёк: "tail_grip" — середина завитка хвоста (там проходит стебель, за который он держится).
+func bone_point(bone: String) -> Variant:
+	var inst := lods[lod] if lod < lods.size() else null
+	if inst == null:
+		return null
+	for sk: Skeleton3D in inst.find_children("*", "Skeleton3D", true, false):
+		var b := sk.find_bone(bone)
+		if b >= 0:
+			return _xform_to(self, sk) * sk.get_bone_global_pose(b).origin
+	return null
 
 ## Видимые треугольники текущего LOD (для подписей/F3).
 func tris() -> int:

@@ -772,7 +772,7 @@
     "hold_grass"
    ],
    "speed": 0.05,
-   "model": "",
+   "model": "skel:seahorse_yellow,seahorse_lilac,seahorse_red",
    "stand_in": {
     "proxy": "seahorse",
     "colors": [

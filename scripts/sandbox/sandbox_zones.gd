@@ -135,6 +135,7 @@ func build_zone(id: StringName) -> void:
 			SandboxSeaPack.build_sea(self, root)
 			SandboxSeaSkel.build(self, root, ZONES[&"pack"].c)    # море: модели со скелетом и клипами автора
 			SandboxSeaSkel.build_sea(self, root)
+			SandboxSeahorse.build(self, root, ZONES[&"pack"].c)    # морской конёк: держится хвостом (3 расцветки)
 			SandboxCorals.build(self, root, ZONES[&"pack"].c)      # кораллы по референсу пользователя
 			SandboxCorals.build_sea(self, root)
 		&"style": SandboxStyleShelf.build(self, root, ZONES[&"style"].c)   # полка стиля: все модели пака при одном свете
