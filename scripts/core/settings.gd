@@ -30,6 +30,8 @@ var ui_scale: float = 1.0
 var fullscreen: bool = false
 ## Оверлей производительности (F3).
 var show_perf: bool = false
+## Режим разработчика: консоль ` / Ё в обычных матчах (на полигоне она есть всегда).
+var dev_mode: bool = false
 ## Пресет графики уже подобран автоматически при первом запуске.
 var graphics_detected: bool = false
 ## Дальность видимости, м (ViewDistance): <500 — авто по пресету, >3500 — «Максимум».
@@ -155,6 +157,7 @@ func save_settings() -> void:
 	cfg.set_value("video", "ui_scale", ui_scale)
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("video", "show_perf", show_perf)
+	cfg.set_value("dev", "dev_mode", dev_mode)
 	cfg.set_value("video", "graphics_detected", graphics_detected)
 	cfg.set_value("video", "view_distance", view_distance)
 	cfg.set_value("video", "flora_distance", flora_distance)
@@ -185,6 +188,7 @@ func load_settings() -> void:
 	ui_scale = float(cfg.get_value("video", "ui_scale", ui_scale))
 	fullscreen = bool(cfg.get_value("video", "fullscreen", fullscreen))
 	show_perf = bool(cfg.get_value("video", "show_perf", show_perf))
+	dev_mode = bool(cfg.get_value("dev", "dev_mode", dev_mode))
 	graphics_detected = bool(cfg.get_value("video", "graphics_detected", graphics_detected))
 	view_distance = float(cfg.get_value("video", "view_distance", view_distance))
 	flora_distance = clampf(float(cfg.get_value("video", "flora_distance", flora_distance)), 0.5, 2.0)

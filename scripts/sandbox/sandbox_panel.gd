@@ -231,6 +231,11 @@ func _tools_col() -> Control:
 	sb.text = "Создать животное"
 	sb.pressed.connect(_spawn_animal)
 	col.add_child(sb)
+	var cat_b := Button.new()
+	cat_b.text = "Каталог существ…"
+	cat_b.tooltip_text = "Все виды (звери, птицы, море, растения) — призвать 1/10/100. Консоль: ` / Ё"
+	cat_b.pressed.connect(open_catalog)
+	col.add_child(cat_b)
 	var br := HBoxContainer.new()
 	col.add_child(br)
 	_team_opt = OptionButton.new()
@@ -387,8 +392,20 @@ func open_panel() -> void:
 		_time_lbl.text = "Время: %02d:%02d" % [int(x), int(fmod(x, 1.0) * 60.0)]
 	_map.queue_redraw()
 
+## «Каталог существ» — поверх меню (тот же CreatureSpawner, что и консоль).
+var catalog: SandboxCatalog
+
+func open_catalog() -> void:
+	if catalog == null:
+		catalog = SandboxCatalog.new()
+		catalog.panel = self
+		get_parent().add_child(catalog)
+	catalog.open()
+
 func close_panel() -> void:
 	visible = false
+	if catalog:
+		catalog.visible = false
 	if player:
 		player.set_ui_open(false)
 
