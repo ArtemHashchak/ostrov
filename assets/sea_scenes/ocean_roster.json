@@ -1,5 +1,5 @@
 {
- "_doc": "Океанский состав для сцен моря (scripts/sea/scenes). Каждый вид — данные: размер, стая, среда, глубина, рацион, время активности, поведение. «model» — слот настоящей модели: id вида из пака (assets/<пак>/sea_species*.json) или путь к .glb/.res; пока пусто — работает «дублёр» (stand_in): модель пака с подкраской/масштабом, процедурная заглушка (proxy) или краб фауны. Когда придёт модель — вписать её в «model», код менять не нужно.",
+ "_doc": "Океанский состав для сцен моря (scripts/sea/scenes). Каждый вид — данные: размер, стая, среда, глубина, рацион, время активности, поведение. «model» — слот настоящей модели: «skel:<id>[,<id>…]» — модель со скелетом и клипами автора (SeaSkel, assets/user_pack/sea_skel), «school:<id>» — стая VAT, id вида из пака (assets/<пак>/sea_species*.json) или путь к .glb/.res; пока пусто — работает «дублёр» (stand_in): модель пака с подкраской/масштабом, процедурная заглушка (proxy) или краб фауны. Когда придёт модель — вписать её в «model», код менять не нужно.",
  "species": [
   {
    "id": "clownfish",
@@ -25,7 +25,7 @@
     "territorial"
    ],
    "speed": 0.45,
-   "model": "",
+   "model": "skel:clownfish",
    "stand_in": {
     "pack": "spotted_user",
     "tint": "#ff8a3a"
@@ -33,7 +33,7 @@
   },
   {
    "id": "surgeonfish",
-   "name": "Рыба-хирург",
+   "name": "Рыба-хирург (синий, жёлтый, королевский)",
    "group": "reef_fish",
    "length": 0.26,
    "school": [
@@ -54,7 +54,7 @@
     "school"
    ],
    "speed": 0.8,
-   "model": "",
+   "model": "skel:tang_blue,tang_yellow,tang_regal",
    "stand_in": {
     "pack": "discus_user",
     "tint": "#5b86ff"
@@ -90,7 +90,7 @@
   },
   {
    "id": "butterflyfish",
-   "name": "Рыба-бабочка",
+   "name": "Рыба-бабочка (пинцетник)",
    "group": "reef_fish",
    "length": 0.16,
    "school": [
@@ -111,7 +111,7 @@
     "grazer"
    ],
    "speed": 0.5,
-   "model": "",
+   "model": "skel:copperband",
    "stand_in": {
     "pack": "discus_user",
     "tint": "#ffe25a"
@@ -147,9 +147,9 @@
   },
   {
    "id": "angelfish",
-   "name": "Рыба-ангел",
+   "name": "Рыба-ангел (императорский, сине-жёлтый)",
    "group": "reef_fish",
-   "length": 0.3,
+   "length": 0.36,
    "school": [
     1,
     3
@@ -167,7 +167,7 @@
     "grazer"
    ],
    "speed": 0.45,
-   "model": "",
+   "model": "skel:angel_emperor,angel_blueyellow,angel_emperor_juv",
    "stand_in": {
     "pack": "discus_user",
     "tint": "#9b7bff"
@@ -175,9 +175,9 @@
   },
   {
    "id": "grouper",
-   "name": "Групер",
+   "name": "Гигантский групер",
    "group": "reef_fish",
-   "length": 1.0,
+   "length": 1.7,
    "school": [
     1,
     1
@@ -197,7 +197,7 @@
     "cleaner_client"
    ],
    "speed": 0.5,
-   "model": "",
+   "model": "skel:giant_grouper",
    "stand_in": {
     "pack": "redfish_user",
     "tint": "#9a7a58"
@@ -264,9 +264,9 @@
   },
   {
    "id": "baitfish",
-   "name": "Сардины (мелочь)",
+   "name": "Сардины",
    "group": "pelagic",
-   "length": 0.16,
+   "length": 0.18,
    "school": [
     40,
     90
@@ -286,7 +286,7 @@
     "bait_ball"
    ],
    "speed": 1.6,
-   "model": "",
+   "model": "school:sardine",
    "stand_in": {
     "school_mesh": "redfish_user",
     "tint": "#dbe6ee"
@@ -296,7 +296,7 @@
    "id": "barracuda",
    "name": "Барракуда",
    "group": "pelagic",
-   "length": 1.1,
+   "length": 1.3,
    "school": [
     3,
     9
@@ -315,7 +315,7 @@
     "hunter_line"
    ],
    "speed": 1.4,
-   "model": "",
+   "model": "skel:barracuda",
    "stand_in": {
     "pack": "redfish_user",
     "tint": "#b9c4ca",
@@ -326,7 +326,7 @@
    "id": "moray",
    "name": "Мурена",
    "group": "reef_fish",
-   "length": 1.3,
+   "length": 1.5,
    "school": [
     1,
     1
@@ -344,7 +344,7 @@
     "ambush_crevice"
    ],
    "speed": 0.35,
-   "model": "",
+   "model": "skel:moray",
    "stand_in": {
     "proxy": "eel",
     "colors": [
@@ -442,7 +442,7 @@
    "id": "stingray",
    "name": "Хвостокол",
    "group": "ray",
-   "length": 1.2,
+   "length": 2.0,
    "school": [
     1,
     2
@@ -461,7 +461,7 @@
     "bury_sand"
    ],
    "speed": 0.6,
-   "model": "",
+   "model": "skel:stingray",
    "stand_in": {
     "proxy": "ray",
     "colors": [
@@ -474,7 +474,7 @@
    "id": "manta",
    "name": "Манта",
    "group": "ray",
-   "length": 4.5,
+   "length": 3.4,
    "school": [
     1,
     3
@@ -493,7 +493,7 @@
     "filter_loops"
    ],
    "speed": 0.9,
-   "model": "",
+   "model": "skel:manta",
    "stand_in": {
     "proxy": "ray",
     "colors": [
@@ -504,9 +504,9 @@
   },
   {
    "id": "sea_turtle",
-   "name": "Морская черепаха",
+   "name": "Морская черепаха (зелёная, бисса)",
    "group": "turtle",
-   "length": 1.0,
+   "length": 1.2,
    "school": [
     1,
     1
@@ -526,7 +526,7 @@
     "breathes"
    ],
    "speed": 0.5,
-   "model": "",
+   "model": "skel:turtle_green,turtle_hawksbill",
    "stand_in": {
     "proxy": "turtle",
     "colors": [
@@ -623,7 +623,7 @@
     "creep"
    ],
    "speed": 0.01,
-   "model": "",
+   "model": "skel:starfish_orange,starfish_spiny",
    "stand_in": {
     "proxy": "star",
     "colors": [
@@ -692,9 +692,9 @@
   },
   {
    "id": "lobster",
-   "name": "Лангуст",
+   "name": "Лобстер",
    "group": "crustacean",
-   "length": 0.45,
+   "length": 0.5,
    "school": [
     4,
     12
@@ -713,7 +713,7 @@
     "march"
    ],
    "speed": 0.35,
-   "model": "",
+   "model": "skel:lobster",
    "stand_in": {
     "crab": 0.8
    }
@@ -814,9 +814,9 @@
   },
   {
    "id": "dolphin",
-   "name": "Дельфин",
+   "name": "Дельфин-афалина",
    "group": "mammal",
-   "length": 2.3,
+   "length": 2.6,
    "school": [
     3,
     6
@@ -835,7 +835,7 @@
     "breathes"
    ],
    "speed": 3.0,
-   "model": "",
+   "model": "skel:dolphin",
    "stand_in": {
     "pack": "shark_pack8_user",
     "tint": "#9aa6ae"
@@ -894,6 +894,221 @@
    "model": "fauna:gull",
    "stand_in": {
     "bird": "gull"
+   }
+  },
+  {
+   "id": "pistol_shrimp",
+   "name": "Креветка-щелкун",
+   "group": "crustacean",
+   "length": 0.074,
+   "school": [
+    1,
+    2
+   ],
+   "habitat": [
+    "reef",
+    "crevice",
+    "sand"
+   ],
+   "depth": [
+    0.5,
+    20
+   ],
+   "diet": "мелкие рыбки, черви",
+   "active": "any",
+   "behaviour": [
+    "snap_hunter"
+   ],
+   "speed": 0.05,
+   "model": "skel:shrimp_pistol",
+   "stand_in": {
+    "proxy": "shrimp",
+    "colors": [
+     "#d8b070",
+     "#8a6a40"
+    ]
+   }
+  },
+  {
+   "id": "squid",
+   "name": "Красный кальмар",
+   "group": "cephalopod",
+   "length": 0.6,
+   "school": [
+    3,
+    8
+   ],
+   "habitat": [
+    "open",
+    "reef_edge"
+   ],
+   "depth": [
+    2,
+    60
+   ],
+   "diet": "рыба, креветки",
+   "active": "night",
+   "behaviour": [
+    "school",
+    "ink",
+    "grab"
+   ],
+   "speed": 0.8,
+   "model": "skel:squid_red",
+   "stand_in": {
+    "pack": "squid_user"
+   }
+  },
+  {
+   "id": "sea_cucumber",
+   "name": "Голотурия (морской огурец)",
+   "group": "echinoderm",
+   "length": 0.26,
+   "school": [
+    1,
+    4
+   ],
+   "habitat": [
+    "sand",
+    "seagrass",
+    "reef"
+   ],
+   "depth": [
+    1,
+    30
+   ],
+   "diet": "детрит из песка",
+   "active": "any",
+   "behaviour": [
+    "creep",
+    "sand_feeder"
+   ],
+   "speed": 0.01,
+   "model": "skel:seacucumber_spotted,seacucumber_grey",
+   "stand_in": {
+    "proxy": "star",
+    "colors": [
+     "#6a5a40",
+     "#3a3024"
+    ]
+   }
+  },
+  {
+   "id": "mandarin",
+   "name": "Мандаринка (рыба-мандарин)",
+   "group": "reef_fish",
+   "length": 0.06,
+   "school": [
+    1,
+    2
+   ],
+   "habitat": [
+    "reef",
+    "rubble"
+   ],
+   "depth": [
+    1,
+    18
+   ],
+   "diet": "мелкие рачки",
+   "active": "dusk",
+   "behaviour": [
+    "bottom_hover",
+    "pair"
+   ],
+   "speed": 0.12,
+   "model": "skel:mandarin",
+   "stand_in": {
+    "pack": "spotted_user",
+    "tint": "#3a7aff"
+   }
+  },
+  {
+   "id": "clown_triggerfish",
+   "name": "Пятнистый спинорог",
+   "group": "reef_fish",
+   "length": 0.3,
+   "school": [
+    1,
+    1
+   ],
+   "habitat": [
+    "reef",
+    "reef_edge"
+   ],
+   "depth": [
+    1,
+    40
+   ],
+   "diet": "ежи, крабы, моллюски",
+   "active": "day",
+   "behaviour": [
+    "territorial"
+   ],
+   "speed": 0.5,
+   "model": "skel:triggerfish_clown",
+   "stand_in": {
+    "pack": "discus_user",
+    "tint": "#2a2a40"
+   }
+  },
+  {
+   "id": "aulonocara",
+   "name": "Аулонокара (пресноводная цихлида)",
+   "group": "freshwater_fish",
+   "length": 0.13,
+   "school": [
+    4,
+    8
+   ],
+   "habitat": [
+    "freshwater",
+    "rocks"
+   ],
+   "depth": [
+    0.5,
+    10
+   ],
+   "diet": "беспозвоночные из песка",
+   "active": "day",
+   "behaviour": [
+    "bottom_hover",
+    "school"
+   ],
+   "speed": 0.4,
+   "model": "skel:aulonocara",
+   "stand_in": {
+    "pack": "spotted_user",
+    "tint": "#ff5a3a"
+   }
+  },
+  {
+   "id": "discus",
+   "name": "Дискус (пресноводный)",
+   "group": "freshwater_fish",
+   "length": 0.16,
+   "school": [
+    4,
+    8
+   ],
+   "habitat": [
+    "freshwater",
+    "roots"
+   ],
+   "depth": [
+    0.5,
+    6
+   ],
+   "diet": "черви, рачки",
+   "active": "day",
+   "behaviour": [
+    "school",
+    "roots"
+   ],
+   "speed": 0.3,
+   "model": "skel:discus",
+   "stand_in": {
+    "pack": "discus_user"
    }
   }
  ],

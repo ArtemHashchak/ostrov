@@ -366,6 +366,7 @@ class MorayAmbush extends SeaScene:
 		if moray:
 			moray.hold(lair, Vector3(1, 0, 0))
 			moray.max_speed = 4.0
+			moray.reflex_moves = false
 		for i in 3:
 			var f := critter("surgeonfish", lair + Vector3(3 + i, 0.5, -2 + i))
 			if f:
@@ -377,6 +378,8 @@ class MorayAmbush extends SeaScene:
 		if strike_t >= 0.0:
 			strike_t += dt
 			if strike_t < 0.35 and victim and is_instance_valid(victim):
+				if strike_t == 0.0:
+					moray.act("lunge")      # пасть −48°, глоточные челюсти вперёд (клип автора)
 				moray.goto(victim.global_position, 4.0)
 			elif strike_t < 0.5 and victim and is_instance_valid(victim):
 				SeaSceneFx.scraps(self, victim.global_position)
@@ -384,6 +387,8 @@ class MorayAmbush extends SeaScene:
 				victim.queue_free()
 				victim = null
 			else:
+				if strike_t - dt < 0.5:
+					moray.act("retreat")
 				moray.goto(lair, 1.0)
 				if strike_t > 2.5:
 					strike_t = -1.0
@@ -649,7 +654,9 @@ class RayBury extends SeaScene:
 		ray = critter("stingray", spot + Vector3(0, 0.05, 0))
 		if ray:
 			ray.bottom = true
+			ray.reflex_moves = false
 			ray.hold(spot)
+			ray.pose("bury")             # закапывается (клип автора), потом лежит idle_bottom
 			SeaSceneFx.sand_plume(self, spot, 0.8)
 	func _step(_dt: float) -> void:
 		if ray == null:
@@ -664,6 +671,8 @@ class RayBury extends SeaScene:
 					next_phase()
 					SeaSceneFx.sand_plume(self, spot, 1.0)
 					ray.bottom = false
+					ray.pose("")
+					ray.act("fast")
 					ray.goto(in_water(Vector3(8, 0, 5), 1.0), ray.cruise * 2.0)
 			1:
 				if ray.body:
@@ -774,6 +783,7 @@ class TurtleGrazing extends SeaScene:
 		graze = in_water(Vector3.ZERO, 0.45)
 		tu = critter("sea_turtle", graze + Vector3(-3, 0.5, 0))
 		if tu:
+			tu.reflex_moves = false
 			tu.goto(graze, tu.cruise)
 	func _step(_dt: float) -> void:
 		if tu == null:
@@ -782,6 +792,8 @@ class TurtleGrazing extends SeaScene:
 			0:
 				tu.hold(graze + Vector3(sin(t * 0.2) * 0.4, 0, cos(t * 0.17) * 0.4), Vector3(1, 0, 0))
 				tu.pitch = sin(t * 1.4) * 0.25 - 0.15     # кивает к траве
+				if tu.skel and not tu.skel.busy() and fmod(t, 6.0) < _dt:
+					tu.act("bite")                       # щиплет траву
 				if phase_t > 25.0:
 					next_phase()
 					tu.max_below_surface = 0.05
@@ -790,6 +802,7 @@ class TurtleGrazing extends SeaScene:
 				if tu.global_position.y > water_y() - 0.4:
 					next_phase()
 					SeaSceneFx.bubbles(self, tu.global_position, 8, 0.08)
+					tu.act("breathe")           # голова над водой, вдох (клип автора)
 					if sea and sea.has_method(&"splash"):
 						sea.call(&"splash", Vector3(tu.global_position.x, water_y(), tu.global_position.z), 0.4)
 			2:
@@ -987,6 +1000,8 @@ class MantaLoops extends SeaScene:
 		for i in 2:
 			var m := critter("manta", c + Vector3(i * 6 - 3, 0, 0))
 			if m:
+				m.reflexes = false
+				m.pose("feed")               # раскрытые головные лопасти — кормёжка
 				mantas.append(m)
 	func _step(_dt: float) -> void:
 		for i in mantas.size():
@@ -995,6 +1010,11 @@ class MantaLoops extends SeaScene:
 			var a := t * 0.35 + i * PI
 			var p := c + Vector3(cos(a) * 4.0, sin(a * 2.0) * 1.2, sin(a) * 4.0)
 			m.goto(p, m.cruise * 1.2)
+			# раз за оборот — «бочка» (кувырок назад), между ними снова кормёжка
+			if m.skel and not m.skel.busy() and fmod(a, TAU) < _dt * 0.35:
+				m.act("roll")
+			elif m.skel and not m.skel.busy() and m.skel.posing() == "":
+				m.pose("feed")
 
 ## Дельфины кружат вокруг шара мелочи, прорезают его и выпрыгивают из воды.
 class DolphinsBait extends SeaScene:

@@ -8,7 +8,9 @@ extends RefCounted
 ##   crab       — краб фауны (модель пользователя) в масштабе;
 ##   shark_ai   — настоящая акула моря (Sea.spawn_shark: ИИ, клипы большой белой);
 ##   school_mesh — стая на видеокарте (SeaSchool) из модели пака;
-##   bird       — птицы фауны.
+##   bird       — птицы фауны;
+##   skel       — модель со скелетом и клипами автора (SeaSkel): слот "skel:<id>[,<id>…]" — варианты вида;
+##   school_mesh с "vat" — стая из модели автора с запечёнными в текстуру клипами (слот "school:<id>").
 ## Слот «model»: id вида пака ("octopus_user"), путь к .res/.glb с разметкой вершин
 ## (tools/folder_anim/build_rig_mesh.gd), "shark_ai:white", "fauna:crab" — тогда дублёр не нужен.
 
@@ -58,7 +60,7 @@ static func pack_entry(pack_id: String) -> Dictionary:
 			return d
 	return {}
 
-## Чем вид представлен сейчас: {"kind": "pack"|"proxy"|"crab"|"shark_ai"|"school_mesh"|"bird", ...}.
+## Чем вид представлен сейчас: {"kind": "pack"|"skel"|"proxy"|"crab"|"shark_ai"|"school_mesh"|"bird", ...}.
 ## Сначала — слот «model» (настоящая модель), иначе — дублёр.
 static func visual(sp: Dictionary) -> Dictionary:
 	var model := String(sp.get("model", ""))
@@ -66,6 +68,17 @@ static func visual(sp: Dictionary) -> Dictionary:
 	if model != "":
 		if model.begins_with("shark_ai:"):
 			return {"kind": "shark_ai", "species": model.substr(9)}
+		if model.begins_with("skel:"):
+			var vs: Array = []
+			for v in model.substr(5).split(",", false):
+				if SeaSkel.has(v.strip_edges()):
+					vs.append(v.strip_edges())
+			if not vs.is_empty():
+				return {"kind": "skel", "variants": vs, "len": float(sp.get("length", 0.4)), "real": true}
+		if model.begins_with("school:"):
+			var sid := model.substr(7)
+			if SeaSchool.vat_available(sid):
+				return {"kind": "school_mesh", "entry": {}, "vat": sid, "tint": String(si.get("vat_tint", "#ffffff")), "real": true}
 		if model.begins_with("fauna:"):
 			var f := model.substr(6)
 			if f == "crab":

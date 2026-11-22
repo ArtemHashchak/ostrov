@@ -153,7 +153,7 @@ func school(sp_id: String, count: int, c: Vector3, r: float) -> SeaSchool:
 	var sp := OceanRoster.species(sp_id)
 	var vis := OceanRoster.visual(sp)
 	var entry: Dictionary = vis.get("entry", {})
-	if entry.is_empty():
+	if entry.is_empty() and not vis.has("vat") and String(vis.get("kind", "")) != "skel":
 		entry = OceanRoster.pack_entry("redfish_user")
 	_seed += 1
 	var s := SeaSchool.new()
@@ -161,7 +161,13 @@ func school(sp_id: String, count: int, c: Vector3, r: float) -> SeaSchool:
 	s.radius = r
 	s.speed = float(sp.get("speed", 1.0))
 	var tint := String(vis.get("tint", ((entry.get("params", {}) as Dictionary).get("tint", "#ffffff"))))
-	s.setup(sea, entry, tint, count, float(sp.get("length", 0.16)), c, _seed * 31)
+	if String(vis.get("kind", "")) == "skel":
+		var vs: Array = vis.variants
+		s.setup_skel(sea, String(vs[_seed % vs.size()]), count, float(sp.get("length", 0.16)), c, _seed * 31)
+	elif vis.has("vat"):
+		s.setup_vat(sea, String(vis.vat), tint, count, float(sp.get("length", 0.16)), c, _seed * 31)
+	else:
+		s.setup(sea, entry, tint, count, float(sp.get("length", 0.16)), c, _seed * 31)
 	schools.append(s)
 	return s
 

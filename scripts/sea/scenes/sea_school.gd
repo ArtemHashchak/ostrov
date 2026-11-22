@@ -75,6 +75,127 @@ func setup(p_sea: Object, entry: Dictionary, tint: String, count: int, p_len: fl
 		_air[i] = 0
 	_push(0.0)
 
+# --- стая из модели автора с запечёнными клипами (VAT) -------------------------------
+
+const VAT_DIR := "res://assets/user_pack/sea_skel/"
+## Стаи VAT: id → файлы модели автора (меш с UV2 = номер вершины, текстура смещений, описание клипов).
+const VAT := {"sardine": {"mesh": "animal_fish_sardine_vat.glb", "tex": "animal_fish_sardine_vat_offsets.exr",
+	"info": "animal_fish_sardine_vat_info.json", "len": 0.186}}
+static var _vat_mesh: Dictionary = {}
+
+static func vat_available(id: String) -> bool:
+	return VAT.has(id) and ResourceLoader.exists(VAT_DIR + String(VAT[id]["mesh"])) \
+		and ResourceLoader.exists(VAT_DIR + String(VAT[id]["tex"]))
+
+## Меш стаи VAT с шейдерными материалами по поверхностям (тело, плавники — свои текстуры).
+static func vat_mesh(id: String, tint: String) -> Mesh:
+	var key := id + tint
+	if _vat_mesh.has(key):
+		return _vat_mesh[key]
+	var v: Dictionary = VAT[id]
+	var ps := load(VAT_DIR + String(v["mesh"])) as PackedScene
+	if ps == null:
+		return null
+	var inst := ps.instantiate()
+	var src: Mesh = null
+	for mi: MeshInstance3D in inst.find_children("*", "MeshInstance3D", true, false):
+		src = mi.mesh
+		break
+	inst.free()
+	if src == null:
+		return null
+	var info: Variant = JSON.parse_string(FileAccess.get_file_as_string(VAT_DIR + String(v["info"])))
+	var rows := 83.0
+	var slow := Vector2(0, 21)
+	var fast := Vector2(21, 11)
+	if info is Dictionary:
+		rows = float((info as Dictionary).get("frames_total", rows))
+		for c: Dictionary in (info as Dictionary).get("clips", []):
+			if String(c.get("name", "")) == "swim":
+				slow = Vector2(float(c.row_start), float(c.frames))
+			elif String(c.get("name", "")) == "swim_fast":
+				fast = Vector2(float(c.row_start), float(c.frames))
+	var mesh := src.duplicate() as Mesh
+	var tex := load(VAT_DIR + String(v["tex"])) as Texture2D
+	for si in mesh.get_surface_count():
+		var sm := mesh.surface_get_material(si)
+		var m := ShaderMaterial.new()
+		m.shader = load("res://scripts/sea/scenes/sea_school_vat.gdshader")
+		m.set_shader_parameter(&"vat_tex", tex)
+		m.set_shader_parameter(&"vat_h", rows)
+		m.set_shader_parameter(&"clip_slow", slow)
+		m.set_shader_parameter(&"clip_fast", fast)
+		m.set_shader_parameter(&"tint", Color(tint))
+		if sm is BaseMaterial3D:
+			m.set_shader_parameter(&"albedo_tex", (sm as BaseMaterial3D).albedo_texture)
+		m.set_shader_parameter(&"alpha_cut", 0.35 if si > 0 else 0.02)
+		mesh.surface_set_material(si, m)
+	mesh.set_meta(&"vat", id)
+	_vat_mesh[key] = mesh
+	return mesh
+
+## Стая VAT: как setup, но модель — из модели автора (клипы плавания листаются в шейдере).
+func setup_vat(p_sea: Object, vat_id: String, tint: String, count: int, p_len: float, c: Vector3, seed_i: int) -> void:
+	setup(p_sea, {}, tint, count, p_len, c, seed_i)
+	var mesh := vat_mesh(vat_id, tint)
+	if mesh == null:
+		return
+	_mm.mesh = mesh
+	_mi.material_override = null
+	_len_scale = p_len / float(VAT[vat_id]["len"])
+	_push(0.0)
+
+## Стая из модели со скелетом (SeaSkel): меш автора в позе покоя, волна по телу — в шейдере стаи
+## (как у моделей пака без разметки), у каждой поверхности своя текстура (тело, плавники, глаз).
+static func skel_mesh(skel_id: String) -> Mesh:
+	var key := "skel:" + skel_id
+	if _vat_mesh.has(key):
+		return _vat_mesh[key]
+	var d := SeaSkel.def(skel_id)
+	if d.is_empty():
+		return null
+	var ps := SeaSkel.scene(String(d["file"]), d)
+	if ps == null:
+		return null
+	var inst := ps.instantiate()
+	var src: Mesh = null
+	for mi: MeshInstance3D in inst.find_children("*", "MeshInstance3D", true, false):
+		src = mi.mesh
+		break
+	inst.free()
+	if src == null:
+		return null
+	var mesh := src.duplicate() as Mesh
+	var L := float(d["len"])
+	for si in mesh.get_surface_count():
+		var sm := mesh.surface_get_material(si)
+		var m := ShaderMaterial.new()
+		m.shader = load("res://scripts/sea/scenes/sea_school.gdshader")
+		var tex: Texture2D = (sm as BaseMaterial3D).albedo_texture if sm is BaseMaterial3D else null
+		m.set_shader_parameter(&"use_tex", tex != null)
+		if tex:
+			m.set_shader_parameter(&"albedo_tex", tex)
+		elif sm is BaseMaterial3D:
+			m.set_shader_parameter(&"base_color", (sm as BaseMaterial3D).albedo_color)
+		m.set_shader_parameter(&"tint", Color.WHITE)
+		m.set_shader_parameter(&"body_len", L)
+		m.set_shader_parameter(&"has_rig", false)
+		m.set_shader_parameter(&"flash", 0.15)
+		m.set_shader_parameter(&"alpha_cut", 0.35 if si > 0 else 0.02)
+		mesh.surface_set_material(si, m)
+	_vat_mesh[key] = mesh
+	return mesh
+
+func setup_skel(p_sea: Object, skel_id: String, count: int, p_len: float, c: Vector3, seed_i: int) -> void:
+	setup(p_sea, {}, "#ffffff", count, p_len, c, seed_i)
+	var mesh := skel_mesh(skel_id)
+	if mesh == null:
+		return
+	_mm.mesh = mesh
+	_mi.material_override = null
+	_len_scale = p_len / float(SeaSkel.def(skel_id)["len"])
+	_push(0.0)
+
 static func _material(entry: Dictionary, mesh: Mesh, tint: String, src_len: float) -> ShaderMaterial:
 	var key := String(entry.get("id", "none")) + tint
 	if _mats.has(key):
@@ -96,6 +217,7 @@ static func _material(entry: Dictionary, mesh: Mesh, tint: String, src_len: floa
 
 static func clear_cache() -> void:
 	_mats.clear()
+	_vat_mesh.clear()
 
 func _water() -> float:
 	return float(sea.call(&"water_y")) if sea else 0.0

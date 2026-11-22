@@ -1,7 +1,7 @@
 class_name SeaCritter
 extends Node3D
-## Существо сцены моря: тело (модель пака-«кукла» UserSeaActor или силуэт-дублёр SeaProxyMeshes)
-## и рулёжка, которой командует сцена (SeaScene). Анимация тела — от скорости и поворота.
+## Существо сцены моря: тело (модель со скелетом и клипами автора SeaSkel, модель пака-«кукла»
+## UserSeaActor или силуэт-дублёр SeaProxyMeshes) и рулёжка, которой командует сцена (SeaScene). Анимация тела — от скорости и поворота.
 ## Команды: goto / hold / orbit / flee / follow / wander / drift / crawl_to / surface_at;
 ## startle — C-старт; ballistic — прыжок из воды по дуге.
 ## Тик даёт сцена (не _process): дешёвые сцены тикают реже вдали.
@@ -31,6 +31,7 @@ var wander_c := Vector3.ZERO
 var wander_r := 3.0
 var min_above_floor := 0.25
 var max_below_surface := 0.3     # не выше воды−… (кроме прыжка)
+var floor_clear := -1.0          # зазор центра над дном (у моделей со скелетом — полвысоты тела)
 var speed := 0.0
 var vel := Vector3.ZERO
 var yaw := 0.0
@@ -39,8 +40,18 @@ var roll := 0.0
 var hidden_k := 0.0              # 0 виден … 1 скрыт (спрятался в коралл — уменьшается)
 var octo := {"crawl": 0.0, "threat": 0.0, "grab": 0.0, "jet": 0.0, "flatten": 0.0, "camo": 0.0}
 
-var body: Node3D = null          # UserSeaActor или MeshInstance3D
+var body: Node3D = null          # SeaSkel, UserSeaActor или MeshInstance3D
 var actor: UserSeaActor = null
+var skel: SeaSkel = null
+## Рефлексы модели со скелетом (реакции на игрока, вдохи, вставки) — поверх команд сцены.
+var reflexes := true
+## Рефлексы, меняющие маршрут (скат удирает, черепаха всплывает дышать). Сцены моря ведут
+## существ сами — у них выключено (SeaScene.critter), остаются клипы-реакции.
+var reflex_moves := true
+var _rx_cd := 0.0
+var _rx_t := 0.0                 # таймер вида (вдох черепахи, кормёжка манты, бросок групера…)
+var _rx_state := ""
+var _act_cd := 0.0
 var proxy_mi: MeshInstance3D = null
 var proxy_kind := ""
 var _turn := 0.0
@@ -58,7 +69,7 @@ static var _proxy_mats: Dictionary = {}
 static func make(p_sp: Dictionary, p_sea: Object, pos: Vector3, seed_i: int) -> SeaCritter:
 	var vis := OceanRoster.visual(p_sp)
 	var k := String(vis.get("kind", ""))
-	if k != "pack" and k != "proxy":
+	if k != "pack" and k != "proxy" and k != "skel":
 		return null
 	var c := SeaCritter.new()
 	c._setup(p_sp, vis, p_sea, pos, seed_i)
@@ -80,7 +91,27 @@ func _setup(p_sp: Dictionary, vis: Dictionary, p_sea: Object, pos: Vector3, seed
 	yaw = _rng.randf() * TAU
 	_phase = _rng.randf() * TAU
 	var g := String(sp.get("group", ""))
-	if String(vis.kind) == "pack":
+	if String(vis.kind) == "skel":
+		var vs: Array = vis.variants
+		var vi := SeaSkel.next_variant if SeaSkel.next_variant >= 0 and SeaSkel.next_variant < vs.size() else _rng.randi() % vs.size()
+		SeaSkel.next_variant = -1
+		var vid := String(vs[vi])
+		var dd := SeaSkel.def(vid)
+		# длина вида: у вариантов своя (молодь ангела, жёлтый хирург) — по отношению к основному
+		var L := float(vis.get("len", length)) * float(dd["len"]) / float(SeaSkel.def(String(vs[0]))["len"])
+		L *= _rng.randf_range(0.9, 1.1)
+		length = L
+		skel = SeaSkel.create(vid, L, seed_i)
+		add_child(skel)
+		body = skel
+		skel.on_event = _on_skel_event
+		bottom = bool(dd.get("ground", false))
+		_scale = L / float(dd["len"])
+		floor_clear = SeaSkel.bounds(vid).size.y * 0.5 * _scale
+		if vid == "moray":
+			min_above_floor = 0.0
+		_rx_t = _rng.randf_range(20.0, 60.0)
+	elif String(vis.kind) == "pack":
 		var e: Dictionary = vis.entry
 		actor = UserSeaActor.new()
 		actor.setup(e, sea, Vector3.ZERO, seed_i)
@@ -189,6 +220,8 @@ func drift(v: Vector3) -> void:
 func leap(v: Vector3) -> void:
 	mode = M.BALLISTIC
 	vel = v
+	if skel:
+		skel.act("jump")
 
 ## C-старт: рывок с изгибом тела прочь от точки.
 func startle(from: Vector3) -> void:
@@ -303,14 +336,20 @@ func _clamp(p: Vector3) -> Vector3:
 	if bottom:
 		p.y = lerpf(p.y, fl + 0.01, 0.35)
 	else:
-		p.y = clampf(p.y, fl + min_above_floor + length * 0.15, wy - max_below_surface)
+		p.y = clampf(p.y, fl + min_above_floor + (floor_clear if floor_clear >= 0.0 else length * 0.15), wy - max_below_surface)
 	return p
 
 func _anim(dt: float) -> void:
 	var st := 0.0
 	if _startle_t > 0.0:
 		st = sin((0.35 - _startle_t) / 0.35 * PI) * _startle
-	if actor:
+	if skel:
+		if st != 0.0 and not skel.busy() and skel.has_role("startle"):
+			skel.act("startle")
+		skel.drive(dt, speed, cruise, _turn, mode == M.HOLD and speed < cruise * 0.3)
+		if reflexes:
+			_reflex(dt)
+	elif actor:
 		if actor.kind == "octopus":
 			# ползёт глазами вперёд; в реактивном рывке — мантией вперёд
 			actor.rotation.y = lerp_angle(actor.rotation.y, 0.0 if float(octo.jet) > 0.5 else PI, clampf(dt * 5.0, 0.0, 1.0))
@@ -332,3 +371,142 @@ func _anim(dt: float) -> void:
 	# спрятался — уменьшается (уходит в коралл/нору)
 	if body:
 		body.visible = hidden_k < 0.98
+
+# --- модели со скелетом: команды и рефлексы ----------------------------------------
+
+## Разовое действие модели (роль клипа SeaSkel: bite, gulp, snap, ink, roll, breathe, jump, flip…).
+func act(role: String) -> float:
+	return skel.act(role) if skel else 0.0
+
+## Поза (bury, threat, curl, death; "" — снять).
+func pose(role: String) -> void:
+	if skel:
+		skel.pose(role)
+
+func _player_pos() -> Variant:
+	var pl := get_tree().get_first_node_in_group(&"player") as Node3D if is_inside_tree() else null
+	if pl == null:
+		var cam := get_viewport().get_camera_3d() if get_viewport() else null
+		return cam.global_position if cam else null
+	return pl.global_position
+
+## Реакции по заданиям автора модели. Вызывается из _anim (тик сцены/менеджера).
+func _reflex(dt: float) -> void:
+	_act_cd = maxf(_act_cd - dt, 0.0)
+	_rx_t -= dt
+	_rx_cd -= dt
+	if _rx_cd > 0.0:
+		return
+	_rx_cd = 0.25
+	var pp: Variant = _player_pos()
+	var dist := INF
+	if pp != null:
+		dist = global_position.distance_to(pp as Vector3)
+	var L := length
+	var free := mode == M.WANDER or mode == M.HOLD or mode == M.DRIFT
+	match skel.id:
+		"moray":
+			# в норе: угроза (пасть, глоточные челюсти) при приближении, бросок вплотную, отход в нору
+			if dist < L * 0.8 and _act_cd <= 0.0:
+				skel.act("lunge")
+				_act_cd = 3.0
+			elif dist < L * 2.0 and speed < cruise * 0.3:
+				if skel.posing() == "" and not skel.busy():
+					skel.pose("threat")
+			elif skel.posing() != "":
+				skel.pose("")
+		"stingray":
+			if dist < 2.2 and skel.posing() != "" and reflex_moves:
+				skel.pose("")
+				bottom = false
+				flee(pp as Vector3, 3.0)
+				_act_cd = 4.0
+			elif dist < 1.0 and _act_cd <= 0.0:
+				skel.act("strike")
+				_act_cd = 3.0
+			elif reflex_moves and free and speed < cruise * 0.15 and dist > 4.0 and skel.posing() == "" \
+					and global_position.y - floor_y(global_position.x, global_position.z) < 0.6:
+				bottom = true
+				skel.pose("bury")
+			elif mode != M.HOLD and skel.posing() == "" and bottom:
+				bottom = false
+		"giant_grouper":
+			if _rx_t <= 0.0:
+				_rx_t = _rng.randf_range(15.0, 40.0)
+				skel.act("gulp")
+		"barracuda":
+			if dist < 1.2 and _act_cd <= 0.0:
+				skel.act("bite")
+				_act_cd = 2.5
+		"manta":
+			if _rx_state == "feed":
+				if _rx_t <= 0.0:
+					_rx_state = ""
+					skel.pose("")
+					if _rng.randf() < 0.6:
+						skel.act("roll")
+					_rx_t = _rng.randf_range(20.0, 45.0)
+			elif _rx_t <= 0.0 and free:
+				_rx_state = "feed"
+				_rx_t = _rng.randf_range(6.0, 12.0)
+				skel.pose("feed")
+		"dolphin":
+			if global_position.y > water_y() - L * 0.6 and _act_cd <= 0.0:
+				skel.act("breathe")
+				_act_cd = _rng.randf_range(8.0, 20.0)
+		"squid_red":
+			if dist < 2.0 and _act_cd <= 0.0:
+				skel.act("ink")
+				startle(pp as Vector3)
+				_act_cd = 6.0
+		"turtle_green", "turtle_hawksbill":
+			# вдох у поверхности каждые 30–90 с
+			if _rx_state == "up":
+				if global_position.y > water_y() - max_below_surface - 0.25 or _rx_t < -25.0:
+					_rx_state = ""
+					skel.act("breathe")
+					_rx_t = _rng.randf_range(30.0, 90.0)
+					wander(wander_c, wander_r)
+			elif _rx_t <= 0.0 and free and reflex_moves:
+				_rx_state = "up"
+				var p := global_position
+				goto(Vector3(p.x, water_y(), p.z) + forward() * 2.0, cruise)
+		"lobster":
+			if dist < 0.9 and _act_cd <= 0.0:
+				skel.pose("")
+				skel.act("flip")
+				global_position -= forward() * 0.2 * _scale
+				_act_cd = 3.0
+			elif dist < 2.0 and skel.posing() == "" and not skel.busy():
+				skel.pose("threat")
+			elif dist > 2.6 and skel.posing() != "":
+				skel.pose("")
+		"shrimp_pistol":
+			if dist < 0.5 and _act_cd <= 0.0:
+				skel.act("flip")
+				global_position -= forward() * 0.025 * _scale
+				_act_cd = 2.0
+		"starfish_orange", "starfish_spiny":
+			if dist < 0.6 and skel.posing() == "":
+				skel.pose("curl")
+			elif dist > 1.2 and skel.posing() != "":
+				skel.pose("")
+		"seacucumber_spotted", "seacucumber_grey":
+			if dist < 0.7 and skel.posing() == "":
+				skel.pose("contract")
+			elif dist > 1.4 and skel.posing() != "":
+				skel.pose("")
+		_:
+			# рифовые рыбы: испуг в 1–2 м (C-изгиб и рывок)
+			if dist < clampf(L * 8.0, 1.0, 2.0) and _act_cd <= 0.0 and pp != null:
+				startle(pp as Vector3)
+				_act_cd = 3.0
+
+## События клипов: щелчок креветки — пузырь кавитации со вспышкой; чернила кальмара — облако.
+func _on_skel_event(ev: String, s: SeaSkel) -> void:
+	var p := s.global_position + forward() * length * 0.5 if s.is_inside_tree() else global_position
+	match ev:
+		"snap":
+			SeaSkelFx.cavitation(self, p, 0.23)   # кадр 7 из 30 к/с
+		"ink":
+			SeaSkelFx.ink(self, s.global_position - forward() * length * 0.3, length)
