@@ -23,7 +23,9 @@
 2. **Генератор (C) → полигон (E):** `IslandGenV5.build(recipe_id, seed, origin) -> Node3D` и `ArchipelagoV5.layout(seed) -> Array[island descriptors]`, стриминг `IslandStreamer.ensure(center, radius)`. Пока C не готов — E использует текущий IslandGen по тому же интерфейсу-обёртке.
 3. **АК (B → F):** GLB с узлами `BoltCarrier` (с рукояткой взведения внутри), `Trigger`, `Selector`, `Magazine`, маркеры `muzzle`, `ejection_port`, `ads_anchor`. Пока модели нет — F работает на процедурном «rifle».
 4. **Ветер (D):** единственный источник — world.wind_dir/wind_speed/gust + глобальные uniform; остальные только читают.
-5. **Материалы (F) → D/C:** `Materials.of(node_or_id)`; поверхности под ногой — `Surfaces.at(pos)`; следы D спрашивают тип поверхности у F, пока API нет — свой текущий способ.
+5. **Материалы (F) → D/C (готово, 65be91d):** `Materials.of(id)`, `Materials.item(item_id)`, `Materials.of_node(node)`; поверхности — автозагрузка `Surfaces`: `at(pos)`, `track_at(pos)` (глубина следа), `loud_at(pos)`, `speed_mul_at(pos)`. Таблицы — assets/data/*.json (DataTables).
+6. **Мягкие растения (C → F):** Area3D или тело в группе `&"soft_plant"`, meta `speed_mul` (по умолчанию 0,6) — игрок замедляется сам (сенсор BrushSensor). Твёрдые — обычные коллизии.
+7. **Восприятие (F):** автозагрузка `Perception` — `emit(kind,pos,radius,strength,source)`, `shot`, `step`, `blood`, `light`, `smoke`; подписка — группа `&"perceiver"` + `on_stimulus(st)` или сигнал `stimulus`. Шина шоу — `ShowBus.emit_event(actor, kind, tags, data)`.
 
 ## Правила работы (обязательно)
 - Общее рабочее дерево /home/claude/ostrova. **Коммиты только с pathspec** (`git commit -m … -- <свои пути>`), `git pull --rebase --autostash` перед push. Никогда `git add -A`/`commit -a`. Атрибуция — как в напоминании системы.
