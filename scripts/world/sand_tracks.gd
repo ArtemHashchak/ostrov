@@ -26,7 +26,7 @@ const RAIN_PER_S := 1.0 / 120.0
 const WASH_PER_S := 1.0 / 3.0       # под накатом — за 3 с
 const REDRAW_HZ := 8.0
 
-enum { FOOT, HOOF, CLAW, HAND, FLIPPER, DRAG }
+enum { FOOT, HOOF, CLAW, HAND, FLIPPER, DRAG, FOOT_TOE, FOOT_HEEL, KNEE }
 
 ## Походки: шаг (м), штамп, размер штампа (м, сторона квадрата), смещение лап вбок, база (перед—зад),
 ## разворот пальцев наружу (рад), сила вдавливания, борозда хвоста/брюха (ширина м, 0 — нет).
@@ -39,6 +39,9 @@ const GAITS := {
 	&"turtle":  {"stride": 0.32, "type": FLIPPER, "size": 0.36,  "lat": 0.32, "base": 0.0,  "splay": 0.0, "str": 0.85, "drag": 0.5},
 	&"monkey":  {"stride": 0.36, "type": HAND,    "size": 0.15,  "lat": 0.1,  "base": 0.35, "splay": 0.2, "str": 0.6, "drag": 0.0},
 }
+
+## Приземление на песок: точка (y не задан) и сила — для частиц брызг песка.
+signal land_spray(pos: Vector3, strength: float)
 
 var enabled := true
 var origin := Vector2.ZERO          # мир (x, z) угла окна
@@ -77,6 +80,10 @@ func clear() -> void:
 	prints.clear()
 	_walkers.clear()
 	_dirty = true
+
+## Скорость (м/с), с которой шаг считается бегом: следы глубже и реже.
+const RUN_FROM := 4.2
+const RUN_STRIDE := 1.35            # м между шагами на бегу (шаг ~0.72 при ходьбе)
 
 ## Отпечаток ступни человека: pos — мир, dir — направление шага (x, z), side 0 — левая, 1 — правая.
 func stamp_foot(pos: Vector3, dir: Vector2, side: int, strength := 1.0, scale := 1.0) -> void:
@@ -147,7 +154,13 @@ func _recenter(force: bool) -> void:
 	var o := c - Vector2(SIZE, SIZE) * 0.5
 	origin = Vector2(floorf(o.x / px) * px, floorf(o.y / px) * px)
 	_set_rect(true)
-	_dirty = true
+	# Перерисовать карту В ЭТОМ ЖЕ кадре, что и новый rect: иначе до 1/8 с шейдер видит старую
+	# картинку в новом окне — следы «прыгают» вперёд на величину сдвига (баг «тропинка следов
+	# впереди бегущего игрока» каждые ~1–3 с на бегу).
+	_dirty = false
+	_redraw_t = 0.0
+	_canvas.queue_redraw()
+	_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
 	var keep: Array = []
 	for p: Array in prints:
 		if absf(float(p[0]) - c.x) < SIZE and absf(float(p[1]) - c.y) < SIZE:
@@ -196,12 +209,60 @@ func _track_walkers() -> void:
 			var gr = n.get("growth")
 			if gr != null:
 				sc = lerpf(0.5, 1.0, clampf((float(gr) - 0.45) / 0.55, 0.0, 1.0))
-		if d.length() < float(g.stride) * sc:
-			continue
-		var air := g3.y - float(_world.height_at(g3.x, g3.z))
 		var swimming = n.get("swimming")
-		if air < 1.4 and swimming != true and _is_sand(p):
-			_step(g, w, p, d, sc)
+		var on_sand: bool = swimming != true and _is_sand(p)
+		# в воздухе следов нет; отталкивание и приземление — отдельные пары отпечатков
+		var grounded := true
+		if n.has_method(&"is_on_floor"):
+			grounded = bool(n.call(&"is_on_floor"))
+		else:
+			grounded = g3.y - float(_world.height_at(g3.x, g3.z)) < 1.4   # центр корпуса ~0.9 м над землёй
+		var was: bool = w.get("ground", true)
+		var vel := Vector3.ZERO
+		var vv = n.get("velocity")
+		if vv is Vector3:
+			vel = vv
+		var hv := Vector2(vel.x, vel.z)
+		if was and not grounded:
+			w["air_t"] = 0.0
+			w["air_from"] = p
+			if on_sand and not animal:
+				_jump_pair(p, hv if hv.length() > 0.3 else d, FOOT_TOE, 1.0)
+		elif grounded and not was:
+			if on_sand and not animal:
+				var air_t := float(w.get("air_t", 0.0))
+				var st := clampf(0.75 + air_t * 0.6, 0.75, 1.0)
+				_jump_pair(p, hv if hv.length() > 0.3 else d, FOOT_HEEL, st)
+				if air_t > 0.9:       # тяжёлое приземление: рука упирается в песок
+					_add(p + _right(hv if hv.length() > 0.3 else d) * 0.32 + (hv.normalized() if hv.length() > 0.3 else d.normalized()) * 0.35,
+						hv if hv.length() > 0.3 else d, 1, 0.8, 0.2, HAND, 0.0)
+			w.last = p
+		w["ground"] = grounded
+		if not grounded:
+			w["air_t"] = float(w.get("air_t", 0.0)) + get_process_delta_time()
+			w.last = p
+			continue
+		# присел на месте — колено (одно, на стороне последнего шага), один раз за присед
+		var cr = n.get("crouching")
+		if cr == true and not w.get("crouch", false) and on_sand and not animal and hv.length() < 0.6:
+			var fw := Vector2(0, -1).rotated(-float((n as Node3D).global_rotation.y))
+			_add(p - fw * 0.12 + _right(fw) * (0.12 if int(w.side) == 1 else -0.12), fw, int(w.side), 0.85, 0.16, KNEE, 0.24)
+		w["crouch"] = cr == true
+		# бег: шаг длиннее (следы реже), вдавливание глубже, носок сильнее
+		var stride := float(g.stride) * sc
+		var run := 0.0
+		if not animal:
+			run = clampf((hv.length() - RUN_FROM) / 1.6, 0.0, 1.0)
+			stride = lerpf(stride, RUN_STRIDE, run)
+		if d.length() < stride:
+			continue
+		if on_sand:
+			if run > 0.5:
+				var dir2 := d.normalized()
+				var sgn2 := 1.0 if int(w.side) == 1 else -1.0
+				_add(p + _right(dir2) * float(g.lat) * sgn2 * 0.8, dir2, int(w.side), 1.0, float(g.size) * sc, FOOT_TOE, 0.0)
+			else:
+				_step(g, w, p, d, sc)
 		w.side = 1 - int(w.side)
 		w.last = p
 	for id in _walkers.keys():
@@ -240,6 +301,58 @@ func _step(g: Dictionary, w: Dictionary, p: Vector2, d: Vector2, sc: float) -> v
 		var back := base * 0.9 if t != FLIPPER else 0.0
 		var mid := p - d * 0.5 - dir * back + right * sway
 		_add(mid, dir, 0, st * 0.55, dw, DRAG, d.length() * 1.7 + dw)
+
+func _right(dir: Vector2) -> Vector2:
+	var d := dir.normalized() if dir.length_squared() > 1e-8 else Vector2(0, -1)
+	return Vector2(-d.y, d.x)
+
+## Пара ступней рядом (отталкивание — носки глубже; приземление — пятки глубже + выброс песка).
+func _jump_pair(p: Vector2, dir: Vector2, type: int, strength: float) -> void:
+	var d := dir.normalized() if dir.length_squared() > 1e-8 else Vector2(0, -1)
+	var r := _right(d)
+	for side in [0, 1]:
+		var k := 1.0 if side == 1 else -1.0
+		_add(p + r * 0.12 * k, d.rotated(0.08 * k), side, strength, 0.375, type, 0.0)
+	if type == FOOT_HEEL:
+		land_spray.emit(Vector3(p.x, 0.0, p.y), strength)
+		_spray(p, d, strength)
+
+## Выброс песка из-под ног при приземлении: короткий веер песчинок вперёд-вбок (CPU, ~30 частиц).
+func _spray(p: Vector2, dir: Vector2, strength: float) -> void:
+	if _world == null:
+		return
+	var y := float(_world.height_at(p.x, p.y))
+	var e := CPUParticles3D.new()
+	e.one_shot = true
+	e.explosiveness = 0.92
+	e.amount = int(18 + 18 * strength)
+	e.lifetime = 0.7
+	e.local_coords = false
+	e.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	e.emission_sphere_radius = 0.12
+	e.direction = Vector3(dir.x, 1.4, dir.y).normalized()
+	e.spread = 55.0
+	e.initial_velocity_min = 0.6 * strength
+	e.initial_velocity_max = 1.9 * strength
+	e.gravity = Vector3(0, -9.8, 0)
+	e.scale_amount_min = 0.006
+	e.scale_amount_max = 0.016
+	var m := QuadMesh.new()
+	m.size = Vector2.ONE
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	mat.albedo_color = Color(0.78, 0.7, 0.55)
+	m.material = mat
+	e.mesh = m
+	var c := Gradient.new()
+	c.set_color(0, Color(1, 1, 1, 1))
+	c.set_color(1, Color(1, 1, 1, 0))
+	e.color_ramp = c
+	_world.add_child(e)
+	e.global_position = Vector3(p.x, y + 0.05, p.y)
+	e.emitting = true
+	e.finished.connect(e.queue_free)
 
 func _add(p: Vector2, dir: Vector2, side: int, strength: float, size: float, type: int, length: float) -> void:
 	if dir.length_squared() < 1e-6:
@@ -339,6 +452,21 @@ func _shape(t: int, u: float, v: float) -> float:
 			var d := _capsule(u, v, Vector2(0.45, -0.3), Vector2(-0.4, 0.35), 0.16) * (0.55 + 0.45 * clampf(u * 0.8 + 0.5, 0.0, 1.0))
 			d = maxf(d, _capsule(u, v, Vector2(0.3, -0.05), Vector2(-0.55, 0.55), 0.08) * 0.5)
 			return d
+		FOOT_TOE:
+			# толчок: носок и пальцы глубоко, пятка едва касается, песок выброшен назад
+			var d := _shape(FOOT, u, v)
+			var k := smoothstep(-0.7, 0.5, u)
+			return d * lerpf(0.25, 1.15, k)
+		FOOT_HEEL:
+			# приземление: пятка ударяет глубоко, пальцы слабее
+			var d := _shape(FOOT, u, v)
+			var k := smoothstep(0.6, -0.5, u)
+			return d * lerpf(0.4, 1.2, k)
+		KNEE:
+			# колено + голень: овальная вмятина, след голени назад
+			var d := _ell(u, v, 0.45, 0.0, 0.38, 0.62)
+			d = maxf(d, _capsule(u, v, Vector2(0.3, 0.0), Vector2(-0.85, 0.0), 0.38) * 0.55)
+			return d
 		DRAG:
 			# борозда: округлый профиль поперек, по длине почти ровная
 			var a := clampf(1.0 - absf(v) / 0.7, 0.0, 1.0)
@@ -358,7 +486,7 @@ func _capsule(u: float, v: float, a: Vector2, b: Vector2, r: float) -> float:
 
 func _build_stamps() -> void:
 	var n := STAMP_RES
-	for t in [FOOT, HOOF, CLAW, HAND, FLIPPER, DRAG]:
+	for t in [FOOT, HOOF, CLAW, HAND, FLIPPER, DRAG, FOOT_TOE, FOOT_HEEL, KNEE]:
 		var dimg := Image.create(n, n, false, Image.FORMAT_RF)
 		for y in n:
 			for x in n:
