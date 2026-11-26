@@ -104,15 +104,15 @@ func _tab_sections() -> void:
 		_btn(v, "← В музей полигона", func() -> void: PolygonIslandStage.back_to_museum(get_tree()), 300)
 		return
 	_head(v, "Быстрое перемещение по музею")
-	var g := _grid(v)
+	var g := _grid(v, 2)
 	_btn(g, "Центр", func() -> void:
 		(poly as Polygon).goto_hub()
-		close())
+		close(), 360.0)
 	for s: Dictionary in PolygonLayout.get_layout().sections:
 		var id: StringName = s.id
 		_btn(g, "%s (%d)" % [s.name, int(s.count)], func() -> void:
 			(poly as Polygon).goto_section(id)
-			close())
+			close(), 360.0)
 
 func _tab_islands() -> void:
 	var v := _page("Острова")
