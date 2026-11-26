@@ -762,6 +762,150 @@
    },
    "tile_m": 2.5,
    "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_rock_002",
+   "name": "Камень 002",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "reef_crest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Rocks/Камни StoneNNN (текстуры)",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "rock",
+    "cliff"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/rock_002/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/rock_002/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/rock_002/rough.jpg",
+    "ao": "res://assets/user_pack/ground/rock_002/ao.jpg",
+    "height": "res://assets/user_pack/ground/rock_002/height.jpg"
+   },
+   "tile_m": 2.5,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_rock_004",
+   "name": "Камень 004",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "reef_crest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Rocks/Камни StoneNNN (текстуры)",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "rock",
+    "cliff"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/rock_004/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/rock_004/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/rock_004/rough.jpg",
+    "ao": "res://assets/user_pack/ground/rock_004/ao.jpg",
+    "height": "res://assets/user_pack/ground/rock_004/height.jpg"
+   },
+   "tile_m": 2.5,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_rock_009",
+   "name": "Камень 009",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "reef_crest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Rocks/Камни StoneNNN (текстуры)",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "rock",
+    "cliff"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/rock_009/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/rock_009/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/rock_009/rough.jpg",
+    "ao": "res://assets/user_pack/ground/rock_009/ao.jpg",
+    "height": "res://assets/user_pack/ground/rock_009/height.jpg"
+   },
+   "tile_m": 2.5,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_rock_010",
+   "name": "Камень 010",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "reef_crest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Rocks/Камни StoneNNN (текстуры)",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "rock",
+    "cliff"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/rock_010/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/rock_010/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/rock_010/rough.jpg",
+    "ao": "res://assets/user_pack/ground/rock_010/ao.jpg",
+    "height": "res://assets/user_pack/ground/rock_010/height.jpg"
+   },
+   "tile_m": 2.5,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
   }
  ]
 }
