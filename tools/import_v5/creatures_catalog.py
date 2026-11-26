@@ -30,7 +30,8 @@ creatures = [
     e("bat_user", "Летучая мышь", "creature", U + "animals/bat/bat_user.glb", (0.35, 0.05, 0.15), ["cave", "jungle"], "Звери/Летучая мышь (бурая)", no_spawn=True, spawn_id="bat"),
     e("parrot_pionus_bluehead", "Синеголовый попугай", "bird", U + "animals/parrots/parrot_pionus_bluehead.glb", (0.27, 0.27, 0.1), ["jungle", "lowland_forest"], "Птицы/Попугай синеголовый", climate=False, no_spawn=True, spawn_id="parrot"),
     e("parrot_kea", "Попугай кеа", "bird", U + "animals/parrots/parrot_kea.glb", (0.37, 0.3, 0.12), ["rocks", "forest_edge"], "Птицы/Попугай кеа", climate=False, no_spawn=True, spawn_id="parrot"),
-    e("parrot_macaw_red", "Красный ара", "bird", U + "animals/parrots/parrot_macaw_red.glb", (0.69, 0.45, 0.15), ["jungle", "lowland_forest"], "Птицы/Попугай ара", climate=False, no_spawn=True, spawn_id="parrot", tags=["v5"]),
+    e("parrot_macaw_red", "Красный ара", "bird", U + "animals/parrots/parrot_macaw_red.glb", (0.69, 0.45, 0.15), ["jungle", "lowland_forest"], "Птицы/Попугай ара", climate=False, no_spawn=True, tags=["v5", "paused"],
+      note="автор отложил модель (папка «v2, отложено»): в клипах ломаются перья крыльев — в игру не включён"),
     # новые v5: статичные модели (клипов у автора нет) — призываются консолью, общий хитбокс
     e("frog_tree", "Лягушка", "creature", U + "animals/frog/animal_frog.glb", (0.08, 0.06, 0.1), ["jungle", "mangrove"], "Ящерицы/Лягушка (готовая модель FBX)", scale=0.2, hp=4.0, tags=["v5", "static"]),
     e("butterfly", "Бабочка", "insect", U + "animals/insects/insect_butterfly.glb", (0.1, 0.03, 0.05), ["jungle", "forest_edge", "palm_belt"], "Насекомые/Бабочка (готовая модель)", scale=0.013, height=0.8, hp=1.0, tags=["v5", "static"]),

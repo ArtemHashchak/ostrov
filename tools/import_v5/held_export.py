@@ -18,6 +18,10 @@ else:
 for o in list(bpy.data.objects):
     if o.type in ("LIGHT", "CAMERA") or any(d.lower() in o.name.lower() for d in job.get("drop", [])):
         bpy.data.objects.remove(o, do_unlink=True)
+kn = job.get("keep")   # оставить только эти объекты (точные имена)
+if kn:
+    for o in list(bpy.data.objects):
+        if o.type == 'MESH' and o.name not in kn: bpy.data.objects.remove(o, do_unlink=True)
 kc = job.get("keep_coll")
 if kc:
     for o in list(bpy.data.objects):
@@ -73,6 +77,16 @@ def tex_node(nt, path, nc=False):
     if nc: n.image.colorspace_settings.name = "Non-Color"
     if max(n.image.size) > tm: n.image.scale(tm, tm)
     return n
+for mname, vals in job.get("colors", {}).items():   # ровный цвет материала без карт: {"имя": [r,g,b,a, rough]}
+    for m in [m for m in bpy.data.materials if m.name == mname or mname == "*"]:
+        m.use_nodes = True; nt = m.node_tree
+        for n in list(nt.nodes):
+            if n.type not in ("BSDF_PRINCIPLED", "OUTPUT_MATERIAL"): nt.nodes.remove(n)
+        b = next((n for n in nt.nodes if n.type == "BSDF_PRINCIPLED"), None) or nt.nodes.new("ShaderNodeBsdfPrincipled")
+        out = next((n for n in nt.nodes if n.type == "OUTPUT_MATERIAL"), None) or nt.nodes.new("ShaderNodeOutputMaterial")
+        nt.links.new(b.outputs[0], out.inputs[0])
+        b.inputs["Base Color"].default_value = vals[:4]; b.inputs["Roughness"].default_value = vals[4]
+        if vals[3] < 1.0: b.inputs["Alpha"].default_value = vals[3]; m.blend_method = 'BLEND'
 for mname, spec in job.get("materials", {}).items():
     for m in [m for m in bpy.data.materials if m.name == mname or mname == "*"]:
         m.use_nodes = True; nt = m.node_tree
@@ -85,6 +99,8 @@ for mname, spec in job.get("materials", {}).items():
         if "base" in spec: nt.links.new(tex_node(nt, os.path.join(d, spec["base"])).outputs[0], b.inputs["Base Color"])
         if "rough" in spec: nt.links.new(tex_node(nt, os.path.join(d, spec["rough"]), True).outputs[0], b.inputs["Roughness"])
         if "metal" in spec: nt.links.new(tex_node(nt, os.path.join(d, spec["metal"]), True).outputs[0], b.inputs["Metallic"])
+        for k, v in spec.get("values", {}).items():
+            if not b.inputs[k].is_linked: b.inputs[k].default_value = v
         if "orm" in spec:   # упакованная карта UE: R — AO, G — шероховатость, B — металл
             t = tex_node(nt, os.path.join(d, spec["orm"]), True); sp = nt.nodes.new("ShaderNodeSeparateColor")
             nt.links.new(t.outputs[0], sp.inputs[0])
@@ -95,6 +111,6 @@ for mname, spec in job.get("materials", {}).items():
             nt.links.new(nm.outputs[0], b.inputs["Normal"])
 os.makedirs(os.path.dirname(job["out"]), exist_ok=True)
 bpy.ops.export_scene.gltf(filepath=job["out"], export_format='GLB', export_animations=False, export_yup=True)
-vs = [v.co for m in meshes for v in m.data.vertices]
+vs = [v.co for m in (meshes if job.get("separate") else [o]) for v in m.data.vertices]
 print("BOUNDS", [round(min(v[i] for v in vs), 3) for i in range(3)], [round(max(v[i] for v in vs), 3) for i in range(3)])
 print("EXPORTED", job["out"], os.path.getsize(job["out"]))

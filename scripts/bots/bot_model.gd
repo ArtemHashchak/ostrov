@@ -92,7 +92,7 @@ func _ready_user() -> void:
 		for a: StringName in anim.get_animation_list():
 			var an := anim.get_animation(a)
 			an.loop_mode = Animation.LOOP_LINEAR if String(a) in ["idle", "walk", "run"] else Animation.LOOP_NONE
-			_pin_root(an)
+			_pin_root(an, skeleton)
 	for mi in inst.find_children("*", "MeshInstance3D", true, false):
 		(mi as MeshInstance3D).visibility_range_end = HIDE_FAR
 		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
@@ -115,20 +115,29 @@ func _ready_user() -> void:
 		arm.add_child(band)
 	play(&"idle")
 
-## Ход корня (Hips) в клипах Mixamo по горизонтали — убрать: двигает тело код бота.
-static func _pin_root(an: Animation) -> void:
+## Ход корня (Hips) в клипах Mixamo по горизонтали — убрать: двигает тело код бота. У клипов, взятых из отдельных
+## FBX Mixamo, перемещение бедра пришло в других единицах (×100 и в осях файла клипа) — такие дорожки ставим
+## в позу покоя скелета (поворот бёдер остаётся: шаг, бег и падение видны, тело не улетает).
+static func _pin_root(an: Animation, sk: Skeleton3D) -> void:
+	var rest := Vector3.ZERO
+	if sk:
+		var hb := sk.find_bone("mixamorig_Hips")
+		if hb >= 0:
+			rest = sk.get_bone_rest(hb).origin
 	for t in an.get_track_count():
 		if an.track_get_type(t) != Animation.TYPE_POSITION_3D:
 			continue
 		var path := String(an.track_get_path(t))
 		if not path.ends_with("Hips"):
 			continue
-		if an.track_get_key_count(t) == 0:
+		var n := an.track_get_key_count(t)
+		if n == 0:
 			continue
 		var p0: Vector3 = an.track_get_key_value(t, 0)
-		for k in an.track_get_key_count(t):
+		var broken := p0.distance_to(rest) > maxf(rest.length() * 3.0, 5.0)
+		for k in n:
 			var v: Vector3 = an.track_get_key_value(t, k)
-			an.track_set_key_value(t, k, Vector3(p0.x, v.y, p0.z))
+			an.track_set_key_value(t, k, rest if broken else Vector3(p0.x, v.y, p0.z))
 
 func _set_loops() -> void:
 	if anim == null or _loops_set:
@@ -277,6 +286,10 @@ func set_dead(on: bool) -> void:
 	if on and user_model and anim and anim.has_animation(&"death"):
 		_cur = &"death"
 		anim.play(&"death", 0.15)
+		# бёдра в клипе не опускаются (см. _pin_root) — тело ложится на землю вместе с падением
+		var tw2 := create_tween()
+		tw2.tween_interval(0.35)
+		tw2.tween_property(body_root, ^"position:y", -0.78, 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		return
 	if on:
 		var tw := create_tween()
@@ -288,6 +301,7 @@ func set_dead(on: bool) -> void:
 	else:
 		body_root.rotation = Vector3.ZERO
 		body_root.position = Vector3.ZERO
+		_cur = &""
 		play(&"idle")
 
 ## Обновление позы: hspeed — горизонтальная скорость, swim — плывёт.

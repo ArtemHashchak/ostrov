@@ -16,6 +16,11 @@ for o in list(bpy.data.objects):
 for act in list(bpy.data.actions):
     bpy.data.actions.remove(act)
 arm.animation_data_create()
+# Ретаргет: у клипов Mixamo «без кожи» свой скелет с другой позой покоя (и бёдра в других единицах), поэтому
+# действия нельзя просто перевесить — кости основного скелета копируют МИРОВОЙ поворот одноимённых костей скелета клипа
+# (COPY_ROTATION, мировое пространство), результат запекается в действие (визуальные ключи) и кладётся NLA-дорожкой.
+# Перемещение бёдер не копируется (ход делает код игры).
+bpy.context.view_layer.objects.active = arm
 for fn, role in ROLES.items():
     p = os.path.join(animdir, fn + ".fbx")
     if not os.path.exists(p):
@@ -23,21 +28,37 @@ for fn, role in ROLES.items():
     before = set(bpy.data.objects)
     bpy.ops.import_scene.fbx(filepath=p, automatic_bone_orientation=False)
     new = [o for o in bpy.data.objects if o not in before]
-    act = None
-    for o in new:
-        if o.type == 'ARMATURE' and o.animation_data and o.animation_data.action:
-            act = o.animation_data.action
-    if act:
-        act.name = role
-        act.use_fake_user = True
-        # NLA-дорожка на основном скелете — экспортёр glTF выгрузит каждую как клип
-        tr = arm.animation_data.nla_tracks.new(); tr.name = role
-        st = tr.strips.new(role, int(act.frame_range[0]), act)
-        st.name = role
-        tr.mute = True
+    src = next((o for o in new if o.type == 'ARMATURE' and o.animation_data and o.animation_data.action), None)
+    if src is None:
+        print("NO ACTION", fn); continue
+    act = src.animation_data.action
+    f0, f1 = int(act.frame_range[0]), int(act.frame_range[1])
+    bpy.ops.object.select_all(action='DESELECT')
+    arm.select_set(True); bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode='POSE')
+    cons = []
+    for pb in arm.pose.bones:
+        if pb.name in src.pose.bones:
+            c = pb.constraints.new('COPY_ROTATION'); c.target = src; c.subtarget = pb.name
+            c.target_space = 'WORLD'; c.owner_space = 'WORLD'; cons.append((pb, c))
+    arm.animation_data.action = None
+    bpy.ops.nla.bake(frame_start=f0, frame_end=f1, only_selected=False, visual_keying=True, clear_constraints=True,
+                     use_current_action=False, bake_types={'POSE'})
+    baked = arm.animation_data.action
+    bpy.ops.object.mode_set(mode='OBJECT')
+    baked.name = role; baked.use_fake_user = True
+    # без хода бёдер
+    for fc in list(baked.fcurves):
+        if fc.data_path.endswith('location') and 'Hips' in fc.data_path:
+            baked.fcurves.remove(fc)
+    arm.animation_data.action = None
+    tr = arm.animation_data.nla_tracks.new(); tr.name = role
+    st = tr.strips.new(role, f0, baked); st.name = role
+    tr.mute = True
     for o in new:
         bpy.data.objects.remove(o, do_unlink=True)
-    print("ANIM", role, act.frame_range[:] if act else None)
+    bpy.data.actions.remove(act)
+    print("ANIM", role, (f0, f1))
 # материал
 m = bpy.data.materials.get("Bodymat")
 m.use_nodes = True; nt = m.node_tree

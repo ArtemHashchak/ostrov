@@ -1,4 +1,4 @@
-## test-timeout: 900
+## test-timeout: 2400
 extends TestCase
 ## Снимки новых моделей агента B (v5) для пользователя: каждая модель — отдельный кадр
 ## на нейтральном фоне в отдельном SubViewport (свой мир). Кадры: /mnt/user-data/outputs/v5_B_<имя>.png.
@@ -6,8 +6,9 @@ extends TestCase
 const U := "res://assets/user_pack/"
 const OUT_DIR := "/mnt/user-data/outputs"
 const SHOTS := [
-	["ak47", [["weapons/ak47/weapon_ak47.glb", Vector3.ZERO, Vector3(0, 90, 0), 1.0]], 1.1, Vector3(0, 0.05, 0)],
-	["character_male", [["characters/character_male.glb", Vector3.ZERO, Vector3(0, 20, 0), 1.0]], 2.6, Vector3(0, 0.95, 0)],
+	["ak47", [["weapons/ak47/weapon_ak47.glb", Vector3(0, 0, 0.1), Vector3(0, 90, 0), 1.0]], 1.6, Vector3(0, 0.05, 0)],
+	["character_male", [["bot", Vector3.ZERO, Vector3(0, 200, 0), 1.0]], 3.0, Vector3(0, 0.95, 0)],
+	["character_male_side", [["bot_rifle", Vector3.ZERO, Vector3(0, 110, 0), 1.0]], 3.0, Vector3(0, 0.95, 0)],
 	["melee", [["weapons/melee/weapon_machete.glb", Vector3(-0.35, 0, 0), Vector3(0, 90, 0), 1.0], ["weapons/melee/weapon_axe.glb", Vector3(0.05, 0, 0), Vector3(0, 90, 0), 1.0],
 		["weapons/melee/weapon_knife.glb", Vector3(0.4, 0, 0), Vector3(0, 90, 0), 1.0]], 1.4, Vector3(0, 0.25, 0)],
 	["items", [["items/item_flashlight.glb", Vector3(-0.25, 0, 0), Vector3(0, 60, 0), 1.0], ["items/item_lighter.glb", Vector3(-0.05, 0, 0), Vector3(0, 30, 0), 1.5],
@@ -25,6 +26,10 @@ const SHOTS := [
 	["boat_crate", [["vehicles/vehicle_wooden_boat.glb", Vector3(-1.5, 0, 0), Vector3(0, 30, 0), 0.6], ["items/item_wooden_crate.glb", Vector3(2.3, 0, 0.5), Vector3(0, -20, 0), 1.0],
 		["items/item_sticks.glb", Vector3(2.3, 0.45, 0.5), Vector3(0, -20, 0), 1.0]], 7.5, Vector3(0, 0.8, 0)],
 ]
+
+func _init() -> void:
+	scene_path = "res://tests/empty_stage.tscn"   # пустая сцена: рендерится только кадр SubViewport
+	timeout_sec = 2400.0
 
 func run() -> void:
 	await wait_frames(5)
@@ -54,11 +59,20 @@ func run() -> void:
 	stage.add_child(fill)
 	var we := WorldEnvironment.new()
 	var env := Environment.new()
+	# небо для отражений (металл без окружения выглядит чёрным), фон — ровный серый
+	var sky := Sky.new()
+	var psm := ProceduralSkyMaterial.new()
+	psm.sky_top_color = Color(0.45, 0.6, 0.8)
+	psm.sky_horizon_color = Color(0.75, 0.8, 0.85)
+	psm.ground_bottom_color = Color(0.35, 0.33, 0.3)
+	psm.ground_horizon_color = Color(0.6, 0.6, 0.6)
+	sky.sky_material = psm
+	env.sky = sky
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = Color(0.62, 0.66, 0.7)
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.75, 0.78, 0.82)
-	env.ambient_light_energy = 0.6
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_energy = 0.8
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	we.environment = env
 	stage.add_child(we)
@@ -67,7 +81,19 @@ func run() -> void:
 		var holder := Node3D.new()
 		stage.add_child(holder)
 		holder.global_position = base
+		var only := OS.get_environment("SHOT_ONLY")
+		if only != "" and not (String(s[0]) in only.split(",")):
+			holder.queue_free()
+			continue
 		for m: Array in s[1]:
+			if String(m[0]).begins_with("bot"):
+				# персонаж — как у ботов (BotModel: клипы с прибитым корнем, повязка команды)
+				var bm := BotModel.new().setup(0, 1)
+				holder.add_child(bm)
+				bm.rotation_degrees = m[2]
+				if String(m[0]) == "bot_rifle":
+					bm.set_held(&"rifle")
+				continue
 			var ps := load(U + String(m[0])) as PackedScene
 			check(ps != null, "грузится %s" % m[0])
 			if ps == null:

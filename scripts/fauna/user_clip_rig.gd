@@ -2,7 +2,7 @@ class_name UserClipRig
 extends RefCounted
 ## Существа пака пользователя с готовыми клипами (модели чата моделирования, 2026-11-22):
 ## змеи (зелёная и синяя куфии, королевский и ковровый питоны), комодский варан, зелёная игуана,
-## огненная саламандра, гигантская сколопендра, бурый рак-отшельник, попугаи (синеголовый пионус, кеа, ара — v5).
+## огненная саламандра, гигантская сколопендра, бурый рак-отшельник, попугаи (синеголовый пионус, кеа).
 ## У каждой модели в GLB свой скелет и запечённые клипы автора (idle / crawl / walk / run / strike /
 ## tongue / death …) — их и играем: AnimationPlayer модели с плавным переходом между клипами.
 ##  • клип выбирается по состоянию Animal (стоит / идёт / бежит / плывёт / угроза / атака / укрытие /
@@ -77,11 +77,6 @@ const VARIANTS := {
 			"clips": {"idle": "idle_perch", "fly": "fly", "glide": "glide", "takeoff": "takeoff", "land": "land", "eat": "peck",
 				"hurt": "hit", "death": "death", "move": "walk"},
 			"ref": {"move": 0.3}, "extras": [["preen", 2.0], ["call", 1.5], ["peck", 1.0], ["hop", 0.7]], "extra_every": [2.0, 5.0]},
-		# v5: красный ара (модель чата моделирования, «Модель/Игра»)
-		{"id": "macaw_red", "name": "Красный ара", "path": "parrots/parrot_macaw_red.glb", "scale": 1.0, "len": 0.69,
-			"clips": {"idle": "idle_perch", "fly": "fly", "glide": "glide", "takeoff": "takeoff", "land": "land", "eat": "eat",
-				"hurt": "hit", "death": "death", "move": "walk"},
-			"ref": {"move": 0.3}, "extras": [["scream", 1.5], ["eat", 1.0]], "extra_every": [2.5, 6.0]},
 	],
 }
 

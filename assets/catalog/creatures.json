@@ -430,10 +430,11 @@
    "license": "модели пользователя (KODAK)",
    "climate_ok": false,
    "tags": [
-    "v5"
+    "v5",
+    "paused"
    ],
    "no_spawn": true,
-   "spawn_id": "parrot"
+   "note": "автор отложил модель (папка «v2, отложено»): в клипах ломаются перья крыльев — в игру не включён"
   },
   {
    "id": "frog_tree",

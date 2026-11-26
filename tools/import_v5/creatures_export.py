@@ -51,6 +51,9 @@ for mname, spec in job.get("materials", {}).items():
     mats = [m for m in bpy.data.materials if m.name == mname or mname == "*"]
     for m in mats:
         m.use_nodes = True; nt = m.node_tree
+        if spec.get("reset", True):
+            for n in list(nt.nodes):
+                if n.type not in ("BSDF_PRINCIPLED", "OUTPUT_MATERIAL"): nt.nodes.remove(n)
         bsdf = next((n for n in nt.nodes if n.type == "BSDF_PRINCIPLED"), None)
         if bsdf is None:
             bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
