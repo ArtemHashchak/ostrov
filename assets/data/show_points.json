@@ -1,0 +1,37 @@
+{
+ "_doc": "Очки шоу по тегам события (A1). Итог = base по типу × множители тегов. Ранг популярности только умножает.",
+ "base": {
+  "kill": 40,
+  "kill_animal": 8,
+  "kill_shark": 25,
+  "hunt_rare": 20,
+  "find": 5,
+  "build": 2,
+  "survive_day": 15,
+  "first_blood": 30,
+  "craft": 1,
+  "catch_fish": 3,
+  "dive_find": 6,
+  "airdrop_claimed": 12,
+  "stealth_kill": 0,
+  "spot_rare_species": 10
+ },
+ "tags": {
+  "knife": 2.0,
+  "melee": 1.6,
+  "spear": 1.8,
+  "bow": 1.3,
+  "gun": 1.0,
+  "explosion": 0.8,
+  "night": 1.3,
+  "in_water": 1.5,
+  "rare": 2.0,
+  "filmed": 1.5,
+  "headshot": 1.4,
+  "underdog": 1.5,
+  "long_range": 1.3,
+  "risky": 1.4
+ },
+ "daily_activity_bonus": 10,
+ "idle_penalty": 0.5
+}

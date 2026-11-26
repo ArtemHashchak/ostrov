@@ -63,6 +63,9 @@ var _sel_init := false
 var _rest: Dictionary = {}
 ## Прицеливание в режиме «переключать» (Settings.aim_toggle): защёлка.
 var _aim_latched := false
+## Износ (GearWear): ствол заклинило — до перезарядки (R) не стреляет; пауза после осечки.
+var _jammed := false
+var _wear_block_until := 0.0
 var _mag_label: Label
 var _cross: Control
 ## Текущий разброс (град) — для HUD и тестов.
@@ -181,6 +184,8 @@ func _process(delta: float) -> void:
 			p.set_look(yaw + dl.y, clampf(pitch + dl.x, deg_to_rad(-88.0), deg_to_rad(88.0)))
 	var zoom := float(w.get("zoom", 0.0)) if wid != &"" else 0.0
 	p.fov_zoom = zoom * smoothstep(0.0, 1.0, ads)
+	_hunger_sway(delta)
+	_glint(delta, zoom)
 	_throw_anim = move_toward(_throw_anim, 0.0, delta / 0.45)
 	_fire_anim = move_toward(_fire_anim, 0.0, delta * 3.0)
 	_update_pose(delta)
@@ -235,6 +240,7 @@ func _unequip() -> void:
 	gp = null
 	wdef = null
 	_aim_latched = false
+	_jammed = false
 	_rest.clear()
 	_sel_init = false
 	_trig = 0.0
@@ -300,6 +306,8 @@ func _trigger_modern(pressed: bool) -> bool:
 			CombatFx.sound_at(p, wdef.sound_dry, _eye(), -6.0)
 			_start_reload()
 		return false
+	if not _wear_ok(pressed, wdef.ammo_id):
+		return false
 	var mz := socket(&"muzzle")
 	var ok := Combat.fire(p, wid, _eye(), _aim_dir(), {"ads": ads > 0.7, "spread": spread_now,
 		"muzzle": mz.global_position if mz else _eye() + _aim_dir() * 0.8, "muzzle_node": mz})
@@ -319,6 +327,66 @@ func _eject() -> void:
 	GunFx.eject_casing(p, xf, b.x, b.y, b.z, p.velocity, wdef)
 	GunFx.port_gas(p, xf.origin, b.x, wdef.smoke)
 
+## Голод — прицел «плавает» (сильнее в прицеле): медленный шум взгляда, когда сытость < 40.
+var _sway_t := 0.0
+var _sway_prev := Vector2.ZERO
+func _hunger_sway(delta: float) -> void:
+	if wid == &"" or p.hunger >= 40.0:
+		_sway_prev = Vector2.ZERO
+		return
+	_sway_t += delta
+	var k := (1.0 - p.hunger / 40.0) * deg_to_rad(DataTables.f("balance", "weapons/hunger_sway_deg", 1.6)) * lerpf(0.5, 1.0, ads)
+	var cur := Vector2(sin(_sway_t * 1.3) + 0.5 * sin(_sway_t * 2.9), cos(_sway_t * 1.1) + 0.4 * sin(_sway_t * 3.7)) * k * 0.5
+	var d := cur - _sway_prev
+	_sway_prev = cur
+	p.set_look(float(p.get(&"_yaw")) + d.x, clampf(float(p.get(&"_pitch")) + d.y, deg_to_rad(-88.0), deg_to_rad(88.0)))
+
+## Блик оптики: в прицеле с увеличением при солнце над горизонтом — раздражитель «glint»
+## для соперников (видят издалека), раз в секунду. Сила — свойство glint предмета.
+var _glint_t := 0.0
+func _glint(delta: float, zoom: float) -> void:
+	if ads < 0.8 or zoom < 15.0:
+		return
+	_glint_t += delta
+	if _glint_t < 1.0:
+		return
+	_glint_t = 0.0
+	var wn := BuildEnv.world()
+	var sun := float(wn.call(&"sun_elevation")) if wn and wn.has_method(&"sun_elevation") else 0.0
+	if rad_to_deg(asin(clampf(sun, -1.0, 1.0))) < DataTables.f("balance", "weapons/glint_min_sun_elev", 8.0):
+		return
+	var g := maxf(float(Materials.prop(wid, "glint", 0.0)), 0.5 if zoom >= 20.0 else 0.0)
+	var pc := get_node_or_null(^"/root/Perception")
+	if pc and g > 0.0:
+		pc.call(&"emit", &"glint", _eye(), DataTables.f("balance", "weapons/glint_radius", 600.0) * g, g, p)
+
+## Износ и отсыревший порох (GearWear): осечка, заклинивание, поломка. false — выстрела нет.
+func _wear_ok(pressed: bool, ammo_id: StringName) -> bool:
+	if _jammed:
+		if pressed:
+			CombatFx.sound_at(p, "dry_click", _eye(), -10.0)
+			Events.toast.emit("Заклинило — перезарядка (R)")
+		return false
+	if Combat._now() < _wear_block_until:
+		return false
+	match GearWear.fire_check(p, wid, ammo_id):
+		&"broken":
+			if pressed:
+				CombatFx.sound_at(p, "dry_click", _eye(), -10.0)
+				Events.toast.emit("Оружие сломано — ржавчина и соль")
+			return false
+		&"jam":
+			_jammed = true
+			CombatFx.sound_at(p, "dry_click", _eye(), -6.0)
+			Events.toast.emit("Заклинило — перезарядка (R)")
+			return false
+		&"misfire":
+			_wear_block_until = Combat._now() + 0.35
+			CombatFx.sound_at(p, "dry_click", _eye(), -6.0)
+			Events.toast.emit("Осечка")
+			return false
+	return true
+
 func _cycle_mode() -> void:
 	if wdef.fire_modes.size() < 2:
 		return
@@ -337,6 +405,8 @@ static func mode_name(m: StringName) -> String:
 func _trigger() -> void:
 	if not Combat.is_ready(p, wid):
 		return
+	if Combat.is_loaded(p, wid) and w.type == &"gun" and not _wear_ok(true, &"gunpowder"):
+		return
 	if Combat.is_loaded(p, wid):
 		var ok := Combat.fire(p, wid, _eye(), _aim_dir(), {"ads": ads > 0.7, "muzzle": _muzzle_pos()})
 		if ok:
@@ -348,6 +418,9 @@ func _trigger() -> void:
 func _start_reload() -> void:
 	if Combat.is_reloading(p):
 		return
+	if _jammed:
+		# перезарядка устраняет заклинивание (снять магазин, передёрнуть затвор)
+		_jammed = false
 	if w.has("mag"):
 		if Combat.rounds(p, wid) >= Combat.capacity(p, wid):
 			return

@@ -18,6 +18,9 @@ Items="*res://scripts/core/items.gd"
 Game="*res://scripts/core/game.gd"
 SandTracks="*res://scripts/world/sand_tracks.gd"
 DevConsole="*res://scripts/core/dev_console.gd"
+Surfaces="*res://scripts/mech/surfaces.gd"
+ShowBus="*res://scripts/mech/show_bus.gd"
+Perception="*res://scripts/mech/perception.gd"
 
 [display]
 

@@ -1,0 +1,403 @@
+{
+ "_doc": "Свойства предметов (A4): материал + переопределения. container.cap_l — вместимость, л; open — открытая (расплёскивается). clothing.warmth 0..1. weapon_wear: salt/water — износ за сутки в соли/воде, immortal — ржавчина только снаружи (АК, револьвер).",
+ "items": {
+  "log": {
+   "material": "palm_wood",
+   "mass_kg": 12,
+   "hands": 2,
+   "shoulder": true
+  },
+  "stick": {
+   "material": "wood_dry",
+   "mass_kg": 0.5
+  },
+  "stone": {
+   "material": "stone",
+   "mass_kg": 1.5
+  },
+  "plank": {
+   "material": "wood_dry",
+   "mass_kg": 0.8
+  },
+  "rope": {
+   "material": "rope_fiber",
+   "mass_kg": 0.3
+  },
+  "fiber": {
+   "material": "rope_fiber",
+   "mass_kg": 0.05
+  },
+  "charcoal": {
+   "material": "wood_dry",
+   "mass_kg": 0.2,
+   "flammable": 0.95,
+   "smoke": 0.05,
+   "fuel_heat": 0.9,
+   "burn_time": 2400,
+   "smoke_color": "grey"
+  },
+  "coconut": {
+   "material": "coconut_shell",
+   "mass_kg": 1.2,
+   "edible": true,
+   "kcal": 350,
+   "water_l": 0.3
+  },
+  "coconut_shell": {
+   "material": "coconut_shell",
+   "mass_kg": 0.2,
+   "container": {
+    "cap_l": 0.3,
+    "holds_water": true,
+    "open": true
+   }
+  },
+  "coconut_husk": {
+   "material": "coconut_husk",
+   "mass_kg": 0.1,
+   "tinder": 0.95
+  },
+  "bamboo_cup": {
+   "material": "wood_dry",
+   "mass_kg": 0.25,
+   "container": {
+    "cap_l": 0.8,
+    "holds_water": true,
+    "open": true
+   }
+  },
+  "turtle_shell": {
+   "material": "bone",
+   "mass_kg": 1.5,
+   "container": {
+    "cap_l": 1.0,
+    "holds_water": true,
+    "open": true
+   }
+  },
+  "gourd": {
+   "material": "wood_dry",
+   "mass_kg": 0.3,
+   "container": {
+    "cap_l": 2.0,
+    "holds_water": true,
+    "open": false
+   }
+  },
+  "bottle_empty": {
+   "material": "plastic",
+   "mass_kg": 0.05,
+   "container": {
+    "cap_l": 1.5,
+    "holds_water": true,
+    "open": false
+   }
+  },
+  "water_bottle": {
+   "material": "plastic",
+   "mass_kg": 1.55,
+   "container": {
+    "cap_l": 1.5,
+    "holds_water": true,
+    "open": false
+   }
+  },
+  "canister": {
+   "material": "plastic",
+   "mass_kg": 1.2,
+   "container": {
+    "cap_l": 20.0,
+    "holds_water": true,
+    "open": false
+   }
+  },
+  "barrel": {
+   "material": "metal_steel",
+   "mass_kg": 15,
+   "hands": 2,
+   "container": {
+    "cap_l": 200.0,
+    "holds_water": true,
+    "open": false
+   }
+  },
+  "tarp_kit": {
+   "material": "tarp",
+   "mass_kg": 2.0
+  },
+  "pot": {
+   "material": "metal_tin",
+   "mass_kg": 1.2,
+   "container": {
+    "cap_l": 2.0,
+    "holds_water": true,
+    "open": true
+   }
+  },
+  "glass_shard": {
+   "material": "glass",
+   "mass_kg": 0.1,
+   "lens": 0.6
+  },
+  "scrap_metal": {
+   "material": "metal_tin",
+   "mass_kg": 0.8
+  },
+  "plastic_sheet": {
+   "material": "plastic",
+   "mass_kg": 0.1
+  },
+  "hide": {
+   "material": "hide",
+   "mass_kg": 1.0,
+   "clothing": {
+    "warmth": 0.35,
+    "waterproof": 0.5,
+    "slot": "torso"
+   }
+  },
+  "feather": {
+   "material": "feather",
+   "mass_kg": 0.01
+  },
+  "gunpowder": {
+   "material": "gunpowder",
+   "mass_kg": 0.1
+  },
+  "saltpeter": {
+   "material": "sand",
+   "mass_kg": 0.2,
+   "flammable": 0.3
+  },
+  "meat_raw": {
+   "material": "meat",
+   "mass_kg": 0.5
+  },
+  "fish_raw": {
+   "material": "fish",
+   "mass_kg": 0.5
+  },
+  "crab_meat": {
+   "material": "meat",
+   "mass_kg": 0.3
+  },
+  "meat_cooked": {
+   "material": "food_cooked",
+   "mass_kg": 0.5
+  },
+  "fish_cooked": {
+   "material": "food_cooked",
+   "mass_kg": 0.5
+  },
+  "smoked_meat": {
+   "material": "food_smoked",
+   "mass_kg": 0.3
+  },
+  "smoked_fish": {
+   "material": "food_smoked",
+   "mass_kg": 0.3
+  },
+  "dried_meat": {
+   "material": "food_dried",
+   "mass_kg": 0.25
+  },
+  "dried_fish": {
+   "material": "food_dried",
+   "mass_kg": 0.25
+  },
+  "salted_fish": {
+   "material": "food_salted",
+   "mass_kg": 0.35
+  },
+  "salt": {
+   "material": "sand",
+   "mass_kg": 0.1,
+   "edible": true,
+   "water_l": -0.3
+  },
+  "rotten_food": {
+   "material": "rot",
+   "mass_kg": 0.3
+  },
+  "berries": {
+   "material": "fruit",
+   "mass_kg": 0.1
+  },
+  "melon": {
+   "material": "fruit",
+   "mass_kg": 1.5
+  },
+  "rifle": {
+   "material": "metal_steel",
+   "mass_kg": 3.6,
+   "weapon_wear": {
+    "salt": 0.02,
+    "water": 0.005,
+    "immortal": true
+   }
+  },
+  "pistol_9mm": {
+   "material": "metal_steel",
+   "mass_kg": 0.8,
+   "weapon_wear": {
+    "salt": 0.25,
+    "water": 0.06,
+    "immortal": false
+   }
+  },
+  "revolver": {
+   "material": "metal_steel",
+   "mass_kg": 1.1,
+   "weapon_wear": {
+    "salt": 0.02,
+    "water": 0.005,
+    "immortal": true
+   }
+  },
+  "ar15": {
+   "material": "metal_steel",
+   "mass_kg": 3.0,
+   "weapon_wear": {
+    "salt": 0.35,
+    "water": 0.08,
+    "immortal": false
+   }
+  },
+  "shotgun": {
+   "material": "metal_steel",
+   "mass_kg": 3.2,
+   "weapon_wear": {
+    "salt": 0.2,
+    "water": 0.05,
+    "immortal": false
+   }
+  },
+  "sniper": {
+   "material": "metal_steel",
+   "mass_kg": 4.5,
+   "weapon_wear": {
+    "salt": 0.2,
+    "water": 0.05,
+    "immortal": false
+   },
+   "glint": 0.9
+  },
+  "musket": {
+   "material": "metal_steel",
+   "mass_kg": 4.5,
+   "weapon_wear": {
+    "salt": 0.15,
+    "water": 0.05,
+    "immortal": false
+   }
+  },
+  "pistol": {
+   "material": "metal_steel",
+   "mass_kg": 1.4,
+   "weapon_wear": {
+    "salt": 0.15,
+    "water": 0.05,
+    "immortal": false
+   }
+  },
+  "flare_gun": {
+   "material": "plastic",
+   "mass_kg": 0.4
+  },
+  "binoculars": {
+   "material": "metal_steel",
+   "mass_kg": 0.7,
+   "glint": 0.95
+  },
+  "flashlight": {
+   "material": "metal_steel",
+   "mass_kg": 0.3,
+   "emits_light": 0.8,
+   "glint": 0.6
+  },
+  "lighter": {
+   "material": "metal_steel",
+   "mass_kg": 0.06,
+   "fire_starter": {
+    "chance": 0.97,
+    "wet_penalty": 0.6,
+    "uses": 200
+   }
+  },
+  "gas_torch": {
+   "material": "metal_steel",
+   "mass_kg": 0.8,
+   "fire_starter": {
+    "chance": 1.0,
+    "wet_penalty": 0.0,
+    "uses": 400
+   },
+   "smokeless_fire": true
+  },
+  "fire_drill": {
+   "material": "wood_dry",
+   "mass_kg": 0.3,
+   "fire_starter": {
+    "chance": 0.35,
+    "wet_penalty": 0.9,
+    "uses": 40,
+    "time_s": 25.0
+   }
+  },
+  "flint_steel": {
+   "material": "flint",
+   "mass_kg": 0.2,
+   "fire_starter": {
+    "chance": 0.6,
+    "wet_penalty": 0.7,
+    "uses": 150,
+    "time_s": 8.0
+   }
+  },
+  "armor_vest": {
+   "material": "cloth",
+   "mass_kg": 4.0,
+   "clothing": {
+    "warmth": 0.25,
+    "waterproof": 0.2,
+    "slot": "torso"
+   }
+  },
+  "canned_food": {
+   "material": "metal_tin",
+   "mass_kg": 0.4,
+   "edible": true,
+   "kcal": 400,
+   "spoils": 0.0
+  },
+  "medkit": {
+   "material": "plastic",
+   "mass_kg": 0.5,
+   "healing": 0.8
+  },
+  "herb": {
+   "material": "leaves_fresh",
+   "mass_kg": 0.05,
+   "healing": 0.2
+  },
+  "rifle_ammo": {
+   "material": "brass",
+   "mass_kg": 0.017,
+   "gunpowder": true
+  },
+  "ammo_9mm": {
+   "material": "brass",
+   "mass_kg": 0.012,
+   "gunpowder": true
+  },
+  "shotgun_shell": {
+   "material": "plastic",
+   "mass_kg": 0.035,
+   "gunpowder": true
+  },
+  "musket_ball": {
+   "material": "metal_steel",
+   "mass_kg": 0.03
+  }
+ }
+}

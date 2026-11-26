@@ -83,13 +83,22 @@ func light(ch: Node = null) -> bool:
 	if ch and Survival.count(ch, &"stick") < LIGHT_STICKS:
 		toast(ch, "Чтобы разжечь, нужны палки ×%d" % LIGHT_STICKS)
 		return false
+	var smoke_amt := 0.6
+	if ch is Player:
+		# V5: разжечь — чем и насколько сыро (FireMaking); неудача палки не тратит
+		var r := FireMaking.attempt(ch, global_position)
+		smoke_amt = float(r.smoke_amount)
+		if not bool(r.ok):
+			toast(ch, String(r.msg))
+			return false
+	set_meta(&"smoke_amount", smoke_amt)
 	if ch:
 		Survival.take(ch, &"stick", LIGHT_STICKS)
 	fuel = maxf(fuel, FUEL_PER_STICK * LIGHT_STICKS)
 	lit = true
 	_apply_lit()
 	if ch:
-		toast(ch, "Костёр горит")
+		toast(ch, "Костёр горит" + (" (сырые дрова — много дыма)" if smoke_amt > 1.1 else ""))
 	return true
 
 func add_fuel(ch: Node) -> bool:

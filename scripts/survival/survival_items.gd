@@ -144,6 +144,8 @@ static func register() -> void:
 	_recipe(&"r_seed_taro", &"seed_taro", {&"taro": 1}, 2)
 	_recipe(&"r_seed_maize", &"seed_maize", {&"maize": 1}, 4)
 	_recipe(&"r_planks", &"stick", {&"plank": 1}, 2)
+	# V5 (агент F): ёмкости, трут/огниво, соль — scripts/mech/mech_items.gd
+	MechItems.register()
 
 static func _item(id: StringName, nm: String, kind: StringName, stack: int, weight: float, data: Dictionary) -> void:
 	if SPOIL.has(id) and not data.has("spoil"):

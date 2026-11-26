@@ -423,6 +423,10 @@ static func fire(shooter: Node, weapon_id: StringName, origin: Vector3, dir: Vec
 			if not wd:
 				CombatFx.sound_at(shooter, String(w.sound), origin, 4.0, 220.0)
 				CombatFx.sound_at(shooter, "flint_click", origin, -8.0)
+			# V5 восприятие: выстрел очень громкий — первый на участке пугает птиц на сотни метров
+			var pc := _perception(shooter)
+			if pc:
+				pc.call(&"shot", mpos, shooter, 1.0)
 		&"crossbow":
 			CombatFx.sound_at(shooter, "crossbow_shot", origin, -2.0)
 		&"bow":
@@ -686,7 +690,15 @@ static func ignite_area(pos: Vector3, radius: float, source: Node, sec: float = 
 	return fz
 
 ## Взрыв: урон с затуханием по расстоянию, импульс телам, постройкам — kind &"explosion".
+## Автозагрузка Perception (V5), если есть.
+static func _perception(_ctx: Node = null) -> Node:
+	var t := Engine.get_main_loop() as SceneTree
+	return t.root.get_node_or_null(^"Perception") if t else null
+
 static func explode(pos: Vector3, radius: float, damage: float, source: Node) -> void:
+	var pc := _perception(source)
+	if pc:
+		pc.call(&"shot", pos, source, 1.5)
 	var t := Engine.get_main_loop() as SceneTree
 	if t == null:
 		return

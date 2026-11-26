@@ -219,6 +219,14 @@ func on_use_item(ch: Node, id: StringName) -> bool:
 	if dd.has("kit"):
 		place_from_view(ch, StringName(dd.kit), id)
 		return true
+	if dd.has("big_container"):
+		# V5: канистра — у воды набрать, иначе налить в мелкую тару/отпить
+		if can_fill_here(ch) and WaterContainers.litres(ch, id) < float(dd.get("container_l", 20.0)) - 0.05:
+			var got := WaterContainers.fill_big(ch, id, is_fresh_at(look_water_point(ch)))
+			toast(ch, "Набрал %.1f л" % got)
+		else:
+			toast(ch, WaterContainers.use_big(ch, id))
+		return true
 	if dd.has("fill_fresh"):
 		if not fill_from_view(ch, id):
 			toast(ch, "Смотри на воду (или встань в неё) и жми ПКМ/E, чтобы набрать")

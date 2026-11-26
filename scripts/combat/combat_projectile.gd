@@ -26,6 +26,8 @@ var _t := 0.0
 var _travel := 0.0
 var _model: Node3D
 var _in_water := false
+## Пуля в воде: остаток пути до полной остановки, м (balance weapons/water_bullet_stop_m ≈ 1 м).
+var _water_left := -1.0
 var _exclude: Array[RID] = []
 var _done := false
 var _tracer: MeshInstance3D
@@ -77,6 +79,12 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 		return
 	var from := global_position
+	if _water_left >= 0.0:
+		_water_left -= velocity.length() * delta
+		velocity *= maxf(0.0, 1.0 - 6.0 * delta)
+		if _water_left <= 0.0 or velocity.length() < 2.0:
+			queue_free()
+			return
 	velocity += Vector3.DOWN * 9.8 * gravity_scale * delta
 	velocity *= 1.0 - _drag() * delta
 	var to := from + velocity * delta
@@ -100,7 +108,11 @@ func _physics_process(delta: float) -> void:
 		else:
 			CombatFx.impact(self, wp, Vector3.UP, &"water")
 		if ammo_id == &"bullet":
-			queue_free() # пуля в воде быстро теряет энергию
+			# пуля в воде теряет энергию почти сразу: проходит ~1 м с остатком силы и встаёт
+			_water_left = DataTables.f("balance", "weapons/water_bullet_stop_m", 1.0)
+			velocity *= 0.15
+			gravity_scale = 0.0
+			global_position = to
 			return
 		if ammo_id == &"molotov":
 			global_position = wp

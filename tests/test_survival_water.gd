@@ -72,6 +72,7 @@ func run() -> void:
 
 	# ---------- костёр + котелок ----------
 	Survival.speed = 10.0
+	FireMaking.force_chance = 1.0 # V5: розжиг случаен (чем/сырость) — здесь проверяем готовку
 	var base := ground(sx - 9.0, 3.0)
 	var fire := sv.place_structure(null, &"campfire", base) as SvFire
 	p.inventory.set_slot(1, {"id": &"stick", "n": 6})

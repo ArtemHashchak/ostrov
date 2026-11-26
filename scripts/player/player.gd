@@ -116,6 +116,12 @@ var _vault_pts: PackedVector3Array = PackedVector3Array()
 ## (Surfaces). 1 — без помех.
 var env_speed_mul: float = 1.0
 var _brush: Area3D
+var _step_acc: float = 0.0
+## Состояние тела (V5): мокрость, температура — BodyState (scripts/mech/body_state.gd).
+## Множители от него: восстановление сил (холод), жажда (жара).
+var body: BodyState
+var stamina_regen_mul: float = 1.0
+var thirst_mul: float = 1.0
 
 var head: Node3D
 var camera: Camera3D
@@ -171,6 +177,9 @@ func _ready() -> void:
 	_yaw = rotation.y
 	rotation = Vector3.ZERO
 	Game.register_member(team, self)
+	body = BodyState.new()
+	body.name = "BodyState"
+	add_child(body)
 	Events.character_spawned.emit(self)
 	if create_hud and ResourceLoader.exists("res://scripts/ui/hud.gd"):
 		hud = (load("res://scripts/ui/hud.gd") as GDScript).new()
@@ -329,6 +338,7 @@ func _perf_physics(delta: float) -> void:
 			apply_damage((_fall_speed - FALL_SAFE_SPEED) * FALL_DMG_PER_MS, null, &"fall")
 		_fall_speed = 0.0
 	_was_on_floor = is_on_floor()
+	_emit_steps(delta, horiz.length())
 
 	_update_camera(delta, horiz.length())
 	_update_interact_hint()
@@ -414,6 +424,27 @@ func _vault_process(delta: float) -> void:
 		_fall_speed = 0.0
 		velocity = Vector3.ZERO
 
+## Шаги → раздражитель восприятия (Perception.step): громкость по поверхности под ногами
+## (Surfaces), бег громче, присед тише.
+func _emit_steps(delta: float, hspeed: float) -> void:
+	if not is_on_floor() or hspeed < 0.5:
+		_step_acc = 0.0
+		return
+	var interval := DataTables.f("balance", "perception/step_interval", 0.45) * clampf(WALK_SPEED / hspeed, 0.5, 2.0)
+	_step_acc += delta
+	if _step_acc < interval:
+		return
+	_step_acc = 0.0
+	var pc := get_node_or_null(^"/root/Perception")
+	var surf := get_node_or_null(^"/root/Surfaces")
+	if pc == null:
+		return
+	var loud := float(surf.call(&"loud_at", global_position)) if surf else 0.4
+	var mul := DataTables.f("balance", "perception/run_mul", 2.0) if sprinting else 1.0
+	if crouching:
+		mul = DataTables.f("balance", "perception/crouch_mul", 0.4)
+	pc.call(&"step", self, global_position, loud, mul)
+
 ## Множитель скорости от помех: мягкие растения рядом (группа soft_plant) и поверхность.
 func _env_speed() -> float:
 	var m := 1.0
@@ -473,7 +504,7 @@ func _use_stamina(amount: float) -> void:
 func _update_stamina_state(delta: float) -> void:
 	_stamina_used_t += delta
 	if _stamina_used_t > STAMINA_REGEN_DELAY:
-		var regen := STAMINA_REGEN * (0.6 if (Vector2(velocity.x, velocity.z).length() > 0.5) else 1.0)
+		var regen := STAMINA_REGEN * stamina_regen_mul * (0.6 if (Vector2(velocity.x, velocity.z).length() > 0.5) else 1.0)
 		stamina = minf(STAMINA_MAX, stamina + regen * delta)
 	# Гистерезис: выдохся на нуле, отдышался на TIRED_RECOVER_AT — без мигания.
 	var was_tired := tired
@@ -678,7 +709,7 @@ func _swim_process(delta: float, wl: float) -> void:
 func _update_vitals(delta: float) -> void:
 	var mul := 1.5 if sprinting else 1.0
 	hunger = maxf(0.0, hunger - HUNGER_PER_SEC * mul * delta)
-	thirst = maxf(0.0, thirst - THIRST_PER_SEC * mul * delta)
+	thirst = maxf(0.0, thirst - THIRST_PER_SEC * mul * thirst_mul * delta)
 	# Дыхание.
 	if is_underwater():
 		breath = maxf(0.0, breath - BREATH_MAX / BREATH_TIME * delta)
