@@ -1,0 +1,767 @@
+{
+ "entries": [
+  {
+   "id": "ground_sand",
+   "name": "Песок",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "beach",
+    "dunes",
+    "lagoon"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Грунт/Песок",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "sand"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/sand/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/sand/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/sand/rough.jpg",
+    "ao": "res://assets/user_pack/ground/sand/ao.jpg",
+    "height": "res://assets/user_pack/ground/sand/height.jpg"
+   },
+   "tile_m": 2.0,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_sand_wet",
+   "name": "Песок мокрый",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "beach",
+    "lagoon"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Грунт/Песок",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "sand",
+    "wet"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/sand_wet/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/sand_wet/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/sand_wet/rough.jpg",
+    "ao": "res://assets/user_pack/ground/sand_wet/ao.jpg",
+    "height": "res://assets/user_pack/ground/sand_wet/height.jpg"
+   },
+   "tile_m": 2.0,
+   "note": "получен из «Песок»: темнее и глаже"
+  },
+  {
+   "id": "ground_forest_floor",
+   "name": "Лесная почва",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Грунт/Лесная почва (Forest_Ground001)",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "forest_floor"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/forest_floor/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/forest_floor/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/forest_floor/rough.jpg",
+    "ao": "res://assets/user_pack/ground/forest_floor/ao.jpg",
+    "height": "res://assets/user_pack/ground/forest_floor/height.jpg"
+   },
+   "tile_m": 2.5,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_mud",
+   "name": "Грязь (мангры)",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "mangrove"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Грунт/Грязь (mud, текстуры)",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "mud",
+    "wet"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/mud/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/mud/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/mud/rough.jpg",
+    "ao": "res://assets/user_pack/ground/mud/ao.jpg",
+    "height": "res://assets/user_pack/ground/mud/height.jpg"
+   },
+   "tile_m": 2.5,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_moss_stone",
+   "name": "Мох на камне",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "jungle"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Грунт/Мох на камне (Moss_Stone001)",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "moss",
+    "rock"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/moss_stone/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/moss_stone/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/moss_stone/rough.jpg",
+    "ao": "res://assets/user_pack/ground/moss_stone/ao.jpg",
+    "height": "res://assets/user_pack/ground/moss_stone/height.jpg"
+   },
+   "tile_m": 2.5,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_dirt",
+   "name": "Земля",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "forest_edge",
+    "lowland_forest",
+    "rocks"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Грунт/Грязь (Dirt001)",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "dirt"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/dirt/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/dirt/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/dirt/rough.jpg",
+    "ao": "res://assets/user_pack/ground/dirt/ao.jpg",
+    "height": "res://assets/user_pack/ground/dirt/height.jpg"
+   },
+   "tile_m": 2.5,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_dirt_2",
+   "name": "Земля (вариант 2)",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "forest_edge",
+    "palm_belt"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Грунт/Грязь (Dirt001)/Textures (2).zip",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "dirt"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/dirt_2/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/dirt_2/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/dirt_2/rough.jpg",
+    "ao": "res://assets/user_pack/ground/dirt_2/ao.jpg",
+    "height": "res://assets/user_pack/ground/dirt_2/height.jpg"
+   },
+   "tile_m": 2.5,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_grass_01",
+   "name": "Трава 1",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Plants/Разная трава (текстуры)/Textures.zip",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "grass"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/grass_01/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/grass_01/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/grass_01/rough.jpg",
+    "ao": "res://assets/user_pack/ground/grass_01/ao.jpg",
+    "height": "res://assets/user_pack/ground/grass_01/height.jpg"
+   },
+   "tile_m": 2.0,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_grass_02",
+   "name": "Трава 2",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Plants/Разная трава (текстуры)/Textures.zip",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "grass"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/grass_02/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/grass_02/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/grass_02/rough.jpg",
+    "ao": "res://assets/user_pack/ground/grass_02/ao.jpg",
+    "height": "res://assets/user_pack/ground/grass_02/height.jpg"
+   },
+   "tile_m": 2.0,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_grass_03",
+   "name": "Трава 3",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Plants/Разная трава (текстуры)/Textures.zip",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "grass"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/grass_03/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/grass_03/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/grass_03/rough.jpg",
+    "ao": "res://assets/user_pack/ground/grass_03/ao.jpg",
+    "height": "res://assets/user_pack/ground/grass_03/height.jpg"
+   },
+   "tile_m": 2.0,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_grass_04",
+   "name": "Трава 4",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Plants/Разная трава (текстуры)/Textures.zip",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "grass"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/grass_04/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/grass_04/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/grass_04/rough.jpg",
+    "ao": "res://assets/user_pack/ground/grass_04/ao.jpg",
+    "height": "res://assets/user_pack/ground/grass_04/height.jpg"
+   },
+   "tile_m": 2.0,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_grass_05",
+   "name": "Трава 5",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Plants/Разная трава (текстуры)/Textures.zip",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "grass"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/grass_05/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/grass_05/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/grass_05/rough.jpg",
+    "ao": "res://assets/user_pack/ground/grass_05/ao.jpg",
+    "height": "res://assets/user_pack/ground/grass_05/height.jpg"
+   },
+   "tile_m": 2.0,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_grass_06",
+   "name": "Трава 6",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Plants/Разная трава (текстуры)/Textures.zip",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "grass"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/grass_06/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/grass_06/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/grass_06/rough.jpg",
+    "ao": "res://assets/user_pack/ground/grass_06/ao.jpg",
+    "height": "res://assets/user_pack/ground/grass_06/height.jpg"
+   },
+   "tile_m": 2.0,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_grass_07",
+   "name": "Трава 7",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Plants/Разная трава (текстуры)/Textures.zip",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "grass"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/grass_07/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/grass_07/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/grass_07/rough.jpg",
+    "ao": "res://assets/user_pack/ground/grass_07/ao.jpg",
+    "height": "res://assets/user_pack/ground/grass_07/height.jpg"
+   },
+   "tile_m": 2.0,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_grass_08",
+   "name": "Трава 8",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Plants/Разная трава (текстуры)/Textures.zip",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "grass"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/grass_08/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/grass_08/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/grass_08/rough.jpg",
+    "ao": "res://assets/user_pack/ground/grass_08/ao.jpg",
+    "height": "res://assets/user_pack/ground/grass_08/height.jpg"
+   },
+   "tile_m": 2.0,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_grass_09",
+   "name": "Трава 9",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Plants/Разная трава (текстуры)/Textures.zip",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "grass"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/grass_09/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/grass_09/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/grass_09/rough.jpg",
+    "ao": "res://assets/user_pack/ground/grass_09/ao.jpg",
+    "height": "res://assets/user_pack/ground/grass_09/height.jpg"
+   },
+   "tile_m": 2.0,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_grass_10",
+   "name": "Трава 10",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Plants/Разная трава (текстуры)/Textures.zip",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "grass"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/grass_10/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/grass_10/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/grass_10/rough.jpg",
+    "ao": "res://assets/user_pack/ground/grass_10/ao.jpg",
+    "height": "res://assets/user_pack/ground/grass_10/height.jpg"
+   },
+   "tile_m": 2.0,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_rock_001",
+   "name": "Камень 001",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "reef_crest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Rocks/Stone001",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "rock",
+    "cliff"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/rock_001/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/rock_001/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/rock_001/rough.jpg",
+    "ao": "res://assets/user_pack/ground/rock_001/ao.jpg",
+    "height": "res://assets/user_pack/ground/rock_001/height.jpg"
+   },
+   "tile_m": 2.5,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_rock_005",
+   "name": "Камень 005",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "reef_crest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Rocks/Камни StoneNNN (текстуры)",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "rock",
+    "cliff"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/rock_005/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/rock_005/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/rock_005/rough.jpg",
+    "ao": "res://assets/user_pack/ground/rock_005/ao.jpg",
+    "height": "res://assets/user_pack/ground/rock_005/height.jpg"
+   },
+   "tile_m": 2.5,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_rock_006",
+   "name": "Камень 006",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "reef_crest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Rocks/Камни StoneNNN (текстуры)",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "rock",
+    "cliff"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/rock_006/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/rock_006/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/rock_006/rough.jpg",
+    "ao": "res://assets/user_pack/ground/rock_006/ao.jpg",
+    "height": "res://assets/user_pack/ground/rock_006/height.jpg"
+   },
+   "tile_m": 2.5,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  },
+  {
+   "id": "ground_rock_007",
+   "name": "Камень 007",
+   "category": "ground",
+   "scene": "",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "reef_crest"
+   ],
+   "size_m": [
+    2.0,
+    0.0,
+    2.0
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Rocks/Stone007",
+   "license": "текстуры (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "rock",
+    "cliff"
+   ],
+   "tex": {
+    "albedo": "res://assets/user_pack/ground/rock_007/albedo.jpg",
+    "normal": "res://assets/user_pack/ground/rock_007/normal.jpg",
+    "roughness": "res://assets/user_pack/ground/rock_007/rough.jpg",
+    "ao": "res://assets/user_pack/ground/rock_007/ao.jpg",
+    "height": "res://assets/user_pack/ground/rock_007/height.jpg"
+   },
+   "tile_m": 2.5,
+   "note": "бесшовная, OpenGL-нормаль (+Y); tile_m — рекомендуемый размер повтора, м"
+  }
+ ]
+}
