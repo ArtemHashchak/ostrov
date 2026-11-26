@@ -121,7 +121,10 @@ void vertex() {
 		atot += a.z;
 	}
 	crest = h / atot;
-	jac = j * amp;
+	// v5: на мелководье гребень круче (вершины сильнее стягиваются к гребню) — как Ocean.steepen()
+	float steep = depth_m > 0.0 ? mix(1.0, 1.7, 1.0 - smoothstep(1.5, 6.0, depth_m)) : 1.0;
+	disp *= steep;
+	jac = j * amp * steep;
 	VERTEX.xz += disp * amp;
 	VERTEX.y = water_level + h * amp - MODEL_MATRIX[3].y;
 	wpos = vec3(base.x + disp.x * amp, water_level + h * amp, base.z + disp.y * amp);

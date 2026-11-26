@@ -539,12 +539,18 @@ static func shoal(d: float) -> float:
 	var swash := 1.0 - smoothstep(0.0, 1.2, -d)
 	return lerpf(0.35 * swash, grow, t * t * (3.0 - 2.0 * t))
 
+## v5: на мелководье гребень круче (как в шейдере: смещение Герстнера ×1..1.7 при глубине 6→1.5 м).
+static func steepen(d: float) -> float:
+	if d <= 0.0:
+		return 1.0
+	return lerpf(1.0, 1.7, 1.0 - smoothstep(1.5, 6.0, d))
+
 func _wave_height(x: float, z: float) -> float:
 	var depth := depth_at(x, z)
 	var shoal := Ocean.shoal(depth)
 	var p := Vector2(x, z)
 	# вершина, что после смещения Герстнера оказалась над (x, z): одна итерация
-	var p0 := p - _gerstner_disp(p)
+	var p0 := p - _gerstner_disp(p) * Ocean.steepen(depth)
 	var h := 0.0
 	for i in n_comp:
 		if _wvtx[i] == 0:

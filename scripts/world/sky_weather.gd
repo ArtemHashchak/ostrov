@@ -720,10 +720,20 @@ func _underwater_fog(cam_y: float, surf: float) -> void:
 	var light := maxf(daylight() * float(_cur.get("sun", 1.0)), maxf(moon_light() * 0.25, 0.015)) + _flash * 0.3
 	var clear_c := Color(0.05, 0.3, 0.36).lerp(Color(0.02, 0.12, 0.26), clampf(depth / 18.0, 0.0, 1.0))
 	var murk_c := Color(0.13, 0.25, 0.2)
-	_env.fog_light_color = clear_c.lerp(murk_c, turbidity) * clampf(light, 0.0, 1.0)
+	# мутность по зоне: мангры и устья — ил (3–5 м), лагуна — кристально (до ~25 м)
+	var zt := turbidity
+	var w := get_parent()
+	var cam := get_viewport().get_camera_3d()
+	if w and cam and w.has_method(&"zone_at"):
+		var z: StringName = w.call(&"zone_at", cam.global_position.x, cam.global_position.z)
+		if z == &"mangrove_water" or z == &"mangrove":
+			zt = maxf(zt, 0.8)
+		elif z == &"lagoon":
+			zt *= 0.6
+	_env.fog_light_color = clear_c.lerp(murk_c, zt) * clampf(light, 0.0, 1.0)
 	_env.fog_light_energy = 1.0
-	# плотность: видимость ~ 3/density м → ясно ~0.13 (≈23 м), муть ~0.7 (≈4 м)
-	_env.fog_density = lerpf(0.13, 0.7, turbidity) * (1.0 + 0.4 * float(_cur.get("rain", 0.0)))
+	# плотность: видимость ~ 3/density м → ясно ~0.12 (≈25 м), муть ~0.7 (≈4 м)
+	_env.fog_density = lerpf(0.12, 0.7, zt) * (1.0 + 0.4 * float(_cur.get("rain", 0.0)))
 
 func is_underwater_view() -> bool:
 	return _underwater

@@ -65,7 +65,7 @@ void fragment() {
 		vec3 vdir = normalize((INV_VIEW_MATRIX * vec4(normalize(vv.xyz / vv.w), 0.0)).xyz);
 		float ang = degrees(acos(clamp(dot(vdir, anti_sun), -1.0, 1.0)));
 		float t = (ang - 40.0) / 2.2;               // 0 — фиолетовый (внутри), 1 — красный (снаружи)
-		float band = smoothstep(-0.15, 0.1, t) * smoothstep(1.15, 0.9, t);
+		float band = smoothstep(-0.15, 0.1, t) * (1.0 - smoothstep(0.9, 1.15, t));
 		vec3 rb = clamp(abs(fract(vec3(0.0, 0.33, 0.67) + (1.0 - t) * 0.8) * 6.0 - 3.0) - 1.0, 0.0, 1.0);
 		float above = smoothstep(-0.02, 0.06, vdir.y);  // дуга не уходит под горизонт моря
 		col += rb * band * above * rainbow * 0.11 * (0.45 + 0.55 * luma(base));
@@ -78,7 +78,7 @@ void fragment() {
 		vec2 ba = (head - tail) * vec2(1.7, 1.0);
 		float h = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0);
 		float dist = length(pa - ba * h);
-		float line = smoothstep(0.0022, 0.0, dist) * h * h;
+		float line = (1.0 - smoothstep(0.0, 0.0022, dist)) * h * h;
 		float fade = sin(meteor_t * 3.14159);
 		col += vec3(0.85, 0.9, 1.0) * line * fade * 1.6;
 	}
