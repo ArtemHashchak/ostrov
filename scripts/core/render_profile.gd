@@ -38,7 +38,7 @@ static func _finish_environment(env: Environment) -> Environment:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.ambient_light_energy = 0.9
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_mode = Environment.TONE_MAPPER_AGX   # v5: как в мире (SkyWeather)
 	env.tonemap_exposure = 1.0
 	env.tonemap_white = 6.0
 	# Туман дымки — важен для «лесной» атмосферы.

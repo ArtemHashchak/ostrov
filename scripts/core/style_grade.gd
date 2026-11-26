@@ -37,10 +37,12 @@ static func apply(env: Environment, world_env: Node = null) -> void:
 			we.camera_attributes = ca
 		# узкий диапазон (≈ ±0.8 EV): яркий пляж чуть темнее, тень джунглей и пещеры чуть светлее
 		ca.auto_exposure_enabled = enabled
-		ca.auto_exposure_min_sensitivity = 70.0
-		ca.auto_exposure_max_sensitivity = 230.0
+		# v5: глаз привыкает к свету — выход из тени джунглей на пляж слепит ~1 с, обратно —
+		# темно ~2 с (диапазон ≈ ±1 EV, скорость выше прежней)
+		ca.auto_exposure_min_sensitivity = 60.0
+		ca.auto_exposure_max_sensitivity = 260.0
 		ca.auto_exposure_scale = 0.4
-		ca.auto_exposure_speed = 0.6
+		ca.auto_exposure_speed = 1.1
 
 
 static func set_enabled(on: bool) -> void:

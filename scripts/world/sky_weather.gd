@@ -12,8 +12,8 @@ const MINUTES_PER_DAY := 24.0     # реальных минут на игров�
 const BLEND_TIME := 120.0
 ## wind — скорость облаков Sky3D; wspd — ветер у земли/моря, м/с; storm — сила шторма 0..1.
 const WEATHERS: Dictionary = {
-	&"clear": {"cov": 0.38, "cirrus": 0.5, "fog": 0.0011, "rain": 0.0, "waves": 1.0, "sun": 1.0, "wind": 1.0, "wspd": 3.0, "storm": 0.0},
-	&"cloudy": {"cov": 0.78, "cirrus": 1.0, "fog": 0.0018, "rain": 0.0, "waves": 1.25, "sun": 0.7, "wind": 2.0, "wspd": 6.0, "storm": 0.1},
+	&"clear": {"cov": 0.38, "cirrus": 0.5, "fog": 0.0007, "rain": 0.0, "waves": 1.0, "sun": 1.0, "wind": 1.0, "wspd": 3.0, "storm": 0.0},
+	&"cloudy": {"cov": 0.78, "cirrus": 1.0, "fog": 0.0013, "rain": 0.0, "waves": 1.25, "sun": 0.7, "wind": 2.0, "wspd": 6.0, "storm": 0.1},
 	&"rain": {"cov": 0.95, "cirrus": 1.4, "fog": 0.0045, "rain": 0.7, "waves": 1.6, "sun": 0.42, "wind": 3.5, "wspd": 10.0, "storm": 0.35},
 	&"fog": {"cov": 0.7, "cirrus": 0.8, "fog": 0.05, "rain": 0.0, "waves": 0.8, "sun": 0.55, "wind": 0.6, "wspd": 1.5, "storm": 0.0},
 	&"storm": {"cov": 1.0, "cirrus": 2.0, "fog": 0.0065, "rain": 1.0, "waves": 3.0, "sun": 0.25, "wind": 9.0, "wspd": 23.0, "storm": 1.0},
@@ -42,6 +42,7 @@ var _lightning_t := 10.0
 var _flash := 0.0
 ## Вспышка молнии освещает сцену сама (ночью солнца нет): свет сверху без теней.
 var _flash_light: DirectionalLight3D
+var _star_light: DirectionalLight3D
 var _underwater := false
 var _env: Environment
 var _cloud_t := 0.0
@@ -55,6 +56,13 @@ var _wind_speed := 3.0
 var _gust := 0.0
 var _wetness := 0.0
 const AMBIENT_BASE := 0.9   # как в RenderProfile
+## v5 свет: AgX вместо Filmic (без «пересвета» и кислотного неба днём, мягкие света), экспозиция под AgX.
+const TONEMAP_EXPOSURE := 1.0
+## Луна на 25% меньше стандартной Sky3D (0.07): в небе выглядела слишком крупной.
+const MOON_SIZE := 0.0525
+## Фаза луны задаётся датой (Sky3D считает небо по-настоящему): от зерна мира — разная в разных
+## матчах; за матч (5 игровых суток) меняется заметно. 2026-01-03 — полнолуние.
+const FULL_MOON_DAY := 3
 
 func setup(start_hour: float = 8.5, seed_value: int = 4242) -> void:
 	_rng.seed = seed_value
@@ -65,7 +73,16 @@ func setup(start_hour: float = 8.5, seed_value: int = 4242) -> void:
 	add_child(sky3d)
 	sky3d.minutes_per_day = MINUTES_PER_DAY
 	sky3d.current_time = start_hour
-	sky3d.tonemap_exposure = 0.85
+	if sky3d.tod:
+		# дата → фаза луны: 0..28 дней от полнолуния 3 января
+		var off := posmod(seed_value * 7 + 11, 29)
+		sky3d.tod.month = 1
+		sky3d.tod.day = 1 + posmod(FULL_MOON_DAY - 1 + off, 29)
+	if sky3d.sky:
+		sky3d.sky.moon_size = MOON_SIZE
+	# рассеянный свет ведёт SkyWeather._apply (каждый кадр) — твины Sky3D не должны его перетягивать
+	sky3d.contribution_tween_time = 0.0
+	sky3d.tonemap_exposure = TONEMAP_EXPOSURE
 	# атмосферный туман Sky3D (экранный квад по глубине) в compat заливает кадр — только Forward+
 	sky3d.fog_enabled = not RenderProfile.is_compat()
 	# Положение солнца/луны и параметры неба — 4 раза в секунду (сутки идут
@@ -93,6 +110,17 @@ func setup(start_hour: float = 8.5, seed_value: int = 4242) -> void:
 	_flash_light.visible = false
 	_flash_light.rotation = Vector3(deg_to_rad(-62.0), deg_to_rad(25.0), 0.0)
 	add_child(_flash_light)
+	# звёздный свет: тусклый холодный свет сверху без теней в безлунную ясную ночь (новолуние —
+	# темно, но силуэты, пена и песок читаются). Работает в обоих рендерах (ambient неба в compat
+	# ночью почти нулевой).
+	_star_light = DirectionalLight3D.new()
+	_star_light.name = "StarLight"
+	_star_light.light_color = Color(0.55, 0.66, 0.92)
+	_star_light.shadow_enabled = false
+	_star_light.light_energy = 0.0
+	_star_light.visible = false
+	_star_light.rotation = Vector3(deg_to_rad(-78.0), deg_to_rad(-30.0), 0.0)
+	add_child(_star_light)
 	lightning = LightningFx.new()
 	lightning.name = "Lightning"
 	add_child(lightning)
@@ -105,7 +133,7 @@ func setup(start_hour: float = 8.5, seed_value: int = 4242) -> void:
 
 ## Окружение Sky3D + наши настройки рендера (SDFGI/SSAO/объёмный туман в Forward+).
 func _apply_render_profile(env: Environment) -> void:
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_mode = Environment.TONE_MAPPER_AGX
 	env.fog_enabled = true
 	env.fog_density = 0.0011
 	env.fog_aerial_perspective = 0.5
@@ -201,6 +229,21 @@ func sun_elevation() -> float:
 ## 0 — ночь, 1 — день; плавно в сумерках.
 func daylight() -> float:
 	return smoothstep(-0.14, 0.12, sun_elevation())
+
+## Освещённая доля диска луны 0 (новолуние) .. 1 (полнолуние) — по взаимному положению солнца и луны.
+func moon_illumination() -> float:
+	if sky3d == null or sky3d.sun == null or sky3d.moon == null:
+		return 0.5
+	var to_sun := sky3d.sun.global_basis.z.normalized()
+	var to_moon := sky3d.moon.global_basis.z.normalized()
+	return clampf((1.0 - to_sun.dot(to_moon)) * 0.5, 0.0, 1.0)
+
+## Сколько света даёт луна сейчас 0..1: фаза × высота над горизонтом (ночью; днём 0).
+func moon_light() -> float:
+	if sky3d == null or sky3d.moon == null:
+		return 0.0
+	var alt := sky3d.moon.global_basis.z.normalized().y
+	return moon_illumination() * smoothstep(-0.02, 0.25, alt) * (1.0 - daylight())
 
 func set_weather(w: StringName, instant: bool = false, auto: bool = true) -> void:
 	if not WEATHERS.has(w):
@@ -392,9 +435,22 @@ func _apply(_dt: float) -> void:
 		_env.fog_light_color = fog_night.lerp(fog_day, dl)
 		# небо ночью почти чёрное → рассеянный свет берём из «облачного» цвета и поднимаем
 		# его энергию в пасмурную ночь: волны, пена, песок и силуэты видны без молнии
-		_env.ambient_light_color = Color(0.17, 0.2, 0.26)
-		_env.ambient_light_sky_contribution = 1.0 - 0.75 * nk
-		_env.ambient_light_energy = AMBIENT_BASE + 1.6 * nk
+		# сумерки (солнце чуть ниже/выше горизонта): тёплый рассеянный свет неба, а не чёрная земля
+		var el := sun_elevation()
+		var tw := clampf(1.0 - absf(el + 0.03) / 0.13, 0.0, 1.0) * (1.0 - overcast * 0.6)
+		# ясная ночь: свет зависит от луны (полнолуние — читаемо, новолуние — темно)
+		var ml := moon_light()
+		var night_k := (1.0 - dl) * (1.0 - overcast)
+		_env.ambient_light_color = Color(0.17, 0.2, 0.26).lerp(Color(0.5, 0.38, 0.33), tw)
+		# безлунная ясная ночь — звёздный свет: небо чёрное, поэтому рассеянный свет берём из цвета,
+		# а не из неба (иначе земля в новолуние — сплошная чернота); силуэты и пена читаются
+		var starlit := night_k * (1.0 - ml)
+		if _star_light:
+			var sl := starlit * 0.16 + night_k * ml * 0.03
+			_star_light.light_energy = sl
+			_star_light.visible = sl > 0.004
+		_env.ambient_light_sky_contribution = (1.0 - 0.75 * maxf(nk, starlit * 0.85)) * (1.0 - 0.5 * tw)
+		_env.ambient_light_energy = (AMBIENT_BASE + 1.6 * nk + 0.9 * tw) * lerpf(1.0, lerpf(0.75, 1.1, ml), night_k)
 		# грейд в шторм затемнял ещё и ночь — ночью под тучами его ослабляем
 		_env.adjustment_brightness += 0.14 * storm * nk + 0.08 * nk
 		# погодный туман + граница «Дальности видимости» (дымка густеет до 100 % на её краю)
