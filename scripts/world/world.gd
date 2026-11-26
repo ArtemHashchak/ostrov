@@ -336,6 +336,26 @@ func add_cut_path(pts: PackedVector2Array) -> void:
 	if trails:
 		trails.add_cut(pts)
 
+## Удар мачете по подлеску (игрок/бот): срубает кусты в радиусе ~1,1 м у точки удара и
+## продолжает прорубленный проход от прошлого удара этого же рубящего (≤ 4 м) — тропа &"cut".
+var _cut_last: Dictionary = {}   # instance_id → Vector2
+func cut_vegetation(cutter: Node, at: Vector3) -> int:
+	var fl := get_tree().get_first_node_in_group(&"flora")
+	var n := 0
+	if fl and fl.has_method(&"clear_brush"):
+		n = int(fl.call(&"clear_brush", at, 1.1))
+	var here := Vector2(at.x, at.z)
+	var id := cutter.get_instance_id() if cutter else 0
+	var prev: Variant = _cut_last.get(id)
+	# проход — только в зарослях (где мешает растительность) или если срублено что-то
+	if n > 0 or (zones and zones.jungle_density(at.x, at.z) > 0.15):
+		if prev != null and (prev as Vector2).distance_to(here) <= 4.0 and (prev as Vector2).distance_to(here) > 0.3:
+			add_cut_path(PackedVector2Array([prev, here]))
+			_cut_last[id] = here
+		elif prev == null or (prev as Vector2).distance_to(here) > 4.0:
+			_cut_last[id] = here
+	return n
+
 ## Можно ли ставить морскую жизнь: открытое море (не отрезанная яма),
 ## глубже min_depth даже в самый низкий отлив.
 func sea_ok(x: float, z: float, min_depth: float = 0.4) -> bool:

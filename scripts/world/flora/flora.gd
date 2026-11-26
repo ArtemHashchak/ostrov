@@ -1091,6 +1091,45 @@ func _tick_plant_colliders(delta: float) -> void:
 func plant_colliders_active() -> int:
 	return _pcol_live.size()
 
+## Прорубить подлесок (мачете): прячет кусты/папоротники/подрост MultiMesh в радиусе и
+## убирает их коллизии (soft/solid) — навсегда. Возвращает, сколько срублено.
+func clear_brush(center: Vector3, radius: float) -> int:
+	var n := 0
+	var r2 := radius * radius
+	var c0 := Vector2i(int(floor((center.x - radius) / BUSH_CHUNK)), int(floor((center.z - radius) / BUSH_CHUNK)))
+	var c1 := Vector2i(int(floor((center.x + radius) / BUSH_CHUNK)), int(floor((center.z + radius) / BUSH_CHUNK)))
+	for key in _bush:
+		var parts := String(key).split("|")
+		if parts.size() < 3:
+			continue
+		var cx := int(parts[1])
+		var cz := int(parts[2])
+		if cx < c0.x or cx > c1.x or cz < c0.y or cz > c1.y:
+			continue
+		var xs: Array = _bush[key]
+		var mm: MultiMesh = _bush_mm.get(key)
+		for i in xs.size():
+			var xf: Transform3D = xs[i]
+			if xf.basis.get_scale().x < 0.001:
+				continue
+			if Vector2(xf.origin.x - center.x, xf.origin.z - center.z).length_squared() > r2:
+				continue
+			xs[i] = Transform3D(Basis().scaled(Vector3.ONE * 0.0001), xf.origin)
+			if mm and i < mm.instance_count:
+				mm.set_instance_transform(i, xs[i])
+			n += 1
+	# коллизии растений в радиусе — из индекса (следующий тик их отпустит в пул)
+	for j in range(int(floor((center.z - radius) / HCELL)), int(floor((center.z + radius) / HCELL)) + 1):
+		for i in range(int(floor((center.x - radius) / HCELL)), int(floor((center.x + radius) / HCELL)) + 1):
+			var arr: Array = _pcol_index.get(Vector2i(i, j), [])
+			for k in range(arr.size() - 1, -1, -1):
+				var xf2: Transform3D = arr[k][1]
+				if Vector2(xf2.origin.x - center.x, xf2.origin.z - center.z).length_squared() <= r2:
+					arr.remove_at(k)
+	_pcol_t = 0.0
+	stats["brush_cut"] = int(stats.get("brush_cut", 0)) + n
+	return n
+
 # --------------------------------------------------------------- стриминг
 
 func _process(delta: float) -> void:

@@ -9,6 +9,8 @@ signal swing_hit(hit: Dictionary)
 const WALK_SPEED := 3.4
 const RUN_SPEED := 6.4
 const CROUCH_SPEED := 1.7
+const TRAIL_CROUCH_MUL := 0.7   # пригнувшись по звериной тропе
+const JUNGLE_DRAG_MAX := 0.75   # густые джунгли вне троп: скорость × (1 − 0.75·густота)
 const CARRY_SPEED_MUL := 0.72   # несёт бревно — медленнее
 const TIRED_SPEED_MUL := 0.82
 const JUMP_HEIGHT := 1.05
@@ -292,7 +294,8 @@ func _perf_physics(delta: float) -> void:
 	sprinting = want_sprint and moving_forward and not crouching and not tired and is_on_floor() and stamina > 0.0
 	var speed := WALK_SPEED
 	if crouching:
-		speed = CROUCH_SPEED
+		# звериная тропа (мир v5): полог ~1,2 м, идёшь пригнувшись, но по проходу — ≈70 % шага
+		speed = WALK_SPEED * TRAIL_CROUCH_MUL if trail_kind == &"animal" else CROUCH_SPEED
 	elif sprinting:
 		speed = RUN_SPEED
 	if carrying_log:
@@ -445,9 +448,30 @@ func _emit_steps(delta: float, hspeed: float) -> void:
 		mul = DataTables.f("balance", "perception/crouch_mul", 0.4)
 	pc.call(&"step", self, global_position, loud, mul)
 
-## Множитель скорости от помех: мягкие растения рядом (группа soft_plant) и поверхность.
+## Тропа под ногами (мир v5): &"" — нет, &"animal" — звериная, &"cut" — прорубленная.
+var trail_kind: StringName = &""
+var veg_drag := 0.0
+var _trail_t := 0.0
+
+## Тропа и густота джунглей под ногами (world.trail_at / vegetation_drag), 6 раз в секунду.
+func _update_trail(force: bool = false) -> void:
+	_trail_t -= get_physics_process_delta_time()
+	if _trail_t > 0.0 and not force:
+		return
+	_trail_t = 1.0 / 6.0
+	var w := get_tree().get_first_node_in_group(&"world")
+	if w == null or not w.has_method(&"trail_at"):
+		trail_kind = &""
+		veg_drag = 0.0
+		return
+	trail_kind = w.call(&"trail_at", global_position.x, global_position.z)
+	veg_drag = float(w.call(&"vegetation_drag", global_position.x, global_position.z)) if w.has_method(&"vegetation_drag") else 0.0
+
+## Множитель скорости от помех: мягкие растения рядом (группа soft_plant), густые
+## джунгли вне троп (мир v5) и поверхность. Растения и джунгли — не складываются (минимум).
 func _env_speed() -> float:
-	var m := 1.0
+	_update_trail()
+	var m := 1.0 - JUNGLE_DRAG_MAX * clampf(veg_drag, 0.0, 1.0)
 	if _brush == null:
 		_brush = Area3D.new()
 		_brush.name = "BrushSensor"
@@ -573,6 +597,12 @@ func _on_swing_impact() -> void:
 	hit["item"] = id
 	swing_hit.emit(hit)
 	Events.player_swing.emit(self, hit)
+	# мачете прорубает подлесок и проход (мир v5: world.cut_vegetation)
+	if id == &"machete":
+		var w := get_tree().get_first_node_in_group(&"world")
+		if w and w.has_method(&"cut_vegetation"):
+			var at: Vector3 = hit.position if hit.has("position") else from - camera.global_transform.basis.z * minf(reach, 1.6)
+			w.call(&"cut_vegetation", self, at)
 	if hit.has("collider"):
 		var target := _find_with_method(hit.collider as Node, &"on_hit")
 		if target:
