@@ -386,6 +386,7 @@ func populate() -> void:
 		_equalize_starters()
 	_build_trees()
 	_build_bushes()
+	_index_plant_colliders()
 	populated = true
 	stats["ms_populate"] = Time.get_ticks_msec() - t0
 	_tick(true)
@@ -1002,6 +1003,94 @@ func _build_bushes() -> void:
 		add_child(mmi)
 	stats["bush_mmi"] = _bush.size()
 
+# --------------------------------------------------------------- коллизии растений у игрока
+## Подлесок (MultiMesh) коллизий не имеет; у игроков (≈PLANT_COL_R м) по каталогу
+## (assets/catalog, поле collision) создаются: solid — StaticBody3D (не пройти:
+## маленькие пальмы, стволистые), soft — Area3D группы soft_plant (замедляют: кусты,
+## алоказия, папоротники; замедление игрока — агент F). Пул, обновление 3 раза в секунду.
+
+const PLANT_COL_R := 26.0
+const PLANT_COL_TICK := 0.3
+var _pcol_index: Dictionary = {}    # Vector2i(16 м) → Array [[catalog_id, Transform3D]]
+var _pcol_live: Dictionary = {}     # "cid|x|z" → CollisionObject3D
+var _pcol_pool: Dictionary = {}     # catalog_id → Array[CollisionObject3D]
+var _pcol_t := 0.0
+var _pcol_root: Node3D
+
+func _index_plant_colliders() -> void:
+	var by_pack := {}
+	for e in AssetCatalog.entries():
+		var pid := String(e.get("pack_id", ""))
+		if pid != "" and String(e.get("collision", "none")) != "none":
+			by_pack[pid] = String(e.id)
+	var n := 0
+	for key in _bush:
+		var pid := String(key).split("|")[0]
+		if not by_pack.has(pid):
+			continue
+		var cid: String = by_pack[pid]
+		for xf: Transform3D in _bush[key]:
+			var k := Vector2i(int(floor(xf.origin.x / HCELL)), int(floor(xf.origin.z / HCELL)))
+			if not _pcol_index.has(k):
+				_pcol_index[k] = []
+			(_pcol_index[k] as Array).append([cid, xf])
+			n += 1
+	stats["plant_colliders_indexed"] = n
+	_pcol_root = Node3D.new()
+	_pcol_root.name = "PlantColliders"
+	add_child(_pcol_root)
+
+func _tick_plant_colliders(delta: float) -> void:
+	_pcol_t -= delta
+	if _pcol_t > 0.0 or _pcol_index.is_empty():
+		return
+	_pcol_t = PLANT_COL_TICK
+	var want := {}
+	for pl in get_tree().get_nodes_in_group(&"player"):
+		if not (pl is Node3D):
+			continue
+		var p := (pl as Node3D).global_position
+		var r := PLANT_COL_R
+		for j in range(int(floor((p.z - r) / HCELL)), int(floor((p.z + r) / HCELL)) + 1):
+			for i in range(int(floor((p.x - r) / HCELL)), int(floor((p.x + r) / HCELL)) + 1):
+				for it in _pcol_index.get(Vector2i(i, j), []):
+					var xf: Transform3D = it[1]
+					if Vector2(xf.origin.x - p.x, xf.origin.z - p.z).length_squared() < r * r:
+						want["%s|%d|%d" % [it[0], int(xf.origin.x * 10.0), int(xf.origin.z * 10.0)]] = it
+	for key: String in _pcol_live.keys():
+		if not want.has(key):
+			var o: CollisionObject3D = _pcol_live[key]
+			_pcol_live.erase(key)
+			o.process_mode = Node.PROCESS_MODE_DISABLED
+			o.visible = false
+			(o.get_child(0) as CollisionShape3D).disabled = true
+			var cid := String(o.get_meta(&"catalog_id"))
+			if not _pcol_pool.has(cid):
+				_pcol_pool[cid] = []
+			(_pcol_pool[cid] as Array).append(o)
+	for key: String in want:
+		if _pcol_live.has(key):
+			continue
+		var it: Array = want[key]
+		var cid: String = it[0]
+		var o: CollisionObject3D = null
+		var pool: Array = _pcol_pool.get(cid, [])
+		if not pool.is_empty():
+			o = pool.pop_back()
+		else:
+			o = AssetCatalog.make_collider(cid)
+			if o == null:
+				continue
+			_pcol_root.add_child(o)
+		o.process_mode = Node.PROCESS_MODE_INHERIT
+		(o.get_child(0) as CollisionShape3D).disabled = false
+		o.global_transform = it[1]
+		_pcol_live[key] = o
+
+## Активные коллизии растений у игрока (тест/отладка).
+func plant_colliders_active() -> int:
+	return _pcol_live.size()
+
 # --------------------------------------------------------------- стриминг
 
 func _process(delta: float) -> void:
@@ -1011,6 +1100,7 @@ func _process(delta: float) -> void:
 
 func _perf_process(delta: float) -> void:
 	_now += delta
+	_tick_plant_colliders(delta)
 	_tick_t += delta
 	if _tick_t >= TICK:
 		_tick_t = 0.0

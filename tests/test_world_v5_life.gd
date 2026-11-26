@@ -62,6 +62,28 @@ func run() -> void:
 			belt = maxi(belt, _bushes_near(fl, p, 30.0))
 	print("[test] подлесок: центр %d, пояс пальм %d (кустов в круге 30 м)" % [core, belt])
 	check(core > 250 and core > belt * 2, "джунгли — стена в центре: %d кустов против %d" % [core, belt])
+	# 3б) коллизии растений у игрока: в джунглях — твёрдые и мягкие рядом, вдали — нет
+	var pl := get_tree().get_first_node_in_group(&"player") as Node3D
+	if pl == null:
+		pl = Node3D.new()     # модуль игрока может не собраться — проверяем рассадку без него
+		pl.add_to_group(&"player")
+		w.add_child(pl)
+	if pl:
+		var jp := cc + Vector2(float(C.radius) * 0.4, 0.0)
+		pl.global_position = Vector3(jp.x, w.height_at(jp.x, jp.y) + 1.0, jp.y)
+		await wait(1.0)
+		var act := fl.plant_colliders_active()
+		var soft := get_tree().get_nodes_in_group(&"soft_plant").filter(func(n: Node) -> bool: return (n as Area3D).process_mode != Node.PROCESS_MODE_DISABLED).size()
+		print("[test] коллизии растений у игрока: %d (мягких %d), индекс %d" % [act, soft, int(fl.stats.get("plant_colliders_indexed", 0))])
+		check(act > 20 and soft > 5, "у игрока в джунглях есть коллизии растений: %d (мягких %d)" % [act, soft])
+		var far_ok := true
+		for n in get_tree().get_nodes_in_group(&"soft_plant"):
+			var np := (n as Node3D).global_position
+			if (n as Node3D).process_mode != Node.PROCESS_MODE_DISABLED and Vector2(np.x - pl.global_position.x, np.z - pl.global_position.z).length() > Flora.PLANT_COL_R + 2.0:
+				far_ok = false
+				break
+		check(far_ok, "коллизии растений только рядом с игроком")
+		check(w.vegetation_drag(jp.x, jp.y) > 0.4, "в густых джунглях растительность мешает идти: %.2f" % w.vegetation_drag(jp.x, jp.y))
 	# 4) кораллы — только на рифах и ниже самого низкого отлива
 	var reefs := get_tree().get_first_node_in_group(&"sea_reefs")
 	var bad := 0
@@ -84,6 +106,10 @@ func run() -> void:
 	check(off_reef < n * 0.08, "кораллы на рифах (вне рифа %d из %d — край ячейки)" % [off_reef, n])
 	# 5) морская живность: камера над рифом — группы только в открытом море и под водой в отлив
 	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		cam = Camera3D.new()
+		w.add_child(cam)
+		cam.current = true
 	var reef_pt := Vector2.ZERO
 	for k in zm.zone.size():
 		if zm.zone[k] == ZoneMap.Z_REEF_FLAT:
@@ -113,3 +139,6 @@ func _bushes_near(fl: Flora, c: Vector2, r: float) -> int:
 			if Vector2(xf.origin.x, xf.origin.z).distance_to(c) < r:
 				n += 1
 	return n
+
+func _after_plants() -> void:
+	pass
