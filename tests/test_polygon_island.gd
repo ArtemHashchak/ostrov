@@ -45,4 +45,5 @@ func run() -> void:
 	await wait(1.0)
 	check(st.recorder != null and st.recorder.frames.size() > 5, "реплей пишет запись на острове")
 	print("[test] память: %.0f МБ" % (Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0))
-	shot(id)
+	await wait(1.0)
+	await shot(id)
