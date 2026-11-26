@@ -18,8 +18,9 @@ const MODULES: Array[Dictionary] = [
 	{"slot": "Fauna", "scene": "res://scenes/fauna/fauna.tscn", "set": {"auto_populate": false}},
 	{"slot": "Survival", "scene": "res://scenes/survival/survival.tscn", "set": {"spawn_debris": false, "spawn_wild": false}},
 	{"slot": "Combat", "scene": "res://scenes/combat/combat.tscn"},
-	{"slot": "Supply", "script": "res://scripts/supply/supply.gd"},
 ]
+## Модуль посылок (Supply) не подключаем: на полигоне не нужны заставка «В эфире», ведущий,
+## дроны и сбросы по таймеру; предметы посылок регистрирует PolygonExhibits (SupplyItems).
 
 signal ready_to_play
 signal section_built(id: StringName)

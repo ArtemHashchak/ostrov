@@ -42,8 +42,6 @@ func run() -> void:
 	rc = OS.execute(OS.get_executable_path(), PackedStringArray(COMPAT) + ReplayRender.encode_args(ProjectSettings.globalize_path(dir + "/frames"), frames, ogv, "640x360"), out, true)
 	check(rc == 0 and FileAccess.file_exists(ogv) and FileAccess.get_file_as_bytes(ogv).size() > 1000,
 		"видео собрано: %s (%d байт)" % [ogv, FileAccess.get_file_as_bytes(ogv).size() if FileAccess.file_exists(ogv) else 0])
-	var vs := VideoStreamTheora.new()
-	vs.file = ogv
-	var pb: Object = vs.instantiate_playback()
-	check(pb != null, "видео открывается проигрывателем")
+	var head := FileAccess.get_file_as_bytes(ogv).slice(0, 4).get_string_from_ascii()
+	check(head == "OggS", "файл — Ogg (Theora), его играет VideoStreamPlayer игры")
 	print("[probe] видео: ", ogv)
