@@ -19,6 +19,7 @@ var stats := {"stands": 0, "plots": 0, "nodes": 0, "ms": 0}
 var dummies: Array = []
 var _tables: Array = []         # {pos, id, n, node}
 var _freeze: Array = []         # узлы, которые «заморозить» через пару кадров (стенды существ)
+var _pens: Array = []           # {node, c: Vector3, r, top} — живые держатся в своём вольере
 
 func setup(s: Dictionary) -> PolygonSection:
 	sec = s
@@ -199,6 +200,15 @@ static func world_aabb(n: Node3D) -> AABB:
 		if v == null or not v.is_visible_in_tree() or v is Label3D:
 			continue
 		var b := v.global_transform * v.get_aabb()
+		# меш со скелетом рисуется по костям: его AABB бывает в других единицах
+		# (персонаж Mixamo: меш в метрах под узлом ×0.01) — рамка по костям
+		if v is MeshInstance3D and (v as MeshInstance3D).skin != null:
+			var sk := (v as MeshInstance3D).get_node_or_null((v as MeshInstance3D).skeleton) as Skeleton3D
+			if sk and sk.get_bone_count() > 1:
+				var bb := AABB(sk.global_transform * sk.get_bone_global_pose(0).origin, Vector3.ZERO)
+				for bi in sk.get_bone_count():
+					bb = bb.expand(sk.global_transform * sk.get_bone_global_pose(bi).origin)
+				b = bb.grow(0.08)
 		if b.size == Vector3.ZERO:
 			continue
 		box = b if first else box.merge(b)
@@ -300,15 +310,15 @@ func _plot(pl: Dictionary) -> void:
 		&"animals":
 			P.pen(self, p.x, p.y, s * 0.5, 1.4)
 			for i in 2:
-				_live(e, Vector3(p.x + (i - 0.5) * 2.0, g + 0.3, p.y), s * 0.22)
+				_pen_keep(_live(e, Vector3(p.x + (i - 0.5) * 2.0, g + 0.3, p.y), s * 0.22), p, g, s * 0.5 - 1.0, 99.0)
 		&"birds":
 			_aviary(p, s * 0.5)
 			for i in 3:
-				_live(e, Vector3(p.x + (i - 1) * 1.5, g + 2.0, p.y), s * 0.2)
+				_pen_keep(_live(e, Vector3(p.x + (i - 1) * 1.5, g + 2.0, p.y), s * 0.2), p, g, s * 0.5 - 0.8, 5.0)
 		&"small":
 			_terrarium(p, s * 0.5)
 			for i in 2:
-				_live(e, Vector3(p.x + (i - 0.5) * 1.2, g + 0.2, p.y), s * 0.2)
+				_pen_keep(_live(e, Vector3(p.x + (i - 0.5) * 1.2, g + 0.2, p.y), s * 0.2), p, g, s * 0.5 - 0.3, 99.0)
 		&"plants", &"rocks":
 			_bed(p, s)
 			for i in 5:
@@ -342,7 +352,7 @@ func _plot_frame(pl: Dictionary) -> void:
 		&"plants", &"rocks", &"trees":
 			_plot(pl)
 
-func _live(e: Dictionary, pos: Vector3, home_r: float) -> void:
+func _live(e: Dictionary, pos: Vector3, home_r: float) -> Node3D:
 	var n: Node3D = null
 	if String(e.src) == "spawner":
 		var info: Dictionary = e.entry
@@ -374,6 +384,40 @@ func _live(e: Dictionary, pos: Vector3, home_r: float) -> void:
 		# движущиеся (не растения/камни) — актёры реплея
 		if e.section in [&"animals", &"birds", &"small", &"sea"] and not n.is_in_group(&"wild_animals"):
 			n.add_to_group(&"replay_actor")
+	return n
+
+## Живое существо держится в своём вольере/птичнике/террариуме: если ушло за сетку
+## (мозг зверя не знает о вольере) — возвращается внутрь; птицы — не выше потолка.
+func _pen_keep(n: Node3D, c: Vector2, g: float, r: float, top: float) -> void:
+	if n:
+		_pens.append({"node": n, "c": Vector3(c.x, g, c.y), "r": maxf(r, 0.5), "top": top})
+
+func _keep_in_pens() -> void:
+	for pk: Dictionary in _pens:
+		var n: Variant = pk.node
+		if n == null or not is_instance_valid(n) or not (n as Node3D).is_inside_tree():
+			continue
+		var a := n as Node3D
+		var c: Vector3 = pk.c
+		var off := Vector2(a.global_position.x - c.x, a.global_position.z - c.z)
+		var r := float(pk.r)
+		var p := a.global_position
+		var moved := false
+		if off.length() > r:
+			var q := off.normalized() * r * 0.7
+			p.x = c.x + q.x
+			p.z = c.z + q.y
+			moved = true
+		if p.y > c.y + float(pk.top) - 0.3:
+			p.y = c.y + float(pk.top) - 0.6
+			moved = true
+		if p.y < c.y - 1.0:
+			p.y = c.y + 0.2
+			moved = true
+		if moved:
+			a.global_position = p
+			if a is CharacterBody3D:
+				(a as CharacterBody3D).velocity = Vector3.ZERO
 
 func _aviary(p: Vector2, r: float) -> void:
 	var pen := P.pen(self, p.x, p.y, r, 5.5)
@@ -520,6 +564,7 @@ func _process(delta: float) -> void:
 	if _tick > 0.0:
 		return
 	_tick = 0.3
+	_keep_in_pens()
 	# предметы на столах не кончаются: взятый — появляется снова
 	for te: Dictionary in _tables:
 		var n: Variant = te.node
