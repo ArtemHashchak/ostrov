@@ -3,6 +3,7 @@ extends TestCase
 ## с топором и динамитом. Они дерутся (урон, смерть, возрождение у флага), налётчик
 ## ломает флаг команды 1; после этого павший защитник больше не возрождается.
 ## Время ускорено (Engine.time_scale).
+## test-timeout: 1500
 
 var bots: Bots
 var cam: Camera3D
@@ -16,7 +17,7 @@ var bot_deaths: Array[Dictionary] = []
 var flag_lost_at: Dictionary = {}   # team -> match_time гибели флага
 
 func _init() -> void:
-	OS.set_environment("OSTROVA_GEN", "4")   # боты пока не плавают на плотах — бой на прежнем архипелаге
+	OS.set_environment("OSTROVA_GEN", "4")   # правила боя; в v5 павший налётчик возрождается за 1,8 км и плывёт ~15 мин — переправы проверяет test_v5_bot_boat
 	scene_path = "res://scenes/world/match.tscn"
 	timeout_sec = 1480.0
 	Game.pending_config = {"bots_enemy": 0, "bots_ally": 0, "minutes": 0}
@@ -89,8 +90,8 @@ func run() -> void:
 			await snap("fight")
 		if int(Game.match_time - t0) / 15 != last_log:
 			last_log = int(Game.match_time - t0) / 15
-			print("[bots] t=%d flag1=%d def[%s hp=%d] raid[%s hp=%d] dmg=%d deaths=%d" % [int(Game.match_time - t0), int(Game.teams[1].flag_hp),
-				defender.brain.status, int(defender.health), raider.brain.status, int(raider.health), damaged_by_bot, deaths.size()])
+			print("[bots] t=%d flag1=%d def[%s hp=%d] raid[%s hp=%d d_flag=%.1f stuck=%d path=%d] dmg=%d deaths=%d" % [int(Game.match_time - t0), int(Game.teams[1].flag_hp),
+				defender.brain.status, int(defender.health), raider.brain.status, int(raider.health), raider.global_position.distance_to(fp), raider.stuck, raider.path.size(), damaged_by_bot, deaths.size()])
 		if not Game.teams[1].flag_alive and (deaths.has(defender) or Game.match_time - t0 > 600.0):
 			break
 	# дождаться, пока у всех павших истечёт таймер возрождения
