@@ -251,19 +251,20 @@ func _relax_v5() -> void:
 	# параметры, зависящие от центра, пересчитать (стоки/водопады строились до сдвига — сдвигаем вместе)
 
 func _place_monuments(rng: RandomNumberGenerator, center: Dictionary, larges: Array[Dictionary], mediums: Array[Dictionary], extras: Array[Dictionary]) -> void:
-	# корабль на мели: у рифа кораллового/кей-острова и на барьерном рифе
+	# корабль на мели: у берега кораллового острова и кея (риф у пляжа) и на
+	# подветренном пляже большого «саванного» острова — рядом с сушей (записки, разбор)
+	var wreck_isl: Array[Dictionary] = []
 	for E in extras:
 		if E.type == &"coral" or E.type == &"cay":
-			var a := rng.randf() * TAU
-			var p := (E.center as Vector2) + Vector2.from_angle(a) * float(E.radius) * 1.45
-			wreck_spots.append({"pos": p, "yaw": a + PI * 0.5, "sink": 2.6, "island": E.id})
-			monuments.append({"type": &"shipwreck", "pos": p, "island": E.id, "yaw": a + PI * 0.5})
-	var ra := rng.randf() * TAU
-	if not reef_passes.is_empty():
-		ra = reef_passes[0].x + reef_passes[0].y * 2.5
-	var rp := _polar(ra, reef_r + 6.0)
-	wreck_spots.append({"pos": rp, "yaw": ra, "sink": 3.0, "island": center.id})
-	monuments.append({"type": &"shipwreck", "pos": rp, "island": -1, "yaw": ra})
+			wreck_isl.append(E)
+	for L in larges:
+		if L.type == &"savanna":
+			wreck_isl.append(L)
+	for E in wreck_isl:
+		var a := atan2(-IslandGen.WIND_FROM.y, -IslandGen.WIND_FROM.x) + rng.randf_range(-0.9, 0.9)
+		var p := (E.center as Vector2) + Vector2.from_angle(a) * _coast_r(E, a) * 1.1
+		wreck_spots.append({"pos": p, "yaw": a + PI * 0.5 + rng.randf_range(-0.4, 0.4), "sink": 1.6, "island": E.id})
+		monuments.append({"type": &"shipwreck", "pos": p, "island": E.id, "yaw": a + PI * 0.5})
 	# родники: пресное озеро на двух больших (не мангровых) островах + пруд на вулкане (есть у водопада)
 	var n_spring := 0
 	for L in larges:

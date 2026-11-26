@@ -2,6 +2,7 @@ extends TestCase
 ## WORLD G1: API высот = коллизия, острова/биомы/спавн, океан, небо, погода.
 
 func _init() -> void:
+	OS.set_environment("OSTROVA_GEN", "4")   # прежний архипелаг (25 островов, проливы 40–110 м)
 	scene_path = "res://scenes/world/match.tscn"
 	timeout_sec = 1400.0
 

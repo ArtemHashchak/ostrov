@@ -4,6 +4,7 @@ extends TestCase
 ## совпадение высот с коллизией, LOD/производительность, скриншоты.
 
 func _init() -> void:
+	OS.set_environment("OSTROVA_GEN", "4")   # прежний архипелаг (25 островов, проливы 40–110 м)
 	scene_path = "res://scenes/world/world_view.tscn"
 	timeout_sec = 1450.0
 

@@ -169,7 +169,9 @@ func run() -> void:
 		st.get("ms_populate", -1), st.get("ms", -1), nodes, mmi, st.get("tree_chunks", 0), frames,
 		RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
 		RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME)])
-	check(nodes < 4000, "узлов Flora немного: %d" % nodes)
+	# мир v5 (≈3×3 км, суши ×2) — порог больше
+	var lim := 9000 if (get_tree().get_first_node_in_group(&"world") as World).gen_version >= 5 else 4000
+	check(nodes < lim, "узлов Flora немного: %d (порог %d)" % [nodes, lim])
 
 ## Камера у ближайшего узла вида kind (в нужном биоме): offset — откуда смотрим, look_h — высота взгляда.
 func _shot_kind(name: String, kind: StringName, offset: Vector3, look_h: float, biomes: Array) -> void:

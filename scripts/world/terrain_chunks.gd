@@ -578,8 +578,16 @@ func _update_wanted(foci: Array[Vector3], sync: bool) -> void:
 			_sample_into(key, data)
 			_build_live(key, data)
 			continue
-		_pending[key] = true
-		WorkerThreadPool.add_task(_stream_job.bind(key), false, "terrain stream")
+		_pending[key] = WorkerThreadPool.add_task(_stream_job.bind(key), false, "terrain stream")
+
+## Перед удалением узла дождаться потоков выборки (иначе они читают освобождённое).
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE or what == NOTIFICATION_EXIT_TREE:
+		for k: Vector2i in _pending:
+			var id := int(_pending[k])
+			if id >= 0:
+				WorkerThreadPool.wait_for_task_completion(id)
+		_pending.clear()
 
 func _stream_job(key: Vector2i) -> void:
 	var data := {}
@@ -599,6 +607,9 @@ func _build_ready() -> void:
 		_mutex.unlock()
 		if item.is_empty():
 			break
+		var tid := int(_pending.get(item[0], -1))
+		if tid >= 0:
+			WorkerThreadPool.wait_for_task_completion(tid)   # задача уже завершена — только освобождение
 		_pending.erase(item[0])
 		if not _live.has(item[0]):
 			_build_live(item[0], item[1])

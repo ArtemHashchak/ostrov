@@ -7,6 +7,7 @@ var bots: Bots
 var cam: Camera3D
 
 func _init() -> void:
+	OS.set_environment("OSTROVA_GEN", "4")   # прежний архипелаг (25 островов, проливы 40–110 м)
 	scene_path = "res://scenes/world/match.tscn"
 	timeout_sec = 1480.0
 	Game.pending_config = {"bots_enemy": 0, "bots_ally": 0, "minutes": 0}

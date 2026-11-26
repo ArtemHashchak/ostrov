@@ -11,7 +11,7 @@ signal weather_changed(w: StringName)
 ## Генератор мира: 4 — прежний архипелаг (25 островов), 5 — новый (ArchipelagoV5,
 ## ≈3×3 км, граф островов, барьерный риф). Переменная окружения OSTROVA_GEN
 ## переопределяет (тесты). Карта зон (ZoneMap) строится для обоих.
-@export var gen_version: int = 4
+@export var gen_version: int = 5
 @export var start_hour: float = 8.5
 @export var tide_amplitude: float = 0.8
 @export var tide_period: float = 480.0     # секунд на цикл прилив→отлив→прилив
@@ -21,6 +21,8 @@ const SAND_TOP := 1.6
 var arch: Archipelago
 ## Карта зон (A11): все, кто ставит что-то в мир, спрашивают её (zone_at и др.).
 var zones: ZoneMap
+## Декор особенностей островов v5 (ручьи, водопады, гроты) — IslandDecor.
+var island_decor: Node3D
 ## Звериные тропы и прорубленные проходы (TrailNet).
 var trails: TrailNet
 var terrain: TerrainChunks
@@ -66,6 +68,12 @@ func _ready() -> void:
 	var t_ocean := Time.get_ticks_msec()
 	_make_lakes()
 	_make_wrecks()
+	if gen_version >= 5 and arch is IslandGen:
+		# ручьи, водопады, гроты, птичьи карнизы островов-рецептов
+		island_decor = IslandDecor.new()
+		island_decor.name = "IslandDecor"
+		add_child(island_decor)
+		island_decor.build(self, arch as IslandGen)
 	sky = SkyWeather.new()
 	sky.name = "SkyWeather"
 	add_child(sky)
