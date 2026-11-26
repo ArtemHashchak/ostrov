@@ -165,11 +165,45 @@ func _stand(st: Dictionary) -> void:
 		add_child(n)
 		n.global_position = Vector3(p.x, top, p.y)
 		n.rotation.y = deg_to_rad(-25.0)
+	if n and n.is_inside_tree():
+		fit(n, sz, String(e.src) == "catalog")
 	var label_y := top + clampf(sz.y, 0.4, 10.0) + 0.5
 	if sec.id == &"sea":
 		label_y = ground(p.x, p.y) + 0.6
 	_label(p.x, p.y + (0.0 if sec.id == &"sea" else maxf(sz.z, 0.8) * 0.5 + 0.5), label_y if sec.id != &"sea" else 1.9,
 		String(e.name))
+
+## Масштаб показа: модели авторов бывают в сантиметрах или дюймах (попугай — 40 м).
+## Рамка всех мешей сравнивается с размером экспоната (size_m каталога или типичный для
+## раздела): каталог — подгоняется к size_m (если расхождение больше чем в 1.6 раза),
+## остальные — только явные ошибки (больше 4 раз). Модель не меняется, только узел показа.
+static func fit(n: Node3D, size: Vector3, strict: bool) -> void:
+	var box := world_aabb(n)
+	if box.size == Vector3.ZERO:
+		return
+	var have := maxf(box.size.x, maxf(box.size.y, box.size.z))
+	var want := maxf(size.x, maxf(size.y, size.z))
+	if have <= 0.0001 or want <= 0.0001:
+		return
+	var k := want / have
+	var lim := 1.6 if strict else 4.0
+	if k > lim or k < 1.0 / lim:
+		n.scale *= k
+		n.set_meta(&"polygon_fit", k)
+
+static func world_aabb(n: Node3D) -> AABB:
+	var box := AABB()
+	var first := true
+	for vi in n.find_children("*", "VisualInstance3D", true, false) + ([n] if n is VisualInstance3D else []):
+		var v := vi as VisualInstance3D
+		if v == null or not v.is_visible_in_tree() or v is Label3D:
+			continue
+		var b := v.global_transform * v.get_aabb()
+		if b.size == Vector3.ZERO:
+			continue
+		box = b if first else box.merge(b)
+		first = false
+	return box
 
 func _catalog_node(id: String) -> Node3D:
 	var cs := PolygonExhibits.catalog_script()
@@ -327,6 +361,8 @@ func _live(e: Dictionary, pos: Vector3, home_r: float) -> void:
 				n.global_position = pos
 				n.rotation.y = randf() * TAU
 	if n:
+		if n.is_inside_tree():
+			fit(n, e.size, String(e.src) == "catalog")
 		n.set_meta(&"polygon_live", true)
 		# движущиеся (не растения/камни) — актёры реплея
 		if e.section in [&"animals", &"birds", &"small", &"sea"] and not n.is_in_group(&"wild_animals"):
