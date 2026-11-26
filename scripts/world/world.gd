@@ -44,15 +44,17 @@ func _ready() -> void:
 	terrain.name = "Terrain"
 	add_child(terrain)
 	var t_arch := Time.get_ticks_msec()
-	terrain.build(arch, terrain_material)
-	var t_terr := Time.get_ticks_msec()
 	zones = ZoneMap.new()
 	zones.build(arch, Callable(), ZoneMap.make_key(seed_value, "g%d|%s" % [gen_version, str(arch.bounds)]))
 	var t_zone := Time.get_ticks_msec()
+	# мир v5 (≈3×3 км): подробный рельеф подгружается вокруг игрока/ботов/камеры
+	terrain.streaming = gen_version >= 5
+	terrain.build(arch, terrain_material, zones)
+	var t_terr := Time.get_ticks_msec()
 	_make_deep_floor()
 	ocean = Ocean.new()
 	add_child(ocean)
-	ocean.build(terrain.height_at, arch.bounds.grow(60.0))
+	ocean.build(_ocean_height if gen_version >= 5 else terrain.height_at, arch.bounds.grow(60.0))
 	var t_ocean := Time.get_ticks_msec()
 	_make_lakes()
 	_make_wrecks()
@@ -62,8 +64,8 @@ func _ready() -> void:
 	sky.setup(start_hour, seed_value)
 	sky.weather_changed.connect(func(w: StringName) -> void: weather_changed.emit(w))
 	build_ms = Time.get_ticks_msec() - t0
-	build_stats = {"total_ms": build_ms, "layout_ms": t_arch - t0, "terrain_ms": t_terr - t_arch,
-			"zones_ms": t_zone - t_terr, "ocean_ms": t_ocean - t_zone, "terrain": terrain.stats, "islands": arch.islands.size(),
+	build_stats = {"total_ms": build_ms, "layout_ms": t_arch - t0, "zones_ms": t_zone - t_arch,
+			"terrain_ms": t_terr - t_zone, "ocean_ms": t_ocean - t_terr, "terrain": terrain.stats, "islands": arch.islands.size(),
 			"gen": gen_version}
 	print("[world] построен за %d мс: %s, чанки %s" % [build_ms, str(build_stats), str(terrain.chunk_count())])
 	is_ready = true
@@ -272,6 +274,14 @@ func biome_at(x: float, z: float) -> StringName:
 	if w.r > 0.5:
 		return &"jungle"
 	return &"meadow"
+
+## Высота для карты глубин океана (v5): у берега — точная, в море — из карты зон
+## (точная выборка 3×3 км заняла бы ~20 с).
+func _ocean_height(x: float, z: float) -> float:
+	var hz := zones.height_lerp(x, z)
+	if hz > -5.0 and hz < 4.0:
+		return arch.height(x, z)
+	return hz
 
 ## Зона в точке (ZoneMap.NAMES: beach, jungle, reef_crest, lagoon, …).
 func zone_at(x: float, z: float) -> StringName:

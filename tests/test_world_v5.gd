@@ -102,3 +102,35 @@ func run() -> void:
 		core += zm.jungle_density(pc.x, pc.y)
 		edge += zm.jungle_density(pe.x, pe.y)
 	check(core > edge * 1.3, "джунгли гуще к центру острова: %.2f против %.2f" % [core / 200.0, edge / 200.0])
+	# 7) потоковый рельеф: вокруг фокуса — подробные чанки и коллизия = API высот
+	var tc := w.terrain
+	check(tc.streaming, "рельеф v5 — потоковый")
+	var sp := w.spawn_point(0)
+	tc.focus_override = [sp] as Array[Vector3]
+	await wait(3.0)
+	check(tc.live_count() > 10, "вокруг спавна загружены подробные чанки: %d" % tc.live_count())
+	var space := w.get_world_3d().direct_space_state
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var maxerr := 0.0
+	var samples := 0
+	for k in 300:
+		var x := sp.x + rng.randf_range(-120.0, 120.0)
+		var z := sp.z + rng.randf_range(-120.0, 120.0)
+		var q := PhysicsRayQueryParameters3D.create(Vector3(x, 80.0, z), Vector3(x, -60.0, z))
+		var hit := space.intersect_ray(q)
+		if hit.is_empty() or not (hit.collider as Node).is_in_group(&"terrain"):
+			continue
+		maxerr = maxf(maxerr, absf((hit.position as Vector3).y - w.height_at(x, z)))
+		samples += 1
+	check(samples > 200 and maxerr < 0.02, "у спавна коллизия = API высот: %d точек, ошибка %.4f" % [samples, maxerr])
+	# фокус «прыгнул» на другой остров: старые чанки выгружаются, новые грузятся
+	var far := w.spawn_point(2)
+	tc.focus_override = [far] as Array[Vector3]
+	await wait(3.0)
+	var hit2 := space.intersect_ray(PhysicsRayQueryParameters3D.create(far + Vector3(0, 40, 0), far - Vector3(0, 40, 0)))
+	check(not hit2.is_empty(), "после прыжка под новым фокусом есть коллизия")
+	var hit3 := space.intersect_ray(PhysicsRayQueryParameters3D.create(sp + Vector3(0, 40, 0), sp - Vector3(0, 40, 0)))
+	check(hit3.is_empty() or not (hit3.collider as Node).is_in_group(&"terrain"), "у старого фокуса подробный рельеф выгружен")
+	print("[test] подробных чанков: %d; рельеф %s" % [tc.live_count(), str(tc.stats)])
+	tc.focus_override = [] as Array[Vector3]

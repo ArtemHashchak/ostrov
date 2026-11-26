@@ -37,9 +37,33 @@ var stats := {}                # время этапов, треугольник
 var _keys: Array[Vector2i] = []
 var _jobs: Array[Dictionary] = []
 
-func build(a: Archipelago, mat: Material) -> void:
+# ------------------------------------------------------------ потоковая загрузка (мир v5)
+## Включается миром v5 (≈3×3 км): подробные чанки суши (1 м, LOD0–LOD2, коллизия)
+## строятся только в радиусе STREAM_R от «фокусов» (камера, игроки, боты) и
+## выгружаются дальше UNLOAD_R; дальний рельеф и дно — сразу, из отсчётов карты
+## зон 8 м (ZoneMap.h, без новой выборки). height_at вне загруженных чанков —
+## аналитическая высота генератора.
+var streaming := false
+const STREAM_R := 430.0
+const UNLOAD_R := 560.0
+const SYNC_R := 260.0            # после «прыжка» фокуса — синхронно в этом радиусе
+const MESH_BUDGET_MS := 6.0      # сборка мешей за кадр
+var _zm: ZoneMap
+var _shallow: Dictionary = {}     # Vector2i → true (у чанка есть суша/мелководье)
+var _live: Dictionary = {}        # Vector2i → {nodes: Array[Node]} — подробные загруженные чанки
+var _pending: Dictionary = {}     # Vector2i → {} (выборка в потоке)
+var _ready_q: Array = []          # [[key, data]] — готово к сборке мешей
+var _mutex := Mutex.new()
+var _last_focus: Array[Vector3] = []
+var _scan_t := 0.0
+var focus_override: Array[Vector3] = []   # тесты/полигон: явные точки фокуса
+
+func build(a: Archipelago, mat: Material, zone_map: ZoneMap = null) -> void:
 	arch = a
 	material = mat
+	if zone_map != null and streaming:
+		_build_streaming(zone_map)
+		return
 	var t0 := Time.get_ticks_usec()
 	var b := arch.bounds
 	var cx0 := int(floor(b.position.x / CHUNK))
@@ -132,8 +156,9 @@ func _save_cache(path: String) -> void:
 # ------------------------------------------------------------ выборка (потоки)
 
 func _job(i: int) -> void:
-	var key := _keys[i]
-	var out: Dictionary = _jobs[i]
+	_keys_tmp_job(_keys[i], _jobs[i])
+
+func _keys_tmp_job(key: Vector2i, out: Dictionary) -> void:
 	var origin := Vector2(key.x * CHUNK, key.y * CHUNK)
 	# классификация по пробам через 4 м: суша/мелководье → 1 м,
 	# только подводный шельф (всё ниже −2.5 м) → 2 м, глубина → 4 м
@@ -184,7 +209,7 @@ func _job(i: int) -> void:
 
 # ------------------------------------------------------------ меши (главный поток)
 
-func _build_chunk(key: Vector2i, data: Dictionary, tris: Dictionary) -> void:
+func _build_chunk(key: Vector2i, data: Dictionary, tris: Dictionary, no_far: bool = false) -> void:
 	_chunks[key] = {"step": data.step, "n": data.n, "origin": data.origin, "h": data.h}
 	var base := "T_%d_%d" % [key.x, key.y]
 	if data.shallow:
@@ -193,6 +218,8 @@ func _build_chunk(key: Vector2i, data: Dictionary, tris: Dictionary) -> void:
 		if under:
 			levels = [[1, 0.0, LOD2, "lod1"], [2, LOD2, LOD3, "lod2"], [4, LOD3, FAR, "lod3"]]
 		for L in levels:
+			if String(L[3]) == "lod3" and no_far:
+				continue
 			if String(L[3]) == "lod3":
 				# дальний LOD (520–1500 м) — в общие блоки, см. _flush_far_blocks
 				var fbk := Vector2i(floori(float(key.x) / SEA_BLOCK), floori(float(key.y) / SEA_BLOCK))
@@ -224,6 +251,8 @@ func _build_chunk(key: Vector2i, data: Dictionary, tris: Dictionary) -> void:
 				sh.visibility_range_end = LOD1
 				sh.visibility_range_end_margin = MARGIN
 				add_child(sh)
+	elif no_far:
+		pass   # потоковый режим: дно уже нарисовано блоками из карты зон
 	else:
 		# глубокое дно: копим в блоки SEA_BLOCK×SEA_BLOCK чанков и рисуем одним мешем
 		# (вершины чанков уже в мировых координатах) — вместо ~250 вызовов отрисовки ~20
@@ -397,6 +426,206 @@ func _make_collision(data: Dictionary, key: Vector2i) -> void:
 	body.add_child(cs)
 	body.position = Vector3(origin.x + CHUNK * 0.5, 0.0, origin.y + CHUNK * 0.5)
 	add_child(body)
+
+func _build_streaming(zm: ZoneMap) -> void:
+	_zm = zm
+	var t0 := Time.get_ticks_usec()
+	var b := arch.bounds
+	var cx0 := int(floor(b.position.x / CHUNK))
+	var cz0 := int(floor(b.position.y / CHUNK))
+	var cx1 := int(ceil(b.end.x / CHUNK))
+	var cz1 := int(ceil(b.end.y / CHUNK))
+	var tris := {"lod0": 0, "lod1": 0, "lod2": 0, "lod3": 0, "sea": 0}
+	_sea_blocks.clear()
+	_far_blocks.clear()
+	var n_sh := 0
+	for cz in range(cz0, cz1):
+		for cx in range(cx0, cx1):
+			var key := Vector2i(cx, cz)
+			var data := _coarse_data(key)
+			var shallow: bool = data.hmax > -9.0
+			if shallow:
+				_shallow[key] = true
+				n_sh += 1
+				var fbk := Vector2i(floori(float(key.x) / SEA_BLOCK), floori(float(key.y) / SEA_BLOCK))
+				if not _far_blocks.has(fbk):
+					_far_blocks[fbk] = []
+				(_far_blocks[fbk] as Array).append(_make_mesh(data, 1).surface_get_arrays(0))
+				tris.lod3 += _tri_count(int(data.n), 1)
+			else:
+				var bk := Vector2i(floori(float(key.x) / SEA_BLOCK), floori(float(key.y) / SEA_BLOCK))
+				if not _sea_blocks.has(bk):
+					_sea_blocks[bk] = []
+				(_sea_blocks[bk] as Array).append(_make_mesh(data, 1).surface_get_arrays(0))
+				tris.sea += _tri_count(int(data.n), 1)
+				_make_collision(data, key)     # дно: грубая коллизия 8 м сразу (ныряние, тонущие предметы)
+				_chunks[key] = {"step": data.step, "n": data.n, "origin": data.origin, "h": data.h}   # height_at = коллизия
+	_flush_sea_blocks()
+	_flush_far_blocks_streaming()
+	stats = {"mesh_ms": (Time.get_ticks_usec() - t0) / 1000, "chunks": (cx1 - cx0) * (cz1 - cz0), "shallow": n_sh,
+			"tris": tris, "threads": OS.get_processor_count(), "streaming": true}
+	set_process(true)
+
+## Отсчёты чанка из карты зон (шаг 8 м, 9×9) — для дальнего LOD и дна.
+func _coarse_data(key: Vector2i) -> Dictionary:
+	var st := ZoneMap.STEP
+	var n := int(CHUNK / st) + 1
+	var origin := Vector2(key.x * CHUNK, key.y * CHUNK)
+	var hh := PackedFloat32Array()
+	hh.resize(n * n)
+	var hmax := -100.0
+	for j in n:
+		for i in n:
+			var v := _zm.height_at(origin.x + i * st, origin.y + j * st)
+			hh[j * n + i] = v
+			hmax = maxf(hmax, v)
+	var norms := PackedVector3Array()
+	norms.resize(n * n)
+	var cols := PackedColorArray()
+	cols.resize(n * n)
+	for j in n:
+		for i in n:
+			var x := origin.x + i * st
+			var z := origin.y + j * st
+			var hl := _zm.height_at(x - st, z)
+			var hr := _zm.height_at(x + st, z)
+			var hd := _zm.height_at(x, z - st)
+			var hu := _zm.height_at(x, z + st)
+			norms[j * n + i] = Vector3(hl - hr, 2.0 * st, hd - hu).normalized()
+			var h := hh[j * n + i]
+			cols[j * n + i] = arch.biome_weights(x, z, h) if h > -1.0 else Color(0, 0, 0, 0)
+	return {"step": st, "n": n, "origin": origin, "h": hh, "nrm": norms, "col": cols, "hmax": hmax, "shallow": hmax > -9.0}
+
+## Дальние блоки в потоковом режиме: видны с нуля (подробных чанков вокруг может
+## ещё не быть), на 0.8 м ниже — под загруженным подробным рельефом не видны.
+func _flush_far_blocks_streaming() -> void:
+	for bk: Vector2i in _far_blocks:
+		var mi := MeshInstance3D.new()
+		mi.name = "Tfar_%d_%d" % [bk.x, bk.y]
+		mi.mesh = _merge(_far_blocks[bk], -0.8)
+		mi.material_override = material
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		ViewDistance.cap(mi, ViewDistance.MAXIMUM, ViewDistance.G_TERRAIN)
+		add_child(mi)
+	_far_blocks.clear()
+
+func _process(delta: float) -> void:
+	if not streaming or _zm == null:
+		return
+	_scan_t -= delta
+	var foci := _foci()
+	var jumped := false
+	if _scan_t <= 0.0 or foci.size() != _last_focus.size():
+		_scan_t = 0.25
+		for f in foci:
+			var near := 1e9
+			for g in _last_focus:
+				near = minf(near, Vector2(f.x - g.x, f.z - g.z).length())
+			if near > 120.0:
+				jumped = true
+		_last_focus = foci
+		_update_wanted(foci, jumped)
+	_build_ready()
+
+## Точки фокуса: камера, игроки и боты (им нужна коллизия под ногами).
+func _foci() -> Array[Vector3]:
+	if not focus_override.is_empty():
+		return focus_override
+	var out: Array[Vector3] = []
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	if cam:
+		out.append(cam.global_position)
+	for g: StringName in [&"player", &"bot"]:
+		for n in get_tree().get_nodes_in_group(g):
+			if n is Node3D:
+				out.append((n as Node3D).global_position)
+	return out
+
+func _update_wanted(foci: Array[Vector3], sync: bool) -> void:
+	var want: Dictionary = {}
+	for f in foci:
+		var c := Vector2(f.x, f.z)
+		var r := STREAM_R
+		var k0 := Vector2i(int(floor((c.x - r) / CHUNK)), int(floor((c.y - r) / CHUNK)))
+		var k1 := Vector2i(int(floor((c.x + r) / CHUNK)), int(floor((c.y + r) / CHUNK)))
+		for kz in range(k0.y, k1.y + 1):
+			for kx in range(k0.x, k1.x + 1):
+				var key := Vector2i(kx, kz)
+				if not _shallow.has(key):
+					continue
+				var cc := Vector2((kx + 0.5) * CHUNK, (kz + 0.5) * CHUNK)
+				var d := cc.distance_to(c)
+				if d <= r:
+					want[key] = minf(float(want.get(key, 1e9)), d)
+	# выгрузка дальних
+	for key: Vector2i in _live.keys():
+		var cc := Vector2((key.x + 0.5) * CHUNK, (key.y + 0.5) * CHUNK)
+		var far := true
+		for f in foci:
+			if cc.distance_to(Vector2(f.x, f.z)) < UNLOAD_R:
+				far = false
+				break
+		if far:
+			_unload(key)
+	# загрузка: ближние сначала; после «прыжка» — синхронно в SYNC_R
+	var order: Array = want.keys()
+	order.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return float(want[a]) < float(want[b]))
+	for key: Vector2i in order:
+		if _live.has(key) or _pending.has(key):
+			continue
+		if sync and float(want[key]) < SYNC_R:
+			var data := {}
+			_sample_into(key, data)
+			_build_live(key, data)
+			continue
+		_pending[key] = true
+		WorkerThreadPool.add_task(_stream_job.bind(key), false, "terrain stream")
+
+func _stream_job(key: Vector2i) -> void:
+	var data := {}
+	_sample_into(key, data)
+	_mutex.lock()
+	_ready_q.append([key, data])
+	_mutex.unlock()
+
+func _sample_into(key: Vector2i, out: Dictionary) -> void:
+	_keys_tmp_job(key, out)
+
+func _build_ready() -> void:
+	var t0 := Time.get_ticks_usec()
+	while true:
+		_mutex.lock()
+		var item: Array = _ready_q.pop_front() if not _ready_q.is_empty() else []
+		_mutex.unlock()
+		if item.is_empty():
+			break
+		_pending.erase(item[0])
+		if not _live.has(item[0]):
+			_build_live(item[0], item[1])
+		if (Time.get_ticks_usec() - t0) / 1000.0 > MESH_BUDGET_MS:
+			break
+
+## Подробный чанк: LOD0–LOD2 (+ тени) и коллизия 1 м; регистрируется для height_at.
+func _build_live(key: Vector2i, data: Dictionary) -> void:
+	var before := get_child_count()
+	var tris := {"lod0": 0, "lod1": 0, "lod2": 0, "lod3": 0, "sea": 0}
+	_build_chunk(key, data, tris, true)
+	var nodes: Array[Node] = []
+	for i in range(before, get_child_count()):
+		nodes.append(get_child(i))
+	_live[key] = {"nodes": nodes}
+
+func _unload(key: Vector2i) -> void:
+	var e: Dictionary = _live.get(key, {})
+	for n: Node in e.get("nodes", []):
+		if is_instance_valid(n):
+			n.queue_free()
+	_live.erase(key)
+	_chunks.erase(key)
+
+## Сколько подробных чанков загружено (для тестов/оверлея).
+func live_count() -> int:
+	return _live.size()
 
 ## Высота точно по треугольникам меша/коллизии; вне карты — аналитическая.
 func height_at(x: float, z: float) -> float:

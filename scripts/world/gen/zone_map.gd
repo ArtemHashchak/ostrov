@@ -60,9 +60,10 @@ func build(arch: Archipelago, height_fn: Callable = Callable(), cache_key: Strin
 	_hfn = height_fn if height_fn.is_valid() else arch.height
 	var t0 := Time.get_ticks_msec()
 	var b := arch.bounds
-	origin = b.position
-	nx = int(ceil(b.size.x / STEP)) + 1
-	nz = int(ceil(b.size.y / STEP)) + 1
+	# сетка кратна STEP от нуля — совпадает с узлами чанков рельефа (64 м)
+	origin = (b.position / STEP).floor() * STEP
+	nx = int(ceil((b.end.x - origin.x) / STEP)) + 1
+	nz = int(ceil((b.end.y - origin.y) / STEP)) + 1
 	if arch.get(&"reef_r") != null:
 		ring_r = float(arch.get(&"reef_r"))
 	if arch.has_method(&"_windward"):
@@ -408,6 +409,17 @@ static func zone_id(name: StringName) -> int:
 
 func height_at(x: float, z: float) -> float:
 	return h[_idx(x, z)]
+
+## Высота с билинейной интерполяцией между узлами (шаг STEP).
+func height_lerp(x: float, z: float) -> float:
+	var fx := clampf((x - origin.x) / STEP, 0.0, nx - 1.001)
+	var fz := clampf((z - origin.y) / STEP, 0.0, nz - 1.001)
+	var i := int(fx)
+	var j := int(fz)
+	var u := fx - i
+	var v := fz - j
+	var k := j * nx + i
+	return lerpf(lerpf(h[k], h[k + 1], u), lerpf(h[k + nx], h[k + nx + 1], u), v)
 
 ## Открытое море (дотекает от края карты).
 func is_sea(x: float, z: float) -> bool:
