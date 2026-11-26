@@ -67,9 +67,82 @@ func build() -> void:
 	_pack = use_pack_corals and CoralPack.available()
 	if sea == null:
 		return
-	for I in sea.call(&"islands"):
-		_island(I)
+	var w: Node = sea.get(&"world")
+	var zm: ZoneMap = w.get(&"zones") if w else null
+	if zm != null:
+		_from_zones(zm)
+	else:
+		for I in sea.call(&"islands"):
+			_island(I)
 	_emit()
+
+## Мир с картой зон: кораллы — только на барьерном и окаймляющих рифах (зоны
+## reef_crest/flat/slope) и всегда ниже самого низкого отлива; пятнами (живые и
+## пустые места); в лагунах — луга морской травы, у мангров — ничего.
+const ZONE_CORAL := {ZoneMap.Z_REEF_CREST: 1.5, ZoneMap.Z_REEF_FLAT: 1.15, ZoneMap.Z_REEF_SLOPE: 0.9}
+func _from_zones(zm: ZoneMap) -> void:
+	var low := ZoneMap.LOW_TIDE
+	var st := ZoneMap.STEP
+	var patch := {}    # Vector2i(64 м) → [Σx, Σz, n, island]
+	for j in zm.nz:
+		for i in zm.nx:
+			var k := j * zm.nx + i
+			if zm.sea[k] != 1:
+				continue
+			var zt := int(zm.zone[k])
+			var x0 := zm.origin.x + i * st
+			var z0 := zm.origin.y + j * st
+			if ZONE_CORAL.has(zt):
+				var rf := float(zm.reef[k]) / 255.0
+				var lively := _noise.get_noise_2d(x0, z0) * 0.5 + 0.5
+				var tries := int(round(float(ZONE_CORAL[zt]) * density * rf * smoothstep(0.3, 0.7, lively) * 3.0))
+				for t in tries:
+					var x := x0 + _rng.randf_range(-st * 0.5, st * 0.5)
+					var z := z0 + _rng.randf_range(-st * 0.5, st * 0.5)
+					var fy: float = sea.call(&"floor_at", x, z)
+					var dl := low - fy            # глубина при самом низком отливе
+					if dl < 0.45:
+						continue
+					var ct := _pick_type(dl)
+					if ct == &"":
+						continue
+					var hmax := float(_tdesc(ct)["smax"]) * 0.9
+					if dl < hmax * 0.6 + 0.25:
+						continue          # верх колонии не выходит из воды в отлив
+					_add(ct, Vector3(x, fy, z))
+					for kk in (4 if lively > 0.62 else 2):
+						var ox := x + _rng.randf_range(-2.4, 2.4)
+						var oz := z + _rng.randf_range(-2.4, 2.4)
+						var fy2: float = sea.call(&"floor_at", ox, oz)
+						var t2 := _pick_type(low - fy2)
+						if t2 != &"" and low - fy2 > 0.6:
+							_add(t2, Vector3(ox, fy2, oz))
+					var pk := Vector2i(floori(x / 64.0), floori(z / 64.0))
+					var pe: Array = patch.get(pk, [0.0, 0.0, 0])
+					pe[0] += x
+					pe[1] += z
+					pe[2] += 1
+					patch[pk] = pe
+			elif zt == ZoneMap.Z_LAGOON or zt == ZoneMap.Z_SHALLOWS or zt == ZoneMap.Z_REEF_FLAT:
+				var g := _gnoise.get_noise_2d(x0, z0) * 0.5 + 0.5
+				if g > 0.55 and _rng.randf() < 0.6:
+					for kk in 4:
+						var gx := x0 + _rng.randf_range(-st * 0.5, st * 0.5)
+						var gz := z0 + _rng.randf_range(-st * 0.5, st * 0.5)
+						var gy: float = sea.call(&"floor_at", gx, gz)
+						if low - gy > 0.5 and low - gy < 6.0:
+							_add(&"grass", Vector3(gx, gy, gz))
+				elif _rng.randf() < 0.02:
+					var ry: float = sea.call(&"floor_at", x0, z0)
+					if low - ry > 1.0:
+						_add(&"rock", Vector3(x0, ry, z0))
+	for pk: Vector2i in patch:
+		var pe: Array = patch[pk]
+		if int(pe[2]) >= 6:
+			var cc := Vector2(float(pe[0]) / pe[2], float(pe[1]) / pe[2])
+			var ia: Dictionary = sea.get(&"world").call(&"island_at", cc.x, cc.y) if sea.get(&"world") else {}
+			_zones.append({"center": cc, "island": int(ia.get("id", -1)), "kind": StringName(ia.get("kind", &"reef")),
+				"radius": 40.0, "corals": int(pe[2])})
 
 func _island(I: Dictionary) -> void:
 	var kind: StringName = StringName(I.get("kind", &"home"))

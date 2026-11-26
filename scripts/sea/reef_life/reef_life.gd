@@ -169,8 +169,34 @@ func _drop_cell(k: Vector2i) -> void:
 		n.queue_free()
 	_cells.erase(k)
 
+func _zm() -> ZoneMap:
+	var w: Node = sea.get(&"world") if sea else null
+	return w.get(&"zones") if w else null
+
 ## Богатство места: тип ближайшего острова + близость к пятну рифа + шум.
+## Мир с картой зон: по доле рифовых ячеек в клетке (кораллы — только на рифах).
 func _richness(x: float, z: float) -> float:
+	var zm := _zm()
+	if zm != null:
+		var reef := 0
+		var water := 0
+		var e := CELL * 0.5
+		var sx := x - e
+		while sx <= x + e:
+			var sz := z - e
+			while sz <= z + e:
+				if zm.is_sea(sx, sz):
+					water += 1
+					var zt := zm.zone_at(sx, sz)
+					if zt == ZoneMap.Z_REEF_CREST or zt == ZoneMap.Z_REEF_FLAT or zt == ZoneMap.Z_REEF_SLOPE:
+						reef += 1
+				sz += ZoneMap.STEP
+			sx += ZoneMap.STEP
+		if water == 0:
+			return 0.0
+		var r0 := 0.25 + 1.2 * float(reef) / float(water)
+		r0 *= 0.6 + 0.8 * (_noise.get_noise_2d(x * 0.3, z * 0.3) * 0.5 + 0.5)
+		return clampf(r0 * density, 0.0, 1.6)
 	var best := INF
 	var kind: StringName = &""
 	for I: Dictionary in _islands:
@@ -214,6 +240,18 @@ func _build_cell(k: Vector2i) -> void:
 			var f := _floor(x, z)
 			pts.append(Vector3(x, f, z))
 			depths.append(level - f)
+	var zm := _zm()
+	if zm != null:
+		# глубины — от самого низкого отлива; точки вне открытого моря и
+		# (для коралловых голов) вне рифа отбрасываются ниже
+		_reef_ok.clear()
+		for i in pts.size():
+			var p := pts[i]
+			depths[i] = (ZoneMap.LOW_TIDE - p.y) if zm.is_sea(p.x, p.z) else -1.0
+			var zt := zm.zone_at(p.x, p.z)
+			_reef_ok.append(zt == ZoneMap.Z_REEF_CREST or zt == ZoneMap.Z_REEF_FLAT or zt == ZoneMap.Z_REEF_SLOPE)
+	else:
+		_reef_ok.clear()
 	var d0 := decor_count
 	var c0 := crawler_count
 	if rich > 0.0:
@@ -224,6 +262,13 @@ func _build_cell(k: Vector2i) -> void:
 	cell.set_meta(&"crawl", crawler_count - c0)
 	_cur = null
 
+var _reef_ok: Array[bool] = []
+
+## Уровень воды для расстановки: в мире с картой зон — самый низкий отлив
+## (ничего не обнажается), иначе текущий.
+func _plevel() -> float:
+	return ZoneMap.LOW_TIDE if _zm() != null else level
+
 func _fill_cell(pts: Array[Vector3], depths: PackedFloat32Array, rich: float) -> void:
 	var shallow: Array[int] = []
 	var reefy: Array[int] = []
@@ -232,7 +277,7 @@ func _fill_cell(pts: Array[Vector3], depths: PackedFloat32Array, rich: float) ->
 		var d := depths[i]
 		if d > 0.4 and d < 4.5:
 			shallow.append(i)
-		if d > 1.2 and d < 10.0:
+		if d > (1.2 if _reef_ok.is_empty() else 2.0) and d < 10.0 and (_reef_ok.is_empty() or _reef_ok[i]):
 			reefy.append(i)
 		if d > 4.5 and d < 30.0:
 			deep.append(i)
@@ -262,7 +307,7 @@ func _fill_cell(pts: Array[Vector3], depths: PackedFloat32Array, rich: float) ->
 			for k in n:
 				var q := p + Vector3(_rng.randf_range(-2.6, 2.6), 0, _rng.randf_range(-2.6, 2.6))
 				var f := _floor(q.x, q.z)
-				if level - f > 0.4:
+				if _plevel() - f > 0.4:
 					_add_decor(&"seagrass", Vector3(q.x, f, q.z))
 		var roll := _rng.randf()
 		if roll < 0.08 * rich:
@@ -287,7 +332,7 @@ func _fill_cell(pts: Array[Vector3], depths: PackedFloat32Array, rich: float) ->
 	# стая в толще
 	if not reefy.is_empty() and _rng.randf() < 0.45 * rich:
 		var p := pts[reefy[_rng.randi() % reefy.size()]]
-		if level - p.y > 2.6:
+		if _plevel() - p.y > 2.6:
 			_open_school(SCHOOLS[_rng.randi() % SCHOOLS.size()], p)
 	# косяк сардин над глубиной (для чаек и хищников)
 	if not deep.is_empty() and _rng.randf() < 0.3:
@@ -344,7 +389,7 @@ func _spot(c: Vector2, r_in: float, r_out: float, dmin: float, dmax: float, trie
 		var x := c.x + cos(a) * r
 		var z := c.y + sin(a) * r
 		var f := _floor(x, z)
-		var d := level - f
+		var d := _plevel() - f
 		if d >= dmin and d <= dmax:
 			return Vector3(x, f, z)
 	return null
@@ -377,7 +422,7 @@ func _reef_group(sp: StringName, p: Vector3) -> void:
 		var hy := (0.6 + _rng.randf() * 1.6) if swarm else (0.35 + _rng.randf() * 1.1)
 		if sp == &"grouper" or sp == &"parrotfish":
 			hy = 0.3 + _rng.randf() * 0.5
-		hs.append(Vector3(x, minf(f + hy, level - 0.5), z))
+		hs.append(Vector3(x, minf(f + hy, _plevel() - 0.5), z))
 	_add_school(sp, p, hs, fmin)
 
 ## Стая в толще воды.
@@ -392,7 +437,7 @@ func _open_school(sp: StringName, p: Vector3) -> ReefSchool:
 		var a := TAU * k / 9.0
 		fmax = maxf(fmax, _floor(p.x + cos(a) * float(roam[0]), p.z + sin(a) * float(roam[2])))
 	fmax = maxf(fmax, _floor(p.x, p.z))
-	var mid := clampf((fmax + level) * 0.5, fmax + 0.8, level - 0.8)
+	var mid := clampf((fmax + _plevel()) * 0.5, fmax + 0.8, _plevel() - 0.8)
 	var hs := PackedVector3Array()
 	for i in n:
 		var o := Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-0.4, 0.4), _rng.randf_range(-1, 1))

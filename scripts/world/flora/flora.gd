@@ -115,6 +115,28 @@ const TABLES := {
 		[&"palm", 0.01, "palm"], [&"bush", 0.02, "bush"], [&"herb", 0.004, "herb"]],
 }
 
+## Рассадка по зонам карты зон (мир с ZoneMap): [что, вероятность на попытку, категория].
+## В джунглях попыток на ячейку больше с густотой (jungle_density): в центре острова —
+## почти сплошная стена подлеска, к краям реже.
+const ZONE_TABLES := {
+	&"beach": [[&"palm", 0.05, "palm"], [&"bush", 0.015, "bush"], [&"stick", 0.04, "stick"], [&"stone", 0.02, "rock"],
+		[&"cotton", 0.003, "res"], [&"boulder", 0.003, "rock"]],
+	&"dunes": [[&"palm", 0.035, "palm"], [&"bush", 0.05, "bush"], [&"stick", 0.02, "stick"], [&"cotton", 0.006, "res"]],
+	&"palm_belt": [[&"palm", 0.20, "palm"], [&"bush", 0.07, "bush"], [&"broadleaf", 0.012, "tree"], [&"stick", 0.04, "stick"],
+		[&"stone", 0.015, "rock"], [&"cotton", 0.006, "res"], [&"berries", 0.004, "res"], [&"boulder", 0.004, "rock"]],
+	&"lowland_forest": [[&"broadleaf", 0.07, "tree"], [&"palm", 0.035, "palm"], [&"banyan", 0.004, "tree"], [&"bush", 0.16, "bush"],
+		[&"herb", 0.010, "herb"], [&"berries", 0.010, "res"], [&"wild_taro", 0.006, "res"], [&"wild_melon", 0.003, "res"],
+		[&"stick", 0.03, "stick"], [&"stone", 0.012, "rock"], [&"boulder", 0.008, "rock"]],
+	&"jungle": [[&"broadleaf", 0.085, "tree"], [&"banyan", 0.005, "tree"], [&"palm", 0.015, "palm"], [&"bush", 0.24, "bush"],
+		[&"herb", 0.012, "herb"], [&"wild_taro", 0.007, "res"], [&"berries", 0.010, "res"], [&"wild_melon", 0.002, "res"],
+		[&"stick", 0.03, "stick"], [&"stone", 0.01, "rock"], [&"boulder", 0.01, "rock"]],
+}
+## Зона → набор Flora (TABLES) / палитра подлеска FloraPack.
+const ZONE_BIOME := {
+	&"beach": &"beach", &"dunes": &"beach", &"palm_belt": &"meadow", &"lowland_forest": &"jungle", &"jungle": &"jungle",
+	&"meadow": &"meadow", &"mangrove": &"swamp", &"rocks": &"rocky", &"volcanic": &"rocky", &"dry_hollow": &"meadow",
+}
+
 const BOULDERS := ["boulder_01", "boulder_02", "rock_07", "rock_moss_set_01_rock03", "rock_moss_set_02_rock09"]
 
 @export var seed: int = 1
@@ -339,6 +361,7 @@ func populate() -> void:
 			clear_zones.append([Vector3.ZERO, 6.0])
 	_zone.seed = seed
 	_zone.frequency = 0.018
+	_zoned = world != null and world.has_method(&"zone_at") and world.get(&"zones") != null
 	stats = {"palm": 0, "broadleaf": 0, "mangrove": 0, "banyan": 0, "bush": 0, "grass": 0, "fern": 0, "rock": 0, "stick": 0,
 		"stone": 0, "iron_ore": 0, "sulfur": 0, "liana": 0, "herb": 0, "wild_taro": 0, "wild_maize": 0, "wild_melon": 0,
 		"berries": 0, "cotton": 0}
@@ -354,8 +377,13 @@ func populate() -> void:
 				if visited.has(key):
 					continue
 				visited[key] = true
-				_cell(i, j, prof, c, rng)
+				if _zoned:
+					_cell_zoned(i, j, prof, c, rng, int(I.get("id", -1)))
+				else:
+					_cell(i, j, prof, c, rng)
 	stats["cells"] = visited.size()
+	if _zoned:
+		_equalize_starters()
 	_build_trees()
 	_build_bushes()
 	populated = true
@@ -398,6 +426,164 @@ func _cell(i: int, j: int, prof: Dictionary, c: Vector2, rng: RandomNumberGenera
 			_place(e[0], p, rng, c, prof, b, zone)
 			return
 
+var _zoned := false
+var _rec_island: Dictionary = {}   # id записи (get_instance_id словаря нет — храним в rec["isl"])
+
+## Ячейка 4×4 м по карте зон: таблица зоны, в джунглях — несколько попыток
+## (густота jungle_density), на звериных тропах растения не ставятся.
+func _cell_zoned(i: int, j: int, prof: Dictionary, c: Vector2, rng: RandomNumberGenerator, island: int) -> void:
+	rng.seed = hash(Vector3i(i, j, seed))
+	var x0 := float(i) * CELL
+	var z0 := float(j) * CELL
+	var x := x0 + rng.randf() * CELL
+	var z := z0 + rng.randf() * CELL
+	var h := _h(x, z)
+	if h <= _land_min:
+		_cell(i, j, prof, c, rng)   # мелководье — мангры у берега, как раньше
+		return
+	var zn: StringName = world.call(&"zone_at", x, z)
+	if zn == &"freshwater" or zn == &"beach" and h < _land_min + 0.15:
+		return
+	var b: StringName = ZONE_BIOME.get(zn, &"meadow")
+	var table: Array = ZONE_TABLES.get(zn, TABLES.get(b, TABLES[&"meadow"]))
+	var jd := float(world.call(&"jungle_density", x, z)) if zn == &"jungle" or zn == &"lowland_forest" else 0.0
+	var tries := 1 + int(jd * 2.4 + 0.35)
+	var zone := _zone.get_noise_2d(x, z)
+	for t in tries:
+		if t > 0:
+			x = x0 + rng.randf() * CELL
+			z = z0 + rng.randf() * CELL
+			h = _h(x, z)
+			if h <= _land_min:
+				continue
+		var p := Vector3(x, h, z)
+		if _cleared(p):
+			continue
+		var td := float(world.call(&"trail_dist", x, z)) if world.has_method(&"trail_dist") else INF
+		var r := rng.randf()
+		var acc := 0.0
+		for e in table:
+			var f := _cat(prof, e[2])
+			var what: StringName = e[0]
+			if e[2] == "tree" or e[2] == "palm" or e[2] == "mangrove":
+				f *= density * (1.0 + 1.2 * jd)
+			elif e[2] == "bush":
+				f *= 1.0 + 2.2 * jd
+			acc += float(e[1]) * f
+			if r < acc:
+				# на тропе — ничего крупного; у края тропы — подлесок гуще (полог над тропой)
+				if td < TrailNet.CLEAR and what != &"stick" and what != &"stone":
+					break
+				if td < TrailNet.CLEAR + (0.6 if what == &"bush" else 1.8) and (e[2] == "tree" or e[2] == "palm"):
+					break
+				var before := _tree_recs.size()
+				var nrec := _grid_count()
+				_place(what, p, rng, c, prof, b, zone)
+				_tag_island(before, nrec, island)
+				break
+
+var _all_recs: Array = []
+func _grid_count() -> int:
+	return _all_recs.size()
+
+## Пометить новые записи островом (для выравнивания стартовых островков).
+func _tag_island(tree_before: int, recs_before: int, island: int) -> void:
+	for k in range(tree_before, _tree_recs.size()):
+		_tree_recs[k]["isl"] = island
+	for k in range(recs_before, _all_recs.size()):
+		_all_recs[k]["isl"] = island
+
+## Стартовые островки (класс start) получают одинаковый набор ресурсов: у каждого
+## вида записей оставляем столько, сколько на самом бедном островке.
+func _equalize_starters() -> void:
+	var starters: Array[int] = []
+	for I in _island_list:
+		if StringName(I.get("cls", &"")) == &"start":
+			starters.append(int(I.id))
+	if starters.size() < 2:
+		return
+	var counts := {}     # "kind" → {isl: [recs]}
+	for rec in _all_recs:
+		var isl := int(rec.get("isl", -99))
+		if not starters.has(isl):
+			continue
+		var k := String(rec["kind"])
+		if not counts.has(k):
+			counts[k] = {}
+		var per: Dictionary = counts[k]
+		if not per.has(isl):
+			per[isl] = []
+		(per[isl] as Array).append(rec)
+	var removed := 0
+	for k in counts:
+		var per: Dictionary = counts[k]
+		var mn := 1 << 30
+		for isl in starters:
+			mn = mini(mn, (per.get(isl, []) as Array).size())
+		for isl in per:
+			var arr: Array = per[isl]
+			while arr.size() > mn:
+				var rec: Dictionary = arr.pop_back()
+				_remove_rec(rec)
+				removed += 1
+	stats["starter_trimmed"] = removed
+	if removed > 0:
+		_all_recs = _all_recs.filter(func(r: Dictionary) -> bool: return not r.get("dead", false))
+	# гарантированный набор выживания — одинаковый на каждом стартовом островке
+	# (одни и те же места относительно центра, повёрнутые к сектору острова)
+	var rng := RandomNumberGenerator.new()
+	for I in _island_list:
+		if StringName(I.get("cls", &"")) != &"start":
+			continue
+		var c: Vector2 = I.center
+		var R := float(I.radius)
+		var base := c.angle()
+		rng.seed = 4242
+		for e: Array in STARTER_KIT:
+			for k in int(e[1]):
+				var placed := false
+				var a := base + rng.randf() * TAU
+				var rr := rng.randf_range(0.15, 0.62)
+				for tries in 12:
+					var q := c + Vector2.from_angle(a + tries * 0.52) * R * rr
+					var h := _h(q.x, q.y)
+					if h > _land_min + 0.3 and not _cleared(Vector3(q.x, h, q.y)):
+						var nrec := _all_recs.size()
+						var tb := _tree_recs.size()
+						_place(e[0], Vector3(q.x, h, q.y), rng, c, {}, &"meadow", 0.0)
+						_tag_island(tb, nrec, int(I.id))
+						placed = true
+						break
+				if not placed:
+					stats["starter_kit_miss"] = int(stats.get("starter_kit_miss", 0)) + 1
+
+## Набор выживания стартового островка: [что, сколько].
+const STARTER_KIT := [[&"berries", 3], [&"wild_taro", 2], [&"herb", 2], [&"cotton", 2], [&"boulder", 4], [&"stone", 6],
+	[&"stick", 6], [&"broadleaf", 4], [&"bush", 0]]
+
+func _remove_rec(rec: Dictionary) -> void:
+	var p: Vector3 = rec["pos"]
+	var key := Vector2i(int(floor(p.x / HCELL)), int(floor(p.z / HCELL)))
+	if _grid.has(key):
+		(_grid[key] as Array).erase(rec)
+	rec["dead"] = true
+	if rec["t"] == T_TREE:
+		_tree_recs.erase(rec)
+		for l in rec.get("lianas", []):
+			_remove_rec(l)
+	var sk := String(rec["kind"])
+	if rec["t"] == T_ROCK and rec.get("ore", &"") == &"":
+		sk = "rock"
+	stats[sk] = int(stats.get(sk, 0)) - 1
+
+## Записи стартового островка по видам (тест равенства ресурсов).
+func island_resources(island: int) -> Dictionary:
+	var out := {}
+	for rec in _all_recs:
+		if int(rec.get("isl", -99)) == island:
+			out[String(rec["kind"])] = int(out.get(String(rec["kind"]), 0)) + 1
+	return out
+
 func _place(what: StringName, p: Vector3, rng: RandomNumberGenerator, c: Vector2, prof: Dictionary, b: StringName, zone: float) -> void:
 	match what:
 		&"palm", &"broadleaf", &"banyan":
@@ -438,6 +624,7 @@ func _place(what: StringName, p: Vector3, rng: RandomNumberGenerator, c: Vector2
 func _add_rec(rec: Dictionary) -> Dictionary:
 	rec["node"] = null
 	rec["state"] = 0
+	_all_recs.append(rec)
 	var p: Vector3 = rec["pos"]
 	var key := Vector2i(int(floor(p.x / HCELL)), int(floor(p.z / HCELL)))
 	if not _grid.has(key):

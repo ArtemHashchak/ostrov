@@ -21,6 +21,8 @@ const SAND_TOP := 1.6
 var arch: Archipelago
 ## Карта зон (A11): все, кто ставит что-то в мир, спрашивают её (zone_at и др.).
 var zones: ZoneMap
+## Звериные тропы и прорубленные проходы (TrailNet).
+var trails: TrailNet
 var terrain: TerrainChunks
 var ocean: Ocean
 var sky: SkyWeather
@@ -46,6 +48,12 @@ func _ready() -> void:
 	var t_arch := Time.get_ticks_msec()
 	zones = ZoneMap.new()
 	zones.build(arch, Callable(), ZoneMap.make_key(seed_value, "g%d|%s" % [gen_version, str(arch.bounds)]))
+	trails = TrailNet.new()
+	trails.build(zones, arch, seed_value)
+	if gen_version >= 5:
+		var canopy := TrailCanopy.new()
+		canopy.setup(self, trails)
+		add_child(canopy)
 	var t_zone := Time.get_ticks_msec()
 	# мир v5 (≈3×3 км): подробный рельеф подгружается вокруг игрока/ботов/камеры
 	terrain.streaming = gen_version >= 5
@@ -64,7 +72,7 @@ func _ready() -> void:
 	sky.setup(start_hour, seed_value)
 	sky.weather_changed.connect(func(w: StringName) -> void: weather_changed.emit(w))
 	build_ms = Time.get_ticks_msec() - t0
-	build_stats = {"total_ms": build_ms, "layout_ms": t_arch - t0, "zones_ms": t_zone - t_arch,
+	build_stats = {"total_ms": build_ms, "layout_ms": t_arch - t0, "zones_ms": t_zone - t_arch, "trails": trails.stats,
 			"terrain_ms": t_terr - t_zone, "ocean_ms": t_ocean - t_terr, "terrain": terrain.stats, "islands": arch.islands.size(),
 			"gen": gen_version}
 	print("[world] построен за %d мс: %s, чанки %s" % [build_ms, str(build_stats), str(terrain.chunk_count())])
@@ -291,6 +299,35 @@ func zone_at(x: float, z: float) -> StringName:
 func jungle_density(x: float, z: float) -> float:
 	return zones.jungle_density(x, z) if zones else 0.0
 
+## Расстояние до ближайшей тропы/прохода, м (далеко — INF).
+func trail_dist(x: float, z: float) -> float:
+	return trails.dist(x, z) if trails else INF
+
+## Тропа под ногами: 0 — нет, &"animal" — звериная (полог ~1,2 м, идти
+## пригнувшись ≈70 % скорости), &"cut" — прорубленный проход (100 %).
+func trail_at(x: float, z: float) -> StringName:
+	if trails == null or trails.dist(x, z) > TrailNet.WIDTH * 0.5 + 0.35:
+		return &""
+	for seg in trails.segments_near(Vector2(x, z), 1.2):
+		if seg[2] == &"cut":
+			return &"cut"
+	return &"animal"
+
+## Насколько растительность мешает идти в точке, 0..1 (агент F: скорость игрока
+## × (1 − 0.75·drag)): густые джунгли вне троп — почти стена; на тропе — 0.
+func vegetation_drag(x: float, z: float) -> float:
+	if zones == null:
+		return 0.0
+	if trail_at(x, z) != &"":
+		return 0.0
+	return zones.jungle_density(x, z)
+
+## Прорубить проход (навсегда): ломаная точек XZ. Растения на нём уже срублены
+## игроком; новые там не появятся.
+func add_cut_path(pts: PackedVector2Array) -> void:
+	if trails:
+		trails.add_cut(pts)
+
 ## Можно ли ставить морскую жизнь: открытое море (не отрезанная яма),
 ## глубже min_depth даже в самый низкий отлив.
 func sea_ok(x: float, z: float, min_depth: float = 0.4) -> bool:
@@ -340,9 +377,15 @@ func wave_height(x: float, z: float) -> float:
 ##       'rocky' | 'atoll' | 'wreck'; у не-домашних team = −1.
 func islands() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
+	var v5 := arch as ArchipelagoV5
 	for I in arch.islands:
-		out.append({"id": I.id, "kind": I.kind, "team": I.team, "center": I.center, "radius": I.radius,
-				"max_h": I.max_h, "name": I.name})
+		var e := {"id": I.id, "kind": I.kind, "team": I.team, "center": I.center, "radius": I.radius,
+				"max_h": I.max_h, "name": I.name}
+		if v5:
+			e["cls"] = v5.class_of(I)
+			e["type"] = I.get("type", &"")
+			e["flora_profile"] = I.get("flora_profile", {})
+		out.append(e)
 	return out
 
 ## Остров в точке (или ближайший в пределах 1.3 радиуса), иначе {}.

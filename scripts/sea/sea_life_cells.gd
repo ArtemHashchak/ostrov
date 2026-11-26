@@ -12,6 +12,8 @@ const RADIUS_BY_Q: Array[int] = [1, 1, 1, 2]      # ячеек вокруг це
 const DENSITY_BY_Q: Array[float] = [0.45, 0.7, 1.0, 1.25]
 const VIS_END := 75.0
 const PROBES := 12                              # дальше группы не рисуются
+const PROBES_ZONED := 20                        # мир с картой зон: больше проб на ячейку
+const ZONE_DENSITY := 1.6                       # и гуще (× оживлённость места)
 const SHADER := preload("res://scripts/sea/shaders/sea_species.gdshader")
 
 var sea: Node = null
@@ -85,8 +87,41 @@ func _release(k: Vector2i) -> void:
 		instances_active -= mi.multimesh.visible_instance_count
 	_cells.erase(k)
 
+## Мир с картой зон: биом — по зоне (риф/лагуна/мангры/океан); вне открытого моря — "".
+func _zone_biome(zm: ZoneMap, x: float, z: float, depth: float) -> String:
+	if not zm.is_sea(x, z):
+		return ""
+	match zm.zone_at(x, z):
+		ZoneMap.Z_REEF_CREST, ZoneMap.Z_REEF_FLAT, ZoneMap.Z_REEF_SLOPE:
+			return "reef"
+		ZoneMap.Z_MANGROVE_WATER:
+			return "mangrove"
+		ZoneMap.Z_LAGOON, ZoneMap.Z_SHALLOWS:
+			return "lagoon"
+		ZoneMap.Z_DEEP_OCEAN:
+			return "deep"
+	return "deep" if depth > 9.0 else "lagoon"
+
+var _live_noise: FastNoiseLite
+## «Оживлённость» места 0.15..2.2: живность скоплениями — богатые и пустые места.
+func liveliness(x: float, z: float) -> float:
+	if _live_noise == null:
+		_live_noise = FastNoiseLite.new()
+		_live_noise.seed = 6151
+		_live_noise.frequency = 0.008
+		_live_noise.fractal_octaves = 2
+	var n := _live_noise.get_noise_2d(x, z) * 0.5 + 0.5
+	return lerpf(0.15, 2.2, smoothstep(0.2, 0.8, n))
+
+func _zm() -> ZoneMap:
+	var w: Node = sea.get(&"world") if sea else null
+	return w.get(&"zones") if w else null
+
 ## Биом точки: по глубине дна, рифам и болотам.
 func biome_at(x: float, z: float, depth: float) -> String:
+	var zm := _zm()
+	if zm != null:
+		return _zone_biome(zm, x, z, depth)
 	if sea and sea.has_method(&"reef_zones"):
 		for zn: Dictionary in sea.call(&"reef_zones"):
 			var c: Variant = zn.center
@@ -112,15 +147,28 @@ func _populate(k: Vector2i, q: int) -> void:
 	rng.seed = hash(k) ^ 0x51ab
 	var wy: float = sea.call(&"water_y")
 	var dens := DENSITY_BY_Q[q]
+	var zm := _zm()
+	var probes := PROBES
+	if zm != null:
+		# мир с картой зон: живности больше, скоплениями; всё — ниже самого низкого отлива
+		wy = ZoneMap.LOW_TIDE
+		var cx := (k.x + 0.5) * CELL
+		var cz := (k.y + 0.5) * CELL
+		dens *= ZONE_DENSITY * liveliness(cx, cz)
+		probes = PROBES_ZONED
 	# пробные точки на ячейку: каждая — шанс на группу подходящего вида
 	# (в среднем Σgroups групп на водную ячейку подходящего биома)
-	for i in PROBES:
+	for i in probes:
 		var x := (k.x + rng.randf()) * CELL
 		var z := (k.y + rng.randf()) * CELL
 		var depth: float = sea.call(&"depth_at", x, z)
+		if zm != null:
+			depth = zm.depth_low(x, z) if zm.is_sea(x, z) else -1.0
 		if depth < 0.8:
 			continue
 		var biome := biome_at(x, z, depth)
+		if biome == "":
+			continue
 		var cands: Array[Dictionary] = []
 		var wsum := 0.0
 		for d in SeaSpecies.all():
@@ -130,7 +178,7 @@ func _populate(k: Vector2i, q: int) -> void:
 			wsum += float(d.groups)
 		if cands.is_empty():
 			continue
-		var roll := rng.randf() * float(PROBES) / dens
+		var roll := rng.randf() * float(probes) / dens
 		if roll > wsum:
 			continue
 		var acc := 0.0
