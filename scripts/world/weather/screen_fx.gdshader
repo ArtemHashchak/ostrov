@@ -19,6 +19,8 @@ uniform float rainbow = 0.0;               // радуга 0..1
 uniform vec3 anti_sun = vec3(0.0, -1.0, 0.0); // мировое направление на антисолнечную точку
 uniform vec3 sun_tint : source_color = vec3(1.0, 0.92, 0.78);
 uniform float underwater = 0.0;
+uniform vec4 meteor = vec4(0.0);           // падающая звезда: начало (uv) и направление (uv/с)
+uniform float meteor_t = -1.0;             // 0..1 — ход вспышки, < 0 — нет
 
 void vertex() {
 	POSITION = vec4(VERTEX.xy * 2.0, 0.0, 1.0);
@@ -67,6 +69,18 @@ void fragment() {
 		vec3 rb = clamp(abs(fract(vec3(0.0, 0.33, 0.67) + (1.0 - t) * 0.8) * 6.0 - 3.0) - 1.0, 0.0, 1.0);
 		float above = smoothstep(-0.02, 0.06, vdir.y);  // дуга не уходит под горизонт моря
 		col += rb * band * above * rainbow * 0.11 * (0.45 + 0.55 * luma(base));
+	}
+	// --- падающая звезда: тонкий штрих с ярким концом, гаснет за ~0.8 с
+	if (meteor_t >= 0.0 && meteor_t <= 1.0) {
+		vec2 head = meteor.xy + meteor.zw * meteor_t;
+		vec2 tail = head - meteor.zw * 0.35;
+		vec2 pa = (uv - tail) * vec2(1.7, 1.0);
+		vec2 ba = (head - tail) * vec2(1.7, 1.0);
+		float h = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0);
+		float dist = length(pa - ba * h);
+		float line = smoothstep(0.0022, 0.0, dist) * h * h;
+		float fade = sin(meteor_t * 3.14159);
+		col += vec3(0.85, 0.9, 1.0) * line * fade * 1.6;
 	}
 	ALBEDO = col;
 }

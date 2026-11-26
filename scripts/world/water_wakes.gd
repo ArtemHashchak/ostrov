@@ -174,7 +174,19 @@ func _on_draw() -> void:
 				var r2 := float(p[4]) * grow / px
 				var a2 := s * life_k * life_k * (1.0 if kind == 0 else clampf(1.0 - age / 1.6, 0.0, 1.0))
 				if a2 > 0.01:
-					_canvas.draw_texture_rect(_blob, Rect2(c - Vector2(r2, r2), Vector2(r2, r2) * 2.0), false, Color(a2, a2 * 0.3, 0, 1))
+					if kind == 0:
+						# след: взбитая полоса в центре быстро тает, а два «уса» расходятся клином (V-след)
+						var dv := Vector2(float(p[6]), float(p[7]))
+						var side := Vector2(-dv.y, dv.x)
+						var arm := float(p[4]) * (0.5 + age * 0.9) / px
+						var ra := r2 * 0.45
+						var ac := a2 * clampf(1.0 - age / 2.0, 0.0, 1.0)
+						_canvas.draw_texture_rect(_blob, Rect2(c - Vector2(r2, r2) * 0.7, Vector2(r2, r2) * 1.4), false, Color(ac, ac * 0.3, 0, 1))
+						for sg in [-1.0, 1.0]:
+							var cc: Vector2 = c + side * arm * float(sg)
+							_canvas.draw_texture_rect(_blob, Rect2(cc - Vector2(ra, ra), Vector2(ra, ra) * 2.0), false, Color(a2 * 0.8, a2 * 0.5, 0, 1))
+					else:
+						_canvas.draw_texture_rect(_blob, Rect2(c - Vector2(r2, r2), Vector2(r2, r2) * 2.0), false, Color(a2, a2 * 0.3, 0, 1))
 
 func _build_textures() -> void:
 	var n := 64

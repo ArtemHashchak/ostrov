@@ -20,6 +20,7 @@ uniform sampler2D seabed_albedo : source_color, filter_linear_mipmap, repeat_ena
 
 uniform float tile = 0.2;
 uniform float rock_tile = 0.07;
+uniform float ground_tile = 0.2;   // v5: повтор травы/подстилки/ила (текстуры пользователя ~2.2 м → 0.45)
 uniform float water_level = 0.0;   // текущий уровень (прилив)
 uniform float sand_top = 1.25;
 uniform float grass_start = 1.75;
@@ -190,9 +191,10 @@ void fragment() {
 	// серые «лужи» на широких отмелях выше уровня моря)
 	vec3 wet = mix(sand * 0.62, texture(wet_albedo, uv).rgb * sand_tint * 0.85, 0.45);
 	wet *= mix(0.92, 1.06, macro);
-	vec3 grass = tex2(grass_albedo, uv * 0.8);
+	vec2 guv = wpos.xz * ground_tile;
+	vec3 grass = tex2(grass_albedo, guv * 0.8);
 	grass *= mix(vec3(0.70, 0.95, 0.55), vec3(0.88, 1.02, 0.70), macro);
-	vec3 jungle = tex2(jungle_albedo, uv * 0.9);
+	vec3 jungle = tex2(jungle_albedo, guv * 0.9);
 	// подлесок: листовой опад вперемешку с мхом/папоротником
 	jungle = mix(jungle, grass * vec3(0.62, 0.78, 0.55), 0.35 + 0.3 * macro);
 	// мшистая земля: крупные пятна (сырые низины, ровные места), вторая шкала повернута — без повтора
@@ -207,7 +209,7 @@ void fragment() {
 		float litter = smoothstep(0.55, 0.8, dot(jungle, vec3(0.333)) / max(dot(mcol, vec3(0.333)), 0.02) * 0.5);
 		jungle = mix(jungle, mcol, k_moss * (1.0 - litter * 0.5 * (1.0 - k_moss)));
 	}
-	vec3 mud = texture(mud_albedo, uv).rgb;
+	vec3 mud = texture(mud_albedo, guv).rgb;
 	vec3 rock = tri(rock_albedo, wpos, wnrm, rock_tile);
 	vec3 seabed = tex2(seabed_albedo, uv * 0.7);
 	vec3 volc = tri(volc_albedo, wpos, wnrm, rock_tile * 1.6) * mix(vec3(0.78), vec3(0.95, 0.9, 0.86), macro);
@@ -295,8 +297,8 @@ void fragment() {
 			n_s = nt * 0.5 + 0.5;
 		}
 	}
-	vec3 n_g = texture(grass_normal, uv * 0.8).rgb;
-	vec3 n_j = texture(jungle_normal, uv * 0.9).rgb;
+	vec3 n_g = texture(grass_normal, guv * 0.8).rgb;
+	vec3 n_j = texture(jungle_normal, guv * 0.9).rgb;
 	if (k_moss > 0.001) {
 		n_j = mix(n_j, mix(texture(mossy_normal, muv).rgb, texture(mossy_normal, muv2).rgb, 0.35), k_moss);
 	}

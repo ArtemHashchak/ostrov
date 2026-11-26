@@ -82,6 +82,7 @@ var _cloud_off := Vector2.ZERO
 var _wfx_t := 0.0
 var screen_fx: ScreenFx
 var _rain_recent := 0.0
+var _stars_t := 0.0
 var rock_spray: RockSpray
 var storm_debris: StormDebris
 var _push := {}          # id -> Vector3 (сглаженная позиция для раздвигания растений)
@@ -700,6 +701,14 @@ func _update_screen_fx(dt: float, cam: Camera3D) -> void:
 	var rb := smoothstep(0.25, 0.6, _rain_recent) * (1.0 - smoothstep(0.05, 0.3, rain)) \
 			* smoothstep(0.02, 0.1, sun_dir.y) * (1.0 - smoothstep(0.55, 0.67, sun_dir.y)) * (1.0 - smoothstep(0.8, 0.95, cov))
 	screen_fx.rainbow_k = rb
+	var clear_night := (1.0 - daylight()) * (1.0 - smoothstep(0.5, 0.75, cov)) * (1.0 - rain)
+	screen_fx.night_clear = clear_night
+	# Млечный Путь ярче в ясную безлунную ночь (луна засвечивает небо)
+	_stars_t += dt
+	if _stars_t > 1.0 and sky3d.sky:
+		_stars_t = 0.0
+		var a := lerpf(0.55, 1.0, clear_night * (1.0 - moon_light()))
+		sky3d.sky.starmap_color = Color(0.78, 0.8, 0.86, a)
 	var aiming := clampf((70.0 - cam.fov) / 35.0, 0.0, 1.0)
 	screen_fx.update_fx(cam, sun_dir, sun_on, _underwater, aiming)
 

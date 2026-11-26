@@ -35,8 +35,35 @@ static func make_tropic(water_level: float = 0.0) -> ShaderMaterial:
 	m.set_shader_parameter(&"volc_albedo", _t("dark_rock", "albedo"))
 	m.set_shader_parameter(&"volc_normal", _t("dark_rock", "normal"))
 	m.set_shader_parameter(&"water_level", water_level)
+	_apply_user_ground(m)
 	_apply_beach_sand(m)
 	return m
+
+## v5 (агент D): грунт пользователя (агент A, assets/user_pack/ground; каталог category=ground):
+## луг — grass_02 (сочная тропическая трава), подстилка джунглей — grass_05 (корни, мох, листва),
+## ил мангров — mud. Повтор ~2.2 м. Нет файлов — остаются прежние CC0-текстуры.
+const USER_GROUND := "res://assets/user_pack/ground/"
+static var use_user_ground := true
+
+static func _ug(set_name: String, kind: String) -> Texture2D:
+	var p := "%s%s/%s.jpg" % [USER_GROUND, set_name, kind]
+	return load(p) as Texture2D if ResourceLoader.exists(p) else null
+
+static func _apply_user_ground(m: ShaderMaterial) -> void:
+	if not use_user_ground:
+		return
+	var g := _ug("grass_02", "albedo")
+	var j := _ug("grass_05", "albedo")
+	var mu := _ug("mud", "albedo")
+	if g == null or j == null:
+		return
+	m.set_shader_parameter(&"grass_albedo", g)
+	m.set_shader_parameter(&"grass_normal", _ug("grass_02", "normal"))
+	m.set_shader_parameter(&"jungle_albedo", j)
+	m.set_shader_parameter(&"jungle_normal", _ug("grass_05", "normal"))
+	if mu:
+		m.set_shader_parameter(&"mud_albedo", mu)
+	m.set_shader_parameter(&"ground_tile", 0.45)
 
 ## Песок пользователя (Грунт/Песок): пляжный материал + утоптанный песок со следами.
 static func _apply_beach_sand(m: ShaderMaterial) -> void:

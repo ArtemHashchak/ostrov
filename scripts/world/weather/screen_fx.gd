@@ -6,6 +6,10 @@ extends MeshInstance3D
 
 var _mat: ShaderMaterial
 var rainbow_k := 0.0          # 0..1, считается SkyWeather (после дождя + солнце за спиной)
+var night_clear := 0.0        # 0..1 — ясная ночь (падающие звёзды)
+var _met_t := -1.0
+var _met_wait := 30.0
+var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	var q := QuadMesh.new()
@@ -47,7 +51,22 @@ func update_fx(cam: Camera3D, sun_dir: Vector3, sun_on: float, underwater: bool,
 	# ослепление: взгляд почти на солнце (≤ ~20°), сильнее в прицеле (оптика собирает свет)
 	var glare := smoothstep(0.93, 0.995, facing) * sun_on * (0.55 + 0.45 * aiming) * (0.0 if underwater else 1.0)
 	var rb := rainbow_k if not underwater else 0.0
-	visible = shafts > 0.01 or glare > 0.01 or rb > 0.01
+	# падающие звёзды: ясной ночью раз в 25–90 с, если взгляд направлен в небо
+	var dt := get_process_delta_time()
+	if _met_t >= 0.0:
+		_met_t += dt / 0.8
+		if _met_t > 1.0:
+			_met_t = -1.0
+	elif night_clear > 0.5 and not underwater and fwd.y > 0.15:
+		_met_wait -= dt
+		if _met_wait <= 0.0:
+			_met_wait = _rng.randf_range(25.0, 90.0)
+			_met_t = 0.0
+			var st := Vector2(_rng.randf_range(0.15, 0.85), _rng.randf_range(0.05, 0.35))
+			var d := Vector2(_rng.randf_range(-1.0, 1.0), _rng.randf_range(0.25, 0.6)).normalized() * _rng.randf_range(0.25, 0.45)
+			_mat.set_shader_parameter(&"meteor", Vector4(st.x, st.y, d.x, d.y))
+	_mat.set_shader_parameter(&"meteor_t", _met_t)
+	visible = shafts > 0.01 or glare > 0.01 or rb > 0.01 or _met_t >= 0.0
 	if not visible:
 		return
 	_mat.set_shader_parameter(&"sun_uv", suv)
