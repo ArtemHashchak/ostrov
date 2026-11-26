@@ -10,11 +10,15 @@ extends Node
 
 const WARMUP_FRAMES := 90        # прогрев: подгрузка, LOD, тени, флора (кадры не пишутся)
 const JPG_Q := 0.92
+## Кадр видео считается в отдельном окне-вьюпорте этого размера (не зависит от размера
+## окна игры и экрана ноутбука); основное окно 3D не рисует — вся видеокарта на кадр.
+const FRAME_SIZE := Vector2i(1920, 1080)
 
 static var clip: Dictionary = {}
 static var clip_dir := ""
 static var quality := 3
 static var capture := true        # тесты: без записи кадров и выхода
+static var frame_size := FRAME_SIZE
 
 var host: Node
 var frame := -WARMUP_FRAMES
@@ -26,6 +30,8 @@ var _actors: Dictionary = {}       # key → Node3D
 var _t := 0.0
 var _done := false
 var applied: Array = []            # для тестов: [{t, key, pos}]
+var _sub: SubViewport
+var _cam: Camera3D
 
 ## Разбор аргументов; true — игра запущена как рендер реплея.
 static func maybe_start(tree: SceneTree) -> bool:
@@ -35,6 +41,10 @@ static func maybe_start(tree: SceneTree) -> bool:
 			path = a.substr(16)
 		elif a.begins_with("--replay-quality="):
 			quality = clampi(int(a.substr(17)), 0, 3)
+		elif a.begins_with("--replay-size="):
+			var wh := a.substr(14).split("x")
+			if wh.size() == 2:
+				frame_size = Vector2i(maxi(64, int(wh[0])), maxi(64, int(wh[1])))
 	if path == "":
 		return false
 	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
@@ -98,8 +108,44 @@ func _ready() -> void:
 			(host.get(&"cheats") as SandboxCheats).set_infinite(true, true)
 			(host.get(&"cheats") as SandboxCheats).god = true
 	if capture:
+		_make_capture()
 		RenderingServer.frame_post_draw.connect(_on_drawn)
 		_progress("render")
+
+## Вьюпорт кадра: тот же 3D-мир, своя камера — копия камеры игрока каждый кадр.
+func _make_capture() -> void:
+	var root := get_tree().root
+	_sub = SubViewport.new()
+	_sub.name = "ReplayFrame"
+	_sub.size = frame_size
+	_sub.world_3d = root.world_3d
+	_sub.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	_sub.own_world_3d = false
+	add_child(_sub)
+	GraphicsQuality.apply_viewport(_sub)
+	_sub.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+	_sub.scaling_3d_scale = 1.0
+	if not GraphicsQuality.is_compat():
+		_sub.use_taa = true
+		_sub.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+	_cam = Camera3D.new()
+	_sub.add_child(_cam)
+	_cam.current = true
+	root.disable_3d = true
+
+func _process(_delta: float) -> void:
+	if _cam == null:
+		return
+	var src := get_tree().root.get_camera_3d()
+	if src == null or src == _cam:
+		return
+	_cam.global_transform = src.global_transform
+	_cam.fov = src.fov
+	_cam.near = src.near
+	_cam.far = src.far
+	_cam.environment = src.environment
+	_cam.attributes = src.attributes
+	_cam.cull_mask = src.cull_mask
 
 func _hide_ui() -> void:
 	var ui := MatchUI.instance()
@@ -289,7 +335,7 @@ func _on_drawn() -> void:
 	if idx >= total:
 		_finish()
 		return
-	var img := get_viewport().get_texture().get_image()
+	var img := (_sub.get_texture() if _sub else get_viewport().get_texture()).get_image()
 	if img:
 		img.save_jpg(clip_dir + "/frames/f%05d.jpg" % idx, JPG_Q)
 	if idx % 15 == 0:

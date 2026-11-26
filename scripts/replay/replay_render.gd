@@ -13,6 +13,8 @@ extends Control
 const WAIT_SCENE := "res://scenes/replay/replay_wait.tscn"
 const ENCODE_SCENE := "res://scenes/replay/replay_encode.tscn"
 const RES := "1920x1080"
+## Окно процесса рендера (кадр видео — FRAME_SIZE, во вьюпорте ReplayPlayback).
+const WIN := "960x540"
 const FPS := 60
 
 static var clip_path := ""
@@ -54,10 +56,10 @@ static func base_args() -> PackedStringArray:
 		a.append_array(["--path", ProjectSettings.globalize_path("res://")])
 	return a
 
-static func render_args(clip_abs: String, quality: int, res: String = RES) -> PackedStringArray:
+static func render_args(clip_abs: String, quality: int, res: String = WIN, frame: String = RES) -> PackedStringArray:
 	var a := base_args()
 	a.append_array(["--fixed-fps", str(FPS), "--resolution", res, "--", "--replay-render=" + clip_abs,
-		"--replay-quality=%d" % quality])
+		"--replay-quality=%d" % quality, "--replay-size=" + frame])
 	return a
 
 static func encode_args(frames_abs: String, count: int, out_abs: String, res: String = RES) -> PackedStringArray:

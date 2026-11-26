@@ -29,7 +29,7 @@ func run() -> void:
 	var dir := path.get_base_dir()
 	var out: Array = []
 	var t1 := Time.get_ticks_msec()
-	var ra := PackedStringArray(COMPAT) + ReplayRender.render_args(ProjectSettings.globalize_path(path), 0, "640x360")
+	var ra := PackedStringArray(COMPAT) + ReplayRender.render_args(ProjectSettings.globalize_path(path), 0, "320x180", "640x360")
 	var rc := OS.execute(OS.get_executable_path(), ra, out, true)
 	var pr := ReplayRender.progress(dir)
 	var frames := DirAccess.get_files_at(dir + "/frames").size()
