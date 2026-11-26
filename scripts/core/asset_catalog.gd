@@ -176,6 +176,7 @@ static func make_collider(id: String) -> CollisionObject3D:
 		ar.monitorable = false
 		ar.add_to_group(&"soft_plant")
 		ar.set_meta(&"slow", float(e.get("slow", SOFT_SLOW)))
+		ar.set_meta(&"speed_mul", float(e.get("slow", SOFT_SLOW)))   # контракт F: BrushSensor читает speed_mul
 		obj = ar
 	obj.name = "Col_" + id
 	obj.set_meta(&"catalog_id", id)
