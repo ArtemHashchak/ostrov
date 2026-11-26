@@ -106,6 +106,13 @@ var _wetness := 0.0
 const AMBIENT_BASE := 0.9   # как в RenderProfile
 ## v5 свет: AgX вместо Filmic (без «пересвета» и кислотного неба днём, мягкие света), экспозиция под AgX.
 const TONEMAP_EXPOSURE := 1.0
+## Под пологом джунглей (интеграция v5): прямое солнце закрыто кроной, а GI/автоэкспозиции
+## в gl_compatibility нет — без подсветки чаща днём почти чёрная. Плавный «полог» 0..1 по
+## густоте джунглей под камерой: поднимаем рассеянный свет (зеленоватый отражённый от листвы)
+## и чуть экспозицию (глаз привыкает). Чаща остаётся темнее пляжа, но читается.
+const CANOPY_AMBIENT := 1.5      # + к энергии рассеянного света при полном пологе днём
+const CANOPY_EXPOSURE := 0.55    # + к экспозиции (gl_compatibility; в Forward+ — треть, есть автоэкспозиция)
+var _canopy := 0.0
 ## Луна на 25% меньше стандартной Sky3D (0.07): в небе выглядела слишком крупной.
 const MOON_SIZE := 0.0525
 ## Фаза луны задаётся датой (Sky3D считает небо по-настоящему): от зерна мира — разная в разных
@@ -407,6 +414,7 @@ func update(dt: float, cam: Camera3D, water_surface_at_cam: float) -> void:
 		for k in target:
 			_cur[k] = lerpf(float(_from.get(k, target[k])), float(target[k]), _blend)
 	_update_wind(dt)
+	_update_canopy(dt, cam)
 	_wfx_t += dt
 	if _wfx_t >= 0.2:
 		_wfx_t = 0.0
@@ -602,6 +610,15 @@ func _apply(_dt: float) -> void:
 			_star_light.visible = sl > 0.004
 		_env.ambient_light_sky_contribution = (1.0 - 0.75 * maxf(nk, starlit * 0.85)) * (1.0 - 0.5 * tw)
 		_env.ambient_light_energy = (AMBIENT_BASE + 1.6 * nk + 0.9 * tw) * lerpf(1.0, lerpf(0.75, 1.1, ml), night_k)
+		# под пологом днём: отражённый от листвы рассеянный свет (зеленоватый) + привыкание глаз
+		var ck := _canopy * dl
+		if ck > 0.001:
+			_env.ambient_light_energy += CANOPY_AMBIENT * ck
+			_env.ambient_light_sky_contribution *= 1.0 - 0.45 * ck
+			_env.ambient_light_color = _env.ambient_light_color.lerp(Color(0.42, 0.5, 0.36), 0.6 * ck)
+		var ex := TONEMAP_EXPOSURE * (1.0 + CANOPY_EXPOSURE * ck * (1.0 if GraphicsQuality.is_compat() else 0.35))
+		if absf(sky3d.tonemap_exposure - ex) > 0.003:
+			sky3d.tonemap_exposure = ex
 		# грейд в шторм затемнял ещё и ночь — ночью под тучами его ослабляем
 		_env.adjustment_brightness += 0.14 * storm * nk + 0.08 * nk
 		# погодный туман + граница «Дальности видимости» (дымка густеет до 100 % на её краю)
@@ -609,6 +626,25 @@ func _apply(_dt: float) -> void:
 		# в дождь/шторм небо затянуто: дымка заметно перекрывает небо (серое, а не чёрное)
 		_env.fog_sky_affect = maxf(clampf(0.15 + float(_cur.fog) * 14.0 + 0.45 * storm + 0.25 * rain, 0.15, 0.9), ViewDistance.sky_affect_min())
 		_env.fog_light_energy = 1.0 + _flash * 1.0
+
+## Полог джунглей над камерой (0..1), сглаженно (~1,5 с — привыкание глаз).
+func _update_canopy(dt: float, cam: Camera3D) -> void:
+	var target := 0.0
+	var w := get_parent()
+	if cam and w and not _underwater:
+		var zm: Variant = w.get(&"zones")
+		if zm is ZoneMap:
+			var cp := cam.global_position
+			var z := zm as ZoneMap
+			if z.inside(cp.x, cp.z):
+				var gh := z.height_at(cp.x, cp.z)
+				var above := cp.y - gh
+				if above < 12.0:
+					var jd := z.jungle_density(cp.x, cp.z)
+					var zt := z.zone_at(cp.x, cp.z)
+					var forest := 1.0 if zt == ZoneMap.Z_JUNGLE else (0.6 if zt == ZoneMap.Z_LOWLAND_FOREST else (0.5 if zt == ZoneMap.Z_MANGROVE else 0.0))
+					target = clampf(maxf(jd, forest * 0.7) * forest, 0.0, 1.0) * clampf((12.0 - above) / 6.0, 0.0, 1.0)
+	_canopy = move_toward(_canopy, target, dt / 1.5)
 
 func _update_lightning(dt: float, cam: Camera3D) -> void:
 	lightning.update(dt)

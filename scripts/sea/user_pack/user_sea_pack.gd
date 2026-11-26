@@ -120,9 +120,20 @@ static func exhibit(d: Dictionary) -> MultiMeshInstance3D:
 
 
 ## Записи видов пака (из JSON).
+## Виды пака моря: основной список + v5 (пиранья, горбатый кит — агент B; раньше v5-файл
+## не читался, и в море вместо них плавали дублёры).
+const SPECIES_FILES := ["res://assets/user_pack/sea_species_user_sea.json", "res://assets/user_pack/sea_species_user_v5.json"]
+static var _species_cache: Array = []
+
 static func species_list() -> Array:
-	var path := "res://assets/user_pack/sea_species_user_sea.json"
-	if not FileAccess.file_exists(path):
-		return []
-	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
-	return data if data is Array else []
+	if not _species_cache.is_empty():
+		return _species_cache
+	var out: Array = []
+	for path: String in SPECIES_FILES:
+		if not FileAccess.file_exists(path):
+			continue
+		var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+		if data is Array:
+			out.append_array(data)
+	_species_cache = out
+	return out

@@ -10,7 +10,7 @@ extends StaticBody3D
 const SPEED := 1.9
 const BUILD_TIME := 20.0
 const MAX_HP := 160.0
-const SEAT := Vector3(0.0, 0.45, 0.6)
+const SEAT := Vector3(0.0, 0.28, 0.6)     # стоит на палубе (ступни), чуть ближе к корме
 const MODEL := "res://assets/user_pack/vehicles/vehicle_wooden_boat.glb"
 const STORM_MAX := 0.55          # сильнее — переправу не начинаем
 const BEACH_DRAFT := 0.35        # мель: глубже не подходим
@@ -50,7 +50,11 @@ func _ready() -> void:
 		_model.scale = Vector3.ONE * k
 		if aabb.size.x > aabb.size.z:
 			_model.rotation.y = PI * 0.5
-		_model.position = -aabb.get_center() * k + Vector3(0, aabb.size.y * k * 0.5 - 0.25, 0)
+		# низ корпуса — на 0,15 м под водой (осадка), палуба ~0,25 м над водой
+		var c := aabb.get_center()
+		if aabb.size.x > aabb.size.z:
+			c = Vector3(c.z, c.y, -c.x)   # поворот модели на +90° вокруг Y
+		_model.position = Vector3(-c.x * k, -aabb.position.y * k - 0.15, -c.z * k)
 	var cs := CollisionShape3D.new()
 	var sh := BoxShape3D.new()
 	sh.size = Vector3(1.5, 0.6, 4.2)
@@ -63,7 +67,14 @@ static func _aabb_of(n: Node3D) -> AABB:
 	var first := true
 	for c in n.find_children("*", "MeshInstance3D", true, false):
 		var mi := c as MeshInstance3D
-		var a := (n.global_transform.affine_inverse() * mi.global_transform) * mi.get_aabb() if n.is_inside_tree() else mi.transform * mi.get_aabb()
+		# трансформ относительно n через всю цепочку родителей (узлы GLB вложены, у них свой масштаб)
+		var t := Transform3D.IDENTITY
+		var q: Node = mi
+		while q != null and q != n:
+			if q is Node3D:
+				t = (q as Node3D).transform * t
+			q = q.get_parent()
+		var a := t * mi.get_aabb()
 		out = a if first else out.merge(a)
 		first = false
 	return out

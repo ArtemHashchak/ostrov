@@ -37,6 +37,7 @@ class Deck extends Node3D:
 		bumps += 1
 
 func _init() -> void:
+	OS.set_environment("OSTROVA_GEN", "4")   # модульная проверка моря на прежнем архипелаге (в v5 другая раскладка рифов/акул, см. test_world_v5_life)
 	timeout_sec = 1400.0
 
 func run() -> void:
