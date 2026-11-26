@@ -310,6 +310,9 @@ static func bullet_impact(ctx: Node, col: Node, pos: Vector3, normal: Vector3, s
 			CombatFx.particles(root, pos, 6, 1.2, "smoke", false, CombatFx._ramp([Color(0.92, 0.96, 1.0, 0.5), Color(0.9, 0.95, 1.0, 0.0)]),
 				0.3, 0.8, 80.0, Vector3.UP, Vector3(0, -0.5, 0))
 			a = CombatFx.sound_at(ctx, "splash", pos, -12.0, 50.0)
+			var ww := ctx.get_node_or_null(^"/root/WaterWakes")
+			if ww:
+				ww.call(&"splash", pos, 0.45)   # v5 (агент D): пятно пены и кольцо на воде
 			if a:
 				a.pitch_scale = randf_range(1.5, 1.9)
 		&"wood":

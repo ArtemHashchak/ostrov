@@ -360,9 +360,10 @@ func monuments() -> Array[Dictionary]:
 func water_level() -> float:
 	return sin(time_s / tide_period * TAU) * tide_amplitude + _surge
 
-## Штормовой нагон: море поднимается до ~1.8 м и плавно (минуты) уходит обратно.
+## Штормовой нагон: море поднимается до ~0.6 м (v5: было 1.8 — заливало полуострова) и плавно
+## (минуты) уходит обратно. Волны в шторм на вид выше (SkyWeather.WEATHERS.storm.waves).
 var _surge := 0.0
-const SURGE_MAX := 1.8
+const SURGE_MAX := 0.6
 
 func storm_surge() -> float:
 	return _surge

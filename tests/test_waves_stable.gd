@@ -132,14 +132,14 @@ func run() -> void:
 	print("[test] шторм у берега (глубина ~3 м): размах %.2f м (в море %.2f)" % [sn.range, ss.range])
 	check(sn.range > ss.range * 1.05, "шоалинг: у берега волны выше, чем в море (%.2f > %.2f)" % [sn.range, ss.range])
 	check(sn.step < 0.3, "у берега плавно (%.4f м за 0.05 с)" % sn.step)
-	check(w.storm_surge() > 0.8, "нагон воды в шторм %.2f м" % w.storm_surge())
+	check(w.storm_surge() > 0.4 and w.storm_surge() < 0.75, "нагон воды в шторм 0.4–0.75 м (v5): %.2f м" % w.storm_surge())
 	check(absf(w.water_level() - lvl0 - w.storm_surge()) < 0.01, "water_level включает нагон")
 	var storm_level := w.water_level()
 	# после шторма вода уходит
 	w.set_weather(&"clear", true)
 	_advance(600.0, 0.2, pts, [])
 	print("[test] через 10 мин после шторма: нагон %.2f м" % w.storm_surge())
-	check(w.storm_surge() < 0.3, "нагон спадает после шторма (%.2f м)" % w.storm_surge())
+	check(w.storm_surge() < 0.15, "нагон спадает после шторма (%.2f м)" % w.storm_surge())
 
 	# --- кадры на GPU ---
 	w.set_process(true)

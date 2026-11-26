@@ -1,4 +1,5 @@
 shader_type spatial;
+#include "res://shaders/wind_field.gdshaderinc"
 // Тропический рельеф: мокрый/сухой песок, луг, подстилка джунглей, ил мангров,
 // скалы/утёсы (трипланар), коралловый гравий под водой, каустика на мелководье.
 // Веса биомов — в цвете вершин: R — джунгли, G — болото/мангры, B — утёс.
@@ -27,6 +28,13 @@ uniform float time_s = 0.0;
 global uniform float weather_wetness;  // CONTRACT_WEATHER: сырость после дождя
 global uniform float weather_rain;     // CONTRACT_WEATHER: сила дождя сейчас (рябь в лужах)
 global uniform float weather_storm;    // CONTRACT_WEATHER: сила шторма (каустика гаснет под тучами)
+global uniform vec2 wind_dir;
+global uniform float wind_speed;
+global uniform float wind_gust;
+// v5 (агент D): тени облаков — плотность облаков (0..1) и их снос задаёт SkyWeather
+global uniform float cloud_cover;
+global uniform vec2 cloud_offset;
+global uniform float sun_day;          // 0 ночь .. 1 день (тени облаков только при солнце)
 uniform vec3 sand_tint : source_color = vec3(1.3, 1.22, 1.04);
 
 // Пляжный песок из пака пользователя (Грунт/Песок): высота/шероховатость; утоптанный песок со следами.
@@ -252,6 +260,27 @@ void fragment() {
 	float puddle = smoothstep(0.66 - 0.1 * grow, 0.72 - 0.1 * grow, pn) * grow * flatness
 			* (1.0 - k_sea) * (1.0 - k_wet) * (1.0 - k_rock) * (1.0 - k_volc * 0.6) * mix(0.25, 1.0, max(k_grass, k_mud));
 	col = mix(col, col * 0.42 + vec3(0.015, 0.02, 0.025), puddle);
+	// v5: сильный ветер гонит сухой песок низкими струйками вдоль пляжа (светлые бегущие ленты)
+	float k_dry_sand = (1.0 - k_grass) * (1.0 - k_wet) * (1.0 - k_sea) * (1.0 - k_rock) * (1.0 - rain_wet);
+	float blow = smoothstep(7.0, 15.0, wind_speed) * k_dry_sand;
+	if (blow > 0.01) {
+		vec2 wd = length(wind_dir) > 0.01 ? normalize(wind_dir) : vec2(1.0, 0.0);
+		float al = dot(wpos.xz, wd);
+		float ac = dot(wpos.xz, vec2(-wd.y, wd.x));
+		float tt = TIME * wind_speed * 0.9;
+		float r1 = vnoise(vec2(al * 0.35 - tt * 0.35, ac * 2.8));
+		float r2 = vnoise(vec2(al * 1.1 - tt * 1.05, ac * 7.0) + 3.1);
+		float ribbon = smoothstep(0.58, 0.85, r1 * 0.65 + r2 * 0.45);
+		float g = wind_gust_raw(wpos.xz, TIME, wind_dir, weather_storm);
+		col = mix(col, col * 1.12 + vec3(0.04, 0.035, 0.025), ribbon * blow * (0.35 + 0.65 * g));
+	}
+	// v5: тени облаков ползут по острову со скоростью ветра облаков
+	if (cloud_cover > 0.05 && sun_day > 0.05) {
+		vec2 cpp = wpos.xz * 0.0045 + cloud_offset;
+		float cl = vnoise(cpp) * 0.62 + vnoise(cpp * 2.3 + 7.0) * 0.38;
+		float shade = smoothstep(0.62 - cloud_cover * 0.35, 0.78 - cloud_cover * 0.35, cl);
+		col *= 1.0 - shade * 0.42 * sun_day * (1.0 - smoothstep(0.85, 1.0, cloud_cover));
+	}
 	ALBEDO = col;
 
 	vec3 n_s = texture(sand_normal, uv).rgb;

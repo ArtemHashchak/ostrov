@@ -17,6 +17,7 @@ Events="*res://scripts/core/events.gd"
 Items="*res://scripts/core/items.gd"
 Game="*res://scripts/core/game.gd"
 SandTracks="*res://scripts/world/sand_tracks.gd"
+WaterWakes="*res://scripts/world/water_wakes.gd"
 DevConsole="*res://scripts/core/dev_console.gd"
 Surfaces="*res://scripts/mech/surfaces.gd"
 ShowBus="*res://scripts/mech/show_bus.gd"
@@ -80,6 +81,50 @@ sea_time={
 "value": 0.0
 }
 sea_level={
+"type": "float",
+"value": 0.0
+}
+cloud_cover={
+"type": "float",
+"value": 0.0
+}
+cloud_offset={
+"type": "vec2",
+"value": Vector2(0, 0)
+}
+sun_day={
+"type": "float",
+"value": 1.0
+}
+sea_turbidity={
+"type": "float",
+"value": 0.0
+}
+wake_map={
+"type": "sampler2D",
+"value": ""
+}
+wake_rect={
+"type": "vec4",
+"value": Vector4(0, 0, 64, 0)
+}
+heat_haze={
+"type": "float",
+"value": 0.0
+}
+plant_push_a={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+plant_push_b={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+plant_push_c={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+storm_after={
 "type": "float",
 "value": 0.0
 }

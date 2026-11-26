@@ -9,6 +9,7 @@ uniform vec3 tint : source_color = vec3(1.0);
 uniform float bump_mm = 0.09;      // глубина пор, мм
 uniform float sss = 0.45;
 uniform float dirt = 0.25;         // «неделя на острове»
+uniform float wet = 0.0;           // v5 (агент D): мокрые руки — темнее, блестят, капли (WetBody)
 
 varying vec3 rp;       // позиция в покое (метры) — шум не «плывёт» при сгибе пальцев
 varying float nail_m;
@@ -63,9 +64,12 @@ void fragment() {
 	c = mix(c, c * vec3(0.62, 0.55, 0.48), grime);
 	// грязь под краем ногтя
 	c = mix(c, c * 0.7, nail_m * smoothstep(0.55, 0.8, vnoise(rp * 600.0)) * dirt);
+	// мокрая кожа: темнее и насыщеннее, гладкий блеск плёнки воды, капли (бусины) на тыле
+	float beads = smoothstep(0.78, 0.86, vnoise(rp * 520.0 + vec3(0.0, TIME * 0.004, 0.0))) * clamp(dorsal + 0.3, 0.0, 1.0);
+	c *= 1.0 - 0.12 * wet;
 	ALBEDO = c;
-	ROUGHNESS = mix(0.5 + 0.12 * pores + grime * 0.15, 0.24, nail_m);
-	SPECULAR = mix(0.38, 0.5, nail_m);
+	ROUGHNESS = mix(mix(0.5 + 0.12 * pores + grime * 0.15, 0.24, nail_m), mix(0.16, 0.05, beads), wet);
+	SPECULAR = mix(mix(0.38, 0.5, nail_m), 0.6, wet);
 	RIM = 0.08;
 	RIM_TINT = 0.7;
 	BACKLIGHT = vec3(0.14, 0.05, 0.03) * (1.0 - nail_m);

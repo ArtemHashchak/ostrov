@@ -709,6 +709,7 @@ func _make_fire() -> void:
 	sg.set_color(1, Color(0.3, 0.3, 0.3, 0.0))
 	smoke.color_ramp = sg
 	_fire_root.add_child(smoke)
+	WindFx.register(smoke, &"smoke")   # v5: дым по ветру (агент D)
 	_fire_light = OmniLight3D.new()
 	_fire_light.light_color = Color(1.0, 0.6, 0.25)
 	_fire_light.light_energy = 2.0

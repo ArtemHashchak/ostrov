@@ -239,6 +239,9 @@ static func impact(ctx: Node, pos: Vector3, normal: Vector3, surface: StringName
 			particles(root, pos, 18, 0.8, "smoke", false, _ramp([Color(0.85, 0.92, 0.95, 0.8), Color(0.9, 0.95, 1.0, 0.0)]),
 				0.12, 4.0, 15.0, Vector3.UP, Vector3(0, -9.8, 0))
 			sound_at(ctx, "splash", pos, -8.0)
+			var ww := ctx.get_node_or_null(^"/root/WaterWakes")
+			if ww:
+				ww.call(&"splash", pos, 0.8)   # v5 (агент D): пена и кольцо на воде
 		&"wood":
 			particles(root, pos, 10, 0.7, "smoke", false, _ramp([Color(0.5, 0.38, 0.24, 0.9), Color(0.5, 0.4, 0.3, 0.0)]),
 				0.05, 3.0, 40.0, normal, Vector3(0, -9.8, 0))

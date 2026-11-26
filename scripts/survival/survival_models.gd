@@ -570,6 +570,7 @@ static func fire(parent: Node3D, size: float = 1.0, pos: Vector3 = Vector3.ZERO)
 	sg.set_color(sg.get_point_count() - 1, Color(1, 1, 1, 0))
 	smoke.color_ramp = sg
 	root.add_child(smoke)
+	WindFx.register(smoke, &"smoke")   # v5: дым по ветру (агент D)
 	var light := OmniLight3D.new()
 	light.name = "Light"
 	light.light_color = Color(1.0, 0.62, 0.3)
@@ -620,6 +621,7 @@ static func smoke_only(parent: Node3D, pos: Vector3, tint: Color, amount: int = 
 	sg.set_color(sg.get_point_count() - 1, Color(1, 1, 1, 0))
 	smoke.color_ramp = sg
 	parent.add_child(smoke)
+	WindFx.register(smoke, &"smoke")   # v5: дым/пар по ветру (агент D)
 	return smoke
 
 # ============================================================ постройки

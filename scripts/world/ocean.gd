@@ -535,7 +535,9 @@ func _gerstner_disp(p: Vector2) -> Vector2:
 static func shoal(d: float) -> float:
 	var grow := clampf(pow(12.0 / maxf(d, 0.8), 0.35), 1.0, 2.0)
 	var t := clampf(d / 1.8, 0.0, 1.0)
-	return lerpf(0.35, grow, t * t * (3.0 - 2.0 * t))
+	# v5: заплеск только в полосе прибоя (как в шейдере)
+	var swash := 1.0 - smoothstep(0.0, 1.2, -d)
+	return lerpf(0.35 * swash, grow, t * t * (3.0 - 2.0 * t))
 
 func _wave_height(x: float, z: float) -> float:
 	var depth := depth_at(x, z)

@@ -7,6 +7,7 @@ render_mode blend_mix, cull_disabled, depth_draw_always, specular_schlick_ggx;
 // R,G — наклоны, B — высота, A — пена по якобиану) — вершины у камеры, нормали
 // на двух масштабах, барашки. Только чтение текстуры, без симуляции.
 // Вид снизу (из-под воды): тёмная гладь с «окном Снеллиуса» над головой.
+#include "res://shaders/wind_field.gdshaderinc"
 
 uniform float u_time = 0.0;          // время для текстур (с переносом раз в 2 ч)
 uniform float water_level = 0.0;    // текущий уровень (прилив + нагон)
@@ -45,6 +46,11 @@ uniform vec3 shallow_color : source_color = vec3(0.30, 0.80, 0.78);
 uniform vec3 mid_color : source_color = vec3(0.07, 0.42, 0.50);
 uniform vec3 deep_color : source_color = vec3(0.02, 0.13, 0.22);
 uniform vec3 night_tint : source_color = vec3(1.0);
+// v5: след на воде (WaterWakes): R — пена следа/буруна/всплеска, G — кольца ряби
+global uniform sampler2D wake_map : filter_linear, repeat_disable;
+global uniform vec4 wake_rect;
+global uniform float sea_turbidity;
+global uniform float heat_haze;
 
 varying vec3 wpos;
 varying float depth_m;
@@ -70,7 +76,9 @@ float sample_depth(vec2 p) {
 float shoal(float d) {
 	float grow = clamp(pow(12.0 / max(d, 0.8), 0.35), 1.0, 2.0);
 	float t = clamp(d / 1.8, 0.0, 1.0);
-	return mix(0.35, grow, t * t * (3.0 - 2.0 * t));
+	// v5: заплеск только в полосе прибоя — над сухим пляжем волна быстро гаснет (не затапливает берег)
+	float swash = 1.0 - smoothstep(0.0, 1.2, -d);
+	return mix(0.35 * swash, grow, t * t * (3.0 - 2.0 * t));
 }
 
 // кадр зыби: (кадр0, кадр1, вес)
@@ -268,7 +276,12 @@ void fragment() {
 		NORMAL_MAP_DEPTH = 0.5;
 	}
 
+	// v5: порывы ветра бегут по воде тёмными пятнами ряби («кошачьи лапы»), между ними гладь
+	float paw = wind_gust_raw(p, TIME, wind_dir, storm) * (0.25 + 0.75 * wind_k) * (1.0 - storm * 0.6);
+	NORMAL_MAP_DEPTH *= mix(0.75, 1.9, paw);
+
 	vec3 col = mix(shallow_color, mid_color, smoothstep(0.3, 4.5, d));
+	col *= 1.0 - 0.13 * paw * smoothstep(1.0, 6.0, d);
 	col = mix(col, deep_color, smoothstep(4.5, 16.0, d));
 	// шторм: вода темнее и серее (взмученная, под тучами)
 	col = mix(col, vec3(0.05, 0.15, 0.17) * (0.7 + 0.3 * (1.0 - smoothstep(0.0, 6.0, d))), storm * 0.45);
@@ -328,7 +341,33 @@ void fragment() {
 		foam = max(foam, (streak * 0.4 + web * 0.4) * storm * smoothstep(1.5, 5.0, d));
 	}
 	foam = max(foam, fft_foam * smoothstep(1.5, 4.0, d) * 0.55);
+	// след плота/пловца: взбитая пена (рваная по текстуре пены) + рябь колец в нормали
+	if (wake_rect.w > 0.5) {
+		vec2 wuv = (p - wake_rect.xy) / wake_rect.z;
+		if (wuv.x > 0.0 && wuv.y > 0.0 && wuv.x < 1.0 && wuv.y < 1.0) {
+			vec2 wk = texture(wake_map, wuv).rg;
+			float edge = smoothstep(0.0, 0.08, min(min(wuv.x, wuv.y), min(1.0 - wuv.x, 1.0 - wuv.y)));
+			float lace_w = texture(foam_tex, p * 0.35 + vec2(u_time * 0.02, 0.0)).r;
+			float wf = clamp(wk.r * 1.4, 0.0, 1.0) * smoothstep(0.25, 0.75, lace_w + wk.r * 0.35) * edge;
+			foam = max(foam, wf * 0.85);
+			if (wk.g > 0.01) {
+				float e = 1.0 / 512.0;
+				float gx = texture(wake_map, wuv + vec2(e, 0.0)).g - texture(wake_map, wuv - vec2(e, 0.0)).g;
+				float gz = texture(wake_map, wuv + vec2(0.0, e)).g - texture(wake_map, wuv - vec2(0.0, e)).g;
+				vec3 nw2 = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz + vec3(-gx, 0.0, -gz) * 2.5 * edge);
+				NORMAL = normalize((VIEW_MATRIX * vec4(nw2, 0.0)).xyz);
+			}
+		}
+	}
+	// после шторма вода мутная: зелёно-бурая, теряет прозрачность у берега
+	col = mix(col, vec3(0.16, 0.3, 0.24) * (0.8 + 0.2 * (1.0 - smoothstep(0.0, 8.0, d))), sea_turbidity * 0.45 * (1.0 - smoothstep(6.0, 30.0, d)));
 	col = mix(col, vec3(0.93, 0.96, 0.97), foam);
+	// марево (жаркий штиль): у горизонта вода «плывёт» светлой полосой — мираж неба
+	if (heat_haze > 0.01) {
+		float far = smoothstep(250.0, 900.0, length(p - cam_xz));
+		float shim = 0.5 + 0.5 * sin(p.x * 0.05 + TIME * 3.1) * sin(p.y * 0.07 - TIME * 2.3);
+		col = mix(col, vec3(0.72, 0.84, 0.92), far * heat_haze * (0.25 + 0.2 * shim));
+	}
 	if (!FRONT_FACING) {
 		// снизу: тёмная толща, над головой — светлое «окно Снеллиуса»
 		float cosv = abs(dot(normalize(VIEW), NORMAL));
@@ -347,6 +386,7 @@ void fragment() {
 	METALLIC = 0.0;
 	// прозрачность: на мелководье видно дно
 	float a = mix(0.38, 0.97, smoothstep(0.0, 6.0, d));
+	a = mix(a, 0.97, sea_turbidity * 0.7);   // муть: дна не видно
 	// край воды — там, где кончается ВОЛНА (заплеск бегает по пляжу), а не средний уровень
 	// пена кромки видна сразу у края (раньше её гасило вместе с прозрачной водой)
 	ALPHA = clamp(max(a * smoothstep(-0.01, 0.07, dl), foam * 0.95 * smoothstep(-0.002, 0.008, dl)), 0.0, 1.0);

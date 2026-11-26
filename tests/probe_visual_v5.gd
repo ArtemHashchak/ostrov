@@ -1,4 +1,4 @@
-## test-timeout: 1500
+## test-timeout: 2400
 extends TestCase
 ## Снимки для сравнения «до/после» визуала v5 (агент D). Не проверки — только кадры.
 ## Окружение: VIS_TAG=before|after (в имени файла), VIS_SET=light|wind|water|weather|all.
@@ -6,7 +6,7 @@ extends TestCase
 
 func _init() -> void:
 	scene_path = "res://scenes/world/world_view.tscn"
-	timeout_sec = 1500.0
+	timeout_sec = 2400.0
 
 var w: World
 var cam: Camera3D
@@ -105,4 +105,43 @@ func run() -> void:
 		await _look(Vector3(bp.x - out.x * 6.0, bh + 1.7, bp.y - out.y * 6.0), Vector3(sp.x, 1.0, sp.y))
 		await _snap("rain_beach")
 		w.set_weather(&"clear", true)
+	if sets in ["fx", "all"]:
+		var sky: SkyWeather = w.sky
+		w.set_weather(&"clear", true)
+		w.set_time_of_day(8.2)
+		await wait(0.5)
+		var sd := sky.sky3d.sun.global_basis.z.normalized()
+		var eye := Vector3(bp.x, bh + 1.7, bp.y)
+		await _look(eye, eye + sd * 50.0 + Vector3(0, -6.0, 0))
+		await _snap("sun_glare_shafts")
+		# радуга: недавний дождь, солнце за спиной
+		w.set_time_of_day(16.8)
+		await wait(0.3)
+		sd = sky.sky3d.sun.global_basis.z.normalized()
+		sky._rain_recent = 1.0
+		var anti := Vector3(-sd.x, 0.0, -sd.z).normalized()
+		await _look(eye, eye + anti * 50.0 + Vector3(0, 14.0, 0))
+		await _snap("rainbow")
+		# след плота
+		w.set_time_of_day(11.0)
+		var raft := Node3D.new()
+		raft.add_to_group(&"raft_deck")
+		scene.add_child(raft)
+		var wl := w.water_level()
+		var rp := Vector3(sp.x, wl, sp.y) - Vector3(out.x, 0, out.y) * 20.0
+		var side := Vector3(-out.y, 0, out.x)
+		raft.global_position = rp - side * 10.0
+		cam.global_position = rp + Vector3(out.x, 0, out.y) * -14.0 + Vector3(0, 7.0, 0)
+		cam.look_at(rp, Vector3.UP)
+		for i in 50:
+			raft.global_position += side * (2.2 / 60.0) * 3.0
+			await wait_frames(1)
+		await _snap("raft_wake")
+		raft.queue_free()
+		# под водой: взгляд вверх к солнцу
+		w.set_time_of_day(12.0)
+		await wait(0.3)
+		var deep := Vector3(sp.x, wl - 4.0, sp.y)
+		await _look(deep, deep + Vector3(4.0, 10.0, 2.0))
+		await _snap("underwater_up")
 	check(true, "снимки сделаны")

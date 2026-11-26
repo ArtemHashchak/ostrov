@@ -5,6 +5,7 @@
 // Срез для рубки: clip_lo/clip_hi — отбросить всё ниже/выше локальной высоты; hole — полоса
 // коры, которую заменяет процедурная зарубка (у копии материала конкретного дерева).
 #include "res://scripts/world/flora/tree_bend.gdshaderinc"
+#include "res://shaders/plant_push.gdshaderinc"
 
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap, repeat_enable;
@@ -41,11 +42,12 @@ void pack_vertex(inout vec3 vtx, vec2 uv2, mat4 model, vec3 cam, float t) {
 	float ph = uv2.y * 1.7;
 	float wf = clamp(1.0 + weather_storm * 2.0, 0.6, 3.0) * (0.85 + 0.3 * wind_gust);
 	float tt = t * (1.3 + weather_storm * 1.1);
-	float amp = wind_amp * w * min(wf, 2.2);
+	float amp = wind_amp * w * min(wf, 2.2) * wind_gust_field(wp.xz, t, wind_dir, weather_storm, wind_gust);
 	vec3 fl = vec3(sin(tt + ph + wp.x * 0.21) * 0.8 + sin(tt * 2.7 + ph * 1.3) * 0.25,
 			sin(tt * 3.1 + ph * 0.7) * 0.35,
 			cos(tt * 0.9 + ph + wp.z * 0.21) * 0.6);
 	vec3 dw = fl * amp;
+	dw += plant_push(wp, w * (1.0 - bend_k));   // кусты/папоротники раздвигаются (деревья — нет)
 	// листья «стелются» по ветру в шторм
 	float lay = max(0.0, wf - 1.25) * w * wind_amp * 4.0;
 	dw += vec3(wind_dir.x, -0.2, wind_dir.y) * lay;

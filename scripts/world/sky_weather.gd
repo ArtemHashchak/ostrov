@@ -16,7 +16,42 @@ const WEATHERS: Dictionary = {
 	&"cloudy": {"cov": 0.78, "cirrus": 1.0, "fog": 0.0013, "rain": 0.0, "waves": 1.25, "sun": 0.7, "wind": 2.0, "wspd": 6.0, "storm": 0.1},
 	&"rain": {"cov": 0.95, "cirrus": 1.4, "fog": 0.0045, "rain": 0.7, "waves": 1.6, "sun": 0.42, "wind": 3.5, "wspd": 10.0, "storm": 0.35},
 	&"fog": {"cov": 0.7, "cirrus": 0.8, "fog": 0.05, "rain": 0.0, "waves": 0.8, "sun": 0.55, "wind": 0.6, "wspd": 1.5, "storm": 0.0},
-	&"storm": {"cov": 1.0, "cirrus": 2.0, "fog": 0.0065, "rain": 1.0, "waves": 3.0, "sun": 0.25, "wind": 9.0, "wspd": 23.0, "storm": 1.0},
+	&"storm": {"cov": 1.0, "cirrus": 2.0, "fog": 0.0065, "rain": 1.0, "waves": 3.4, "sun": 0.25, "wind": 9.0, "wspd": 23.0, "storm": 1.0},
+	# --- v5: промежуточные состояния для плавных сценариев (WEATHER_SCENARIOS) ---
+	# дымка: перистые, влажно, мутноватый горизонт
+	&"hazy": {"cov": 0.45, "cirrus": 1.3, "fog": 0.0022, "rain": 0.0, "waves": 1.05, "sun": 0.85, "wind": 1.3, "wspd": 4.0, "storm": 0.0},
+	# кучевые и порывы, птицы летают ниже
+	&"gusty": {"cov": 0.7, "cirrus": 1.1, "fog": 0.0014, "rain": 0.0, "waves": 1.45, "sun": 0.72, "wind": 3.0, "wspd": 11.0, "storm": 0.18},
+	# зыбь пришла раньше шторма: небо ещё ясное, ветра почти нет, волны выше
+	&"swell": {"cov": 0.35, "cirrus": 1.2, "fog": 0.0009, "rain": 0.0, "waves": 1.9, "sun": 0.95, "wind": 1.2, "wspd": 3.5, "storm": 0.05},
+	# перистые затягивают небо, вечером — красное небо
+	&"cirrus": {"cov": 0.5, "cirrus": 2.2, "fog": 0.0012, "rain": 0.0, "waves": 2.1, "sun": 0.82, "wind": 2.2, "wspd": 6.5, "storm": 0.1},
+	# шквал: тёмная стена, резкий порыв, ливень
+	&"squall": {"cov": 1.0, "cirrus": 2.0, "fog": 0.007, "rain": 0.9, "waves": 2.8, "sun": 0.22, "wind": 10.0, "wspd": 26.0, "storm": 0.85},
+	# жаркий штиль: почти без ветра, вода зеркальная, марево
+	&"calm": {"cov": 0.18, "cirrus": 0.3, "fog": 0.0006, "rain": 0.0, "waves": 0.7, "sun": 1.05, "wind": 0.4, "wspd": 0.8, "storm": 0.0},
+	# башня облаков перед коротким ливнем
+	&"tower": {"cov": 0.85, "cirrus": 0.8, "fog": 0.0015, "rain": 0.0, "waves": 1.1, "sun": 0.6, "wind": 2.5, "wspd": 5.0, "storm": 0.12},
+	# короткий тропический ливень
+	&"downpour": {"cov": 1.0, "cirrus": 1.2, "fog": 0.006, "rain": 1.0, "waves": 1.3, "sun": 0.35, "wind": 3.0, "wspd": 8.0, "storm": 0.25},
+	# затяжная морось
+	&"drizzle": {"cov": 0.96, "cirrus": 1.2, "fog": 0.004, "rain": 0.28, "waves": 1.15, "sun": 0.48, "wind": 1.6, "wspd": 4.5, "storm": 0.05},
+}
+## v5: сценарии погоды — цепочки состояний с плавными переходами. [состояние, длительность с, переход с].
+## Расписание известно заранее (forecast()) → предвестники бесплатно: зыбь до шторма, перистые, порывы.
+## 1 реальная секунда = 1 игровая минута (сутки 24 мин).
+const WEATHER_SCENARIOS: Dictionary = {
+	&"shower": [[&"hazy", 240.0, 160.0], [&"gusty", 180.0, 120.0], [&"rain", 300.0, 70.0], [&"cloudy", 220.0, 150.0], [&"clear", 900.0, 200.0]],
+	&"storm_front": [[&"swell", 300.0, 300.0], [&"cirrus", 240.0, 200.0], [&"gusty", 200.0, 150.0], [&"squall", 90.0, 35.0],
+			[&"storm", 420.0, 60.0], [&"rain", 240.0, 150.0], [&"cloudy", 300.0, 200.0], [&"clear", 900.0, 240.0]],
+	&"heat_shower": [[&"calm", 420.0, 220.0], [&"tower", 160.0, 150.0], [&"downpour", 110.0, 30.0], [&"clear", 700.0, 200.0]],
+	&"night_fog": [[&"calm", 300.0, 200.0], [&"fog", 300.0, 240.0], [&"clear", 900.0, 300.0]],
+	&"drizzle": [[&"cloudy", 300.0, 200.0], [&"drizzle", 600.0, 180.0], [&"cloudy", 300.0, 200.0], [&"clear", 900.0, 220.0]],
+}
+## Базовая «семья» состояния (для интерфейса и старого кода, который сравнивает с пятью погодами).
+const WEATHER_KIND: Dictionary = {
+	&"hazy": &"clear", &"swell": &"clear", &"calm": &"clear", &"cirrus": &"cloudy", &"gusty": &"cloudy",
+	&"tower": &"cloudy", &"squall": &"storm", &"downpour": &"rain", &"drizzle": &"rain",
 }
 ## Длительность погоды в авто-режиме, с (мин..макс): цикл на матч 3–4 ч.
 const DURATION: Dictionary = {
@@ -43,6 +78,16 @@ var _flash := 0.0
 ## Вспышка молнии освещает сцену сама (ночью солнца нет): свет сверху без теней.
 var _flash_light: DirectionalLight3D
 var _star_light: DirectionalLight3D
+var _cloud_off := Vector2.ZERO
+var _wfx_t := 0.0
+var screen_fx: ScreenFx
+var _rain_recent := 0.0
+var _push := {}          # id -> Vector3 (сглаженная позиция для раздвигания растений)
+var _scenario: StringName = &""
+var _stage := -1
+var _stage_blend := BLEND_TIME
+## Мутность воды после шторма 0..1 (тает за несколько игровых часов).
+var turbidity := 0.0
 var _underwater := false
 var _env: Environment
 var _cloud_t := 0.0
@@ -249,6 +294,9 @@ func set_weather(w: StringName, instant: bool = false, auto: bool = true) -> voi
 	if not WEATHERS.has(w):
 		return
 	_auto = auto
+	_scenario = &""
+	_stage = -1
+	_stage_blend = BLEND_TIME
 	_from = _cur.duplicate()
 	var changed := w != weather
 	weather = w
@@ -310,6 +358,15 @@ func _update_wind(dt: float) -> void:
 	RenderingServer.global_shader_parameter_set(&"weather_rain", rain)
 	RenderingServer.global_shader_parameter_set(&"weather_storm", storm)
 	RenderingServer.global_shader_parameter_set(&"weather_wetness", _wetness)
+	# тени облаков (terrain_tropic): облачность и снос облаков по ветру (~скорость ветра у земли × 2)
+	_cloud_off += _wind_dir * (_wind_speed * 2.0 + 2.0) * dt * 0.0045
+	RenderingServer.global_shader_parameter_set(&"cloud_cover", clampf((float(_cur.get("cov", 0.38)) - 0.25) / 0.75, 0.0, 1.0))
+	RenderingServer.global_shader_parameter_set(&"cloud_offset", _cloud_off)
+	RenderingServer.global_shader_parameter_set(&"sun_day", daylight())
+	# марево: высокое солнце, ясно, слабый ветер, сухо
+	var hh := smoothstep(0.55, 0.9, sun_elevation()) * (1.0 - smoothstep(0.5, 0.8, float(_cur.get("cov", 0.4)))) \
+			* (1.0 - smoothstep(4.0, 9.0, _wind_speed)) * (1.0 - _wetness)
+	RenderingServer.global_shader_parameter_set(&"heat_haze", hh)
 
 func wind_dir() -> Vector2:
 	return _wind_dir
@@ -336,13 +393,21 @@ func update(dt: float, cam: Camera3D, water_surface_at_cam: float) -> void:
 	if _auto:
 		_left -= dt
 		if _left <= 0.0:
-			set_weather(_pick_next())
+			_next_stage()
+	# мутность: шторм взмучивает воду, после — оседает за ~5 игровых часов
+	turbidity = maxf(turbidity - dt / 300.0, maxf(float(_cur.get("storm", 0.0)), float(_cur.get("rain", 0.0)) * 0.35))
+	RenderingServer.global_shader_parameter_set(&"sea_turbidity", turbidity)
+	RenderingServer.global_shader_parameter_set(&"storm_after", maxf(turbidity - float(_cur.get("storm", 0.0)), 0.0))
 	if _blend < 1.0:
-		_blend = minf(1.0, _blend + dt / BLEND_TIME)
+		_blend = minf(1.0, _blend + dt / maxf(_stage_blend, 1.0))
 		var target: Dictionary = WEATHERS[weather]
 		for k in target:
 			_cur[k] = lerpf(float(_from.get(k, target[k])), float(target[k]), _blend)
 	_update_wind(dt)
+	_wfx_t += dt
+	if _wfx_t >= 0.2:
+		_wfx_t = 0.0
+		WindFx.update_all(get_tree(), _wind_dir, _wind_speed, _gust, maxf(_wetness, float(_cur.get("rain", 0.0))))
 	_apply(dt)
 	_cloud_t += dt
 	if _cloud_t >= 0.1 and sky3d and sky3d.sky:
@@ -350,6 +415,11 @@ func update(dt: float, cam: Camera3D, water_surface_at_cam: float) -> void:
 		_cloud_t = 0.0
 	if cam:
 		_update_underwater(cam.global_position.y < water_surface_at_cam - 0.05)
+		if _underwater:
+			_underwater_fog(cam.global_position.y, water_surface_at_cam)
+		_update_screen_fx(dt, cam)
+		_update_plant_push(dt, cam)
+		WetBody.update(get_tree(), dt, float(_cur.get("rain", 0.0)), daylight() * clampf(float(_cur.get("sun", 1.0)), 0.0, 1.0), _wind_speed, cam)
 		var cp := cam.global_position
 		var w := get_parent()
 		var gh := water_surface_at_cam
@@ -363,6 +433,73 @@ func update(dt: float, cam: Camera3D, water_surface_at_cam: float) -> void:
 				_underwater, gh, sea, near_shore)
 	_update_lightning(dt, cam)
 	_update_sounds(dt)
+
+## Следующий этап сценария; сценарий кончился — выбрать новый (ночью чаще туман к утру).
+func _next_stage() -> void:
+	if _scenario == &"" or _stage + 1 >= (WEATHER_SCENARIOS[_scenario] as Array).size():
+		_scenario = _pick_scenario()
+		_stage = -1
+	_stage += 1
+	var st: Array = WEATHER_SCENARIOS[_scenario][_stage]
+	_go(StringName(st[0]), float(st[1]) * _rng.randf_range(0.8, 1.25), float(st[2]))
+
+func _go(w: StringName, dur: float, blend: float) -> void:
+	_from = _cur.duplicate()
+	var changed := w != weather
+	weather = w
+	_blend = 0.0
+	_stage_blend = blend
+	_left = dur
+	if changed:
+		weather_changed.emit(w)
+
+func _pick_scenario() -> StringName:
+	var h := time_of_day()
+	var r := _rng.randf()
+	if (h > 21.0 or h < 3.0) and r < 0.45:
+		return &"night_fog"
+	if h > 9.0 and h < 15.0 and r < 0.3:
+		return &"heat_shower"
+	r = _rng.randf()
+	if r < 0.32:
+		return &"shower"
+	if r < 0.52:
+		return &"storm_front"
+	if r < 0.72:
+		return &"drizzle"
+	if r < 0.86:
+		return &"heat_shower"
+	return &"night_fog"
+
+## Включить сценарий погоды сразу (полигон, тесты, события).
+func start_scenario(name: StringName) -> void:
+	if not WEATHER_SCENARIOS.has(name):
+		return
+	_auto = true
+	_scenario = name
+	_stage = -1
+	_next_stage()
+
+func scenario() -> StringName:
+	return _scenario
+
+## Прогноз: [{w, in_s, dur_s}] — текущее и следующие этапы до конца сценария (+ один следующий).
+func forecast(max_items: int = 6) -> Array:
+	var out: Array = [{"w": weather, "in_s": 0.0, "dur_s": _left}]
+	if not _auto or _scenario == &"":
+		return out
+	var t := _left
+	var arr: Array = WEATHER_SCENARIOS[_scenario]
+	for i in range(_stage + 1, arr.size()):
+		if out.size() >= max_items:
+			break
+		out.append({"w": arr[i][0], "in_s": t, "dur_s": float(arr[i][1])})
+		t += float(arr[i][1])
+	return out
+
+## Семья погоды из пяти основных (clear/cloudy/rain/fog/storm).
+func weather_kind() -> StringName:
+	return WEATHER_KIND.get(weather, weather)
 
 func _pick_next() -> StringName:
 	var r := _rng.randf()
@@ -498,6 +635,73 @@ func _update_underwater(under: bool) -> void:
 	else:
 		_env.fog_sky_affect = 0.15
 		_apply(0.0)
+
+## Раздвигание растений: три ближайших к камере персонажа/зверя → plant_push_a/b/c. Позиция
+## догоняет настоящую с запаздыванием (пружина): стебли отклоняются и плавно выпрямляются.
+func _update_plant_push(dt: float, cam: Camera3D) -> void:
+	var cands: Array = []
+	var cp := cam.global_position
+	for grp in [&"characters", &"animals"]:
+		for n in get_tree().get_nodes_in_group(grp):
+			var nd := n as Node3D
+			if nd == null or not is_instance_valid(nd):
+				continue
+			var dd := nd.global_position.distance_squared_to(cp)
+			if dd < 1600.0:
+				cands.append([dd, nd])
+	cands.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
+	var names := [&"plant_push_a", &"plant_push_b", &"plant_push_c"]
+	var seen := {}
+	for i in 3:
+		var v := Vector4.ZERO
+		if i < cands.size():
+			var nd: Node3D = cands[i][1]
+			var id := nd.get_instance_id()
+			seen[id] = true
+			var tgt := nd.global_position
+			var cur: Vector3 = _push.get(id, tgt)
+			cur = cur.lerp(tgt, 1.0 - exp(-dt * 7.0))
+			_push[id] = cur
+			var r := 0.75 if nd.is_in_group(&"characters") else clampf(float(nd.get_meta(&"push_radius", 0.6)), 0.2, 2.0)
+			v = Vector4(cur.x, cur.y, cur.z, r)
+		RenderingServer.global_shader_parameter_set(names[i], v)
+	for id in _push.keys():
+		if not seen.has(id):
+			_push.erase(id)
+
+## Лучи солнца, ослепление, радуга (ScreenFx на камере).
+func _update_screen_fx(dt: float, cam: Camera3D) -> void:
+	if screen_fx == null:
+		screen_fx = ScreenFx.new()
+		screen_fx.name = "ScreenFx"
+		add_child(screen_fx)
+	if sky3d == null or sky3d.sun == null:
+		return
+	var sun_dir := sky3d.sun.global_basis.z.normalized()
+	var rain := float(_cur.get("rain", 0.0))
+	var cov := float(_cur.get("cov", 0.4))
+	var sun_on := smoothstep(-0.02, 0.08, sun_dir.y) * clampf(float(_cur.get("sun", 1.0)), 0.0, 1.0) \
+			* (1.0 - smoothstep(0.85, 1.0, cov)) * (1.0 - rain)
+	# радуга: дождь недавно был и кончается, солнце за спиной не выше 42°, небо открыто
+	_rain_recent = maxf(rain, _rain_recent - dt / 240.0)
+	var rb := smoothstep(0.25, 0.6, _rain_recent) * (1.0 - smoothstep(0.05, 0.3, rain)) \
+			* smoothstep(0.02, 0.1, sun_dir.y) * (1.0 - smoothstep(0.55, 0.67, sun_dir.y)) * (1.0 - smoothstep(0.8, 0.95, cov))
+	screen_fx.rainbow_k = rb
+	var aiming := clampf((70.0 - cam.fov) / 35.0, 0.0, 1.0)
+	screen_fx.update_fx(cam, sun_dir, sun_on, _underwater, aiming)
+
+## Под водой (v5): видимость по мутности (после шторма/в дождь — 3–5 м, в ясную воду — 15–25 м),
+## цвет поглощения по глубине (глубже — синее и темнее), ночью толща не светится сама —
+## свет только от солнца/луны.
+func _underwater_fog(cam_y: float, surf: float) -> void:
+	var depth := maxf(surf - cam_y, 0.0)
+	var light := maxf(daylight() * float(_cur.get("sun", 1.0)), maxf(moon_light() * 0.25, 0.015)) + _flash * 0.3
+	var clear_c := Color(0.05, 0.3, 0.36).lerp(Color(0.02, 0.12, 0.26), clampf(depth / 18.0, 0.0, 1.0))
+	var murk_c := Color(0.13, 0.25, 0.2)
+	_env.fog_light_color = clear_c.lerp(murk_c, turbidity) * clampf(light, 0.0, 1.0)
+	_env.fog_light_energy = 1.0
+	# плотность: видимость ~ 3/density м → ясно ~0.13 (≈23 м), муть ~0.7 (≈4 м)
+	_env.fog_density = lerpf(0.13, 0.7, turbidity) * (1.0 + 0.4 * float(_cur.get("rain", 0.0)))
 
 func is_underwater_view() -> bool:
 	return _underwater

@@ -3,6 +3,7 @@ shader_type spatial;
 // Вес качания — в канале COLOR.r вершины (0 у основания, 1 у кончика).
 render_mode cull_disabled, depth_draw_opaque, diffuse_lambert_wrap, specular_schlick_ggx;
 #include "res://scripts/world/flora/tree_bend.gdshaderinc"
+#include "res://shaders/plant_push.gdshaderinc"
 
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap_anisotropic, repeat_disable;
 uniform vec4 tint : source_color = vec4(1.0);
@@ -46,6 +47,7 @@ void vertex() {
 	// плавно, а сам масштаб входит только в амплитуду)
 	float t = TIME * wind_speed * (1.0 + weather_storm * 0.9);
 	float gust = 0.6 + 0.4 * sin(t * 0.37 + wp.x * 0.05);
+	gust *= wind_gust_field(wp.xz, TIME, wind_dir, weather_storm, wind_gust) * 0.85;
 	float s1 = sin(t + wp.x * wind_scale + wp.z * wind_scale * 0.7);
 	float s2 = sin(t * 2.3 + wp.z * wind_scale * 1.9 + VERTEX.y);
 	float amp = wind_strength * w * gust * min(wf, 1.8);
@@ -55,6 +57,7 @@ void vertex() {
 	// постоянный изгиб по ветру (кроны пальм «стелются» в шторм): мировое направление → локальное
 	float bend = max(0.0, wf - 1.25) * w * w * wind_strength * 7.0 * (0.8 + 0.4 * wind_gust + 0.25 * s1);
 	vec3 bw = vec3(wind_dir.x, -0.25, wind_dir.y) * bend;
+	bw += plant_push(wp, w);   // трава и подлесок раздвигаются под ногами
 	vec3 bl = transpose(mat3(MODEL_MATRIX)) * bw;
 	float sc2 = max(dot(MODEL_MATRIX[0].xyz, MODEL_MATRIX[0].xyz), 1e-4);
 	VERTEX += bl / sc2;
