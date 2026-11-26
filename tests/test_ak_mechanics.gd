@@ -46,6 +46,8 @@ func run() -> void:
 	var trig := part("Trigger")
 	var tr0 := trig.basis
 	var r0 := Combat.rounds(p, &"rifle")
+	# в рендере (llvmpipe — несколько кадров/с) цикл затвора 75 мс проскакивает между кадрами:
+	# замедляем время, чтобы увидеть и снять раму в крайнем заднем положении
 	Input.action_press(&"attack")
 	var max_back := 0.0
 	var trig_moved := false
@@ -61,7 +63,15 @@ func run() -> void:
 	Input.action_release(&"attack")
 	await wait(0.3)
 	check(Combat.rounds(p, &"rifle") == r0 - 1, "одиночный: ушёл один патрон (%d → %d)" % [r0, Combat.rounds(p, &"rifle")])
-	check(max_back > rd.bolt_travel * 0.5, "затворная рама откатилась на %.3f м (ход %.3f)" % [max_back, rd.bolt_travel])
+	if is_fast():
+		check(max_back > rd.bolt_travel * 0.5, "затворная рама откатилась на %.3f м (ход %.3f)" % [max_back, rd.bolt_travel])
+	else:
+		# рендер (llvmpipe) — кадр дольше цикла затвора: снимаем позу «рама сзади» принудительно
+		ctrl()._slide = 0.5
+		ctrl()._trig_held = true
+		ctrl()._update_parts()
+		await shot("ak_bolt_back")
+		ctrl()._trig_held = false
 	check(absf(bolt.position.z - z0) < 0.002, "рама вернулась вперёд")
 	check(trig_moved, "спусковой крючок тянется при нажатии")
 	check(trig.basis.is_equal_approx(tr0), "спуск вернулся")
