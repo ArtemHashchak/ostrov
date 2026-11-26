@@ -16,6 +16,7 @@ var bot_deaths: Array[Dictionary] = []
 var flag_lost_at: Dictionary = {}   # team -> match_time гибели флага
 
 func _init() -> void:
+	OS.set_environment("OSTROVA_GEN", "4")   # боты пока не плавают на плотах — бой на прежнем архипелаге
 	scene_path = "res://scenes/world/match.tscn"
 	timeout_sec = 1480.0
 	Game.pending_config = {"bots_enemy": 0, "bots_ally": 0, "minutes": 0}
