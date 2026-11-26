@@ -118,7 +118,11 @@ vec3 tri(sampler2D t, vec3 p, vec3 n, float s) {
 void fragment() {
 	vec2 uv = wpos.xz * tile;
 	float h = wpos.y;
-	float slope = wnrm.y;
+	// крутизна по грани (производные позиции): у вертикальных стен из сетки высот и у «юбок» чанков
+	// нормаль вершины смотрит вверх — трава размазывалась по обрыву вертикальными полосами
+	vec3 fn = normalize(cross(dFdy(wpos), dFdx(wpos)));
+	float slope = min(wnrm.y, abs(fn.y));
+	vec3 tn = normalize(mix(wnrm, fn * sign(fn.y + 1e-4), smoothstep(0.1, 0.35, wnrm.y - abs(fn.y))));
 	float macro = vnoise(wpos.xz * 0.025) * 0.6 + vnoise(wpos.xz * 0.11) * 0.4;
 
 	vec3 sand = tex2(sand_albedo, uv) * sand_tint;
@@ -210,9 +214,9 @@ void fragment() {
 		jungle = mix(jungle, mcol, k_moss * (1.0 - litter * 0.5 * (1.0 - k_moss)));
 	}
 	vec3 mud = texture(mud_albedo, guv).rgb;
-	vec3 rock = tri(rock_albedo, wpos, wnrm, rock_tile);
+	vec3 rock = tri(rock_albedo, wpos, tn, rock_tile);
 	vec3 seabed = tex2(seabed_albedo, uv * 0.7);
-	vec3 volc = tri(volc_albedo, wpos, wnrm, rock_tile * 1.6) * mix(vec3(0.78), vec3(0.95, 0.9, 0.86), macro);
+	vec3 volc = tri(volc_albedo, wpos, tn, rock_tile * 1.6) * mix(vec3(0.78), vec3(0.95, 0.9, 0.86), macro);
 
 	// мокрая полоса двигается с приливом
 	float k_wet = 1.0 - smoothstep(water_level - 0.1, water_level + 0.55 + macro * 0.25, h);
@@ -302,11 +306,11 @@ void fragment() {
 	if (k_moss > 0.001) {
 		n_j = mix(n_j, mix(texture(mossy_normal, muv).rgb, texture(mossy_normal, muv2).rgb, 0.35), k_moss);
 	}
-	vec3 n_r = tri(rock_normal, wpos, wnrm, rock_tile);
+	vec3 n_r = tri(rock_normal, wpos, tn, rock_tile);
 	vec3 nm = mix(n_s, n_g, k_grass);
 	nm = mix(nm, n_j, k_jungle);
 	nm = mix(nm, n_r, k_rock);
-	nm = mix(nm, tri(volc_normal, wpos, wnrm, rock_tile * 1.6), k_volc);
+	nm = mix(nm, tri(volc_normal, wpos, tn, rock_tile * 1.6), k_volc);
 	if (puddle > 0.01) {
 		vec2 rip = rain_ripples(wpos.xz * 2.6, TIME * 1.1) * clamp(weather_rain * 1.5, 0.0, 1.0);
 		nm = mix(nm, vec3(0.5 + rip.x * 0.35, 0.5 + rip.y * 0.35, 1.0), puddle);
