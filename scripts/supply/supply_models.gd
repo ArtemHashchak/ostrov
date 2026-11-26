@@ -143,6 +143,9 @@ static func held(id: StringName) -> Callable:
 	return _build.bind(id)
 
 static func _build(id: StringName) -> Node3D:
+	var um := UserHeld.build(id)   # v5: модель пользователя (АК, мачете, фонарик…), если есть
+	if um:
+		return um
 	var r := Node3D.new()
 	r.name = "Supply_" + String(id)
 	match id:

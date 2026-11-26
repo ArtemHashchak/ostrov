@@ -1,0 +1,40 @@
+{
+ "version": 1,
+ "owner": "B · Существа и предметы",
+ "generated_by": "tools/import_v5/creatures_catalog.py",
+ "entries": [
+  {
+   "id": "character_male",
+   "name": "Участник шоу (мужчина)",
+   "category": "character",
+   "scene": "res://assets/user_pack/characters/character_male.glb",
+   "lod": [],
+   "zones": [],
+   "size_m": [
+    0.6,
+    1.79,
+    0.36
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Персонажи/Мужчина (модель с анимациями)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5",
+    "bots",
+    "player_body"
+   ],
+   "clips": [
+    "idle",
+    "walk",
+    "run",
+    "jump",
+    "death"
+   ],
+   "rig": "mixamo"
+  }
+ ]
+}

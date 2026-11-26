@@ -99,6 +99,7 @@ static func register() -> void:
 		"color": Color(0.8, 0.15, 0.12), "desc": "Бинты, антисептик, противоядие: +60 здоровья и снимает яд."})
 	_item(&"canned_food", "Консервы", &"food", 6, 0.4, {"hunger": 40.0, "health": 3.0, "returns": &"scrap_metal", "held": SupplyModels.held(&"canned_food"),
 		"color": Color(0.85, 0.65, 0.2), "desc": "Тушёнка: не портится. Пустая банка — жесть."})
+	UserHeld.register_items()   # v5: боевой нож, зажигалка (модели пользователя)
 
 static func _item(id: StringName, nm: String, kind: StringName, stack: int, weight: float, data: Dictionary) -> void:
 	if Items.get_item(id) == null:

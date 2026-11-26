@@ -1,0 +1,152 @@
+{
+ "version": 1,
+ "owner": "B · Существа и предметы",
+ "generated_by": "tools/import_v5/creatures_catalog.py",
+ "entries": [
+  {
+   "id": "item_flashlight",
+   "name": "Фонарик",
+   "category": "item",
+   "scene": "res://assets/user_pack/items/item_flashlight.glb",
+   "lod": [],
+   "zones": [],
+   "size_m": [
+    0.2,
+    0.05,
+    0.05
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Предметы/Фонарик",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5"
+   ],
+   "item": "flashlight"
+  },
+  {
+   "id": "item_water_bottle",
+   "name": "Бутылка воды",
+   "category": "item",
+   "scene": "res://assets/user_pack/items/item_water_bottle.glb",
+   "lod": [],
+   "zones": [
+    "beach"
+   ],
+   "size_m": [
+    0.08,
+    0.25,
+    0.08
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Предметы/Бутылка для воды пластиковая",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5",
+    "trash"
+   ],
+   "item": "water_bottle"
+  },
+  {
+   "id": "item_lighter",
+   "name": "Зажигалка",
+   "category": "item",
+   "scene": "res://assets/user_pack/items/item_lighter.glb",
+   "lod": [],
+   "zones": [],
+   "size_m": [
+    0.04,
+    0.05,
+    0.015
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Предметы/Зажигалка (как Zippo)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5"
+   ],
+   "item": "lighter"
+  },
+  {
+   "id": "food_meat_skewer",
+   "name": "Жареное мясо на шпажке",
+   "category": "food",
+   "scene": "res://assets/user_pack/items/item_meat_skewer.glb",
+   "lod": [],
+   "zones": [],
+   "size_m": [
+    0.03,
+    0.15,
+    0.02
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Еда/Мясо на шпажке",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5"
+   ],
+   "item": "meat_cooked"
+  },
+  {
+   "id": "item_dried_fish",
+   "name": "Сушёная рыба",
+   "category": "food",
+   "scene": "res://assets/user_pack/items/item_dried_fish.glb",
+   "lod": [],
+   "zones": [],
+   "size_m": [
+    0.3,
+    0.5,
+    0.1
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Прочее/Сушёная рыба (готовая модель)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [],
+   "item": "smoked_fish"
+  },
+  {
+   "id": "item_shell_junonia",
+   "name": "Ракушка",
+   "category": "item",
+   "scene": "res://assets/user_pack/items/item_shell_junonia.glb",
+   "lod": [],
+   "zones": [
+    "beach"
+   ],
+   "size_m": [
+    0.1,
+    0.05,
+    0.05
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/SEA/Ракушки/Юнония (готовая модель)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [],
+   "item": "seashell"
+  }
+ ]
+}

@@ -10,6 +10,11 @@ static var _mat_cache: Dictionary = {}
 static func build(id: StringName) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Held_" + String(id)
+	var um := UserHeld.build(id)   # v5: модель пользователя (топор, бутылка, мясо…), если есть
+	if um:
+		root.add_child(um)
+		_no_shadows(root)
+		return root
 	match id:
 		&"axe_crude": _axe_crude(root)
 		&"axe_modern": _axe_modern(root)

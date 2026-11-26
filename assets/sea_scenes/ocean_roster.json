@@ -863,7 +863,7 @@
     "breach_far"
    ],
    "speed": 2.0,
-   "model": "",
+   "model": "whale_humpback_user",
    "stand_in": {
     "pack": "shark_pack8_user",
     "tint": "#3c444c"
@@ -1109,6 +1109,67 @@
    "model": "skel:discus",
    "stand_in": {
     "pack": "discus_user"
+   }
+  },
+  {
+   "id": "tuna",
+   "name": "Желтопёрый тунец",
+   "group": "pelagic",
+   "length": 1.4,
+   "school": [
+    3,
+    8
+   ],
+   "habitat": [
+    "open"
+   ],
+   "depth": [
+    3,
+    40
+   ],
+   "diet": "рыба, кальмары",
+   "active": "day",
+   "behaviour": [
+    "school",
+    "predator",
+    "fast"
+   ],
+   "speed": 2.2,
+   "model": "skel:tuna",
+   "stand_in": {
+    "pack": "redfish_user",
+    "tint": "#4a5d8a"
+   }
+  },
+  {
+   "id": "piranha",
+   "name": "Пиранья",
+   "group": "reef_fish",
+   "length": 0.3,
+   "school": [
+    6,
+    14
+   ],
+   "habitat": [
+    "mangrove",
+    "roots",
+    "shallows"
+   ],
+   "depth": [
+    0.8,
+    6
+   ],
+   "diet": "рыба, падаль",
+   "active": "day",
+   "behaviour": [
+    "school",
+    "predator"
+   ],
+   "speed": 0.9,
+   "model": "piranha_user",
+   "stand_in": {
+    "pack": "discus_user",
+    "tint": "#c45a3a"
    }
   }
  ],

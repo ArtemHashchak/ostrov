@@ -78,6 +78,8 @@ func _process(delta: float) -> void:
 	_far_acc += delta
 	var far_step := _far_acc >= 0.2
 	for a in actors:
+		if not is_instance_valid(a):
+			continue
 		var d := a.global_position.distance_to(eye)
 		if d < NEAR_ANIM:
 			a.tick(delta, eye, player, true)
@@ -146,6 +148,7 @@ func _refresh(eye: Vector3) -> void:
 			var off := Vector3(_rng.randf_range(-1.5, 1.5), _rng.randf_range(-0.6, 0.6), _rng.randf_range(-1.5, 1.5)) if k > 0 else Vector3.ZERO
 			a.setup(d, sea, (pos as Vector3) + off, _seed * 7919)
 			add_child(a)
+			a.add_hitbox()
 			actors.append(a)
 
 func _find_spot(d: Dictionary, eye: Vector3, cells: SeaLifeCells) -> Variant:
@@ -244,5 +247,6 @@ func spawn_at(d: Dictionary, pos: Vector3, yaw: float = 0.0) -> UserSeaActor:
 	a.yaw = yaw
 	a.pinned = true
 	add_child(a)
+	a.add_hitbox()
 	actors.append(a)
 	return a

@@ -1,0 +1,534 @@
+{
+ "version": 1,
+ "owner": "B · Существа и предметы",
+ "generated_by": "tools/import_v5/creatures_catalog.py",
+ "entries": [
+  {
+   "id": "snake_green_pit_viper",
+   "name": "Зелёная куфия",
+   "category": "creature",
+   "scene": "res://assets/user_pack/animals/snakes/snake_green_pit_viper.glb",
+   "lod": [],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.9,
+    0.08,
+    0.1
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Змеи/Зелёная куфия",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "snake",
+    "venom"
+   ],
+   "no_spawn": true,
+   "spawn_id": "snake"
+  },
+  {
+   "id": "snake_blue_pit_viper",
+   "name": "Синяя куфия",
+   "category": "creature",
+   "scene": "res://assets/user_pack/animals/snakes/snake_blue_pit_viper.glb",
+   "lod": [],
+   "zones": [
+    "jungle"
+   ],
+   "size_m": [
+    0.75,
+    0.07,
+    0.1
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Змеи/Синяя куфия (Trimeresurus insularis)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "snake",
+    "venom"
+   ],
+   "no_spawn": true,
+   "spawn_id": "snake"
+  },
+  {
+   "id": "snake_ball_python",
+   "name": "Королевский питон",
+   "category": "creature",
+   "scene": "res://assets/user_pack/animals/snakes/snake_ball_python.glb",
+   "lod": [],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    1.3,
+    0.12,
+    0.15
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Змеи/Королевский питон",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": false,
+   "tags": [
+    "snake"
+   ],
+   "no_spawn": true,
+   "spawn_id": "python"
+  },
+  {
+   "id": "snake_carpet_python",
+   "name": "Ковровый питон",
+   "category": "creature",
+   "scene": "res://assets/user_pack/animals/snakes/snake_carpet_python.glb",
+   "lod": [],
+   "zones": [
+    "jungle",
+    "rocks"
+   ],
+   "size_m": [
+    1.8,
+    0.14,
+    0.18
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Змеи/Ковровый питон",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "snake"
+   ],
+   "no_spawn": true,
+   "spawn_id": "python"
+  },
+  {
+   "id": "varan_komodo",
+   "name": "Комодский варан",
+   "category": "creature",
+   "scene": "res://assets/user_pack/animals/varan/varan_komodo.glb",
+   "lod": [],
+   "zones": [
+    "beach",
+    "lowland_forest",
+    "dunes"
+   ],
+   "size_m": [
+    2.6,
+    0.6,
+    0.6
+   ],
+   "collision": "solid",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Ящерицы/Варан (комодский)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "predator"
+   ],
+   "no_spawn": true,
+   "spawn_id": "monitor"
+  },
+  {
+   "id": "iguana_green",
+   "name": "Зелёная игуана",
+   "category": "creature",
+   "scene": "res://assets/user_pack/animals/iguana/iguana_green.glb",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "palm_belt",
+    "beach"
+   ],
+   "size_m": [
+    1.5,
+    0.3,
+    0.3
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Ящерицы/Игуана зелёная",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [],
+   "no_spawn": true,
+   "spawn_id": "iguana"
+  },
+  {
+   "id": "salamander_fire",
+   "name": "Огненная саламандра",
+   "category": "creature",
+   "scene": "res://assets/user_pack/animals/salamander/salamander_fire.glb",
+   "lod": [],
+   "zones": [
+    "jungle",
+    "cave"
+   ],
+   "size_m": [
+    0.2,
+    0.05,
+    0.06
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Ящерицы/Саламандра огненная",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": false,
+   "tags": [],
+   "no_spawn": true,
+   "spawn_id": "salamander"
+  },
+  {
+   "id": "lizard_user",
+   "name": "Ящерица",
+   "category": "creature",
+   "scene": "res://assets/user_pack/animals/lizard/lizard_user.glb",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "palm_belt"
+   ],
+   "size_m": [
+    0.3,
+    0.06,
+    0.08
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Ящерицы/Ящерица (готовая модель)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [],
+   "no_spawn": true
+  },
+  {
+   "id": "centipede_giant",
+   "name": "Гигантская сколопендра",
+   "category": "insect",
+   "scene": "res://assets/user_pack/animals/centipede/centipede_giant.glb",
+   "lod": [],
+   "zones": [
+    "jungle",
+    "cave"
+   ],
+   "size_m": [
+    0.28,
+    0.03,
+    0.05
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Насекомые/Сколопендра гигантская",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "venom"
+   ],
+   "no_spawn": true,
+   "spawn_id": "centipede"
+  },
+  {
+   "id": "spider_tarantula",
+   "name": "Паук-птицеед",
+   "category": "insect",
+   "scene": "res://assets/user_pack/animals/spider/spider_tarantula.glb",
+   "lod": [],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.2,
+    0.08,
+    0.2
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Насекомые/Паук-птицеед",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "venom"
+   ],
+   "no_spawn": true,
+   "spawn_id": "spider"
+  },
+  {
+   "id": "hermit_crab_brown",
+   "name": "Рак-отшельник",
+   "category": "creature",
+   "scene": "res://assets/user_pack/animals/hermit_crab/hermit_crab_brown.glb",
+   "lod": [],
+   "zones": [
+    "beach"
+   ],
+   "size_m": [
+    0.15,
+    0.1,
+    0.12
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/SEA/Краб-отшельник (бурый)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [],
+   "no_spawn": true,
+   "spawn_id": "hermit_crab"
+  },
+  {
+   "id": "crab_user",
+   "name": "Краб",
+   "category": "creature",
+   "scene": "res://assets/user_pack/animals/crab/crab_user.glb",
+   "lod": [],
+   "zones": [
+    "beach"
+   ],
+   "size_m": [
+    0.3,
+    0.12,
+    0.25
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/SEA/Animals and fish (crab.blend)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [],
+   "no_spawn": true,
+   "spawn_id": "crab"
+  },
+  {
+   "id": "bat_user",
+   "name": "Летучая мышь",
+   "category": "creature",
+   "scene": "res://assets/user_pack/animals/bat/bat_user.glb",
+   "lod": [],
+   "zones": [
+    "cave",
+    "jungle"
+   ],
+   "size_m": [
+    0.35,
+    0.05,
+    0.15
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Звери/Летучая мышь (бурая)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [],
+   "no_spawn": true,
+   "spawn_id": "bat"
+  },
+  {
+   "id": "parrot_pionus_bluehead",
+   "name": "Синеголовый попугай",
+   "category": "bird",
+   "scene": "res://assets/user_pack/animals/parrots/parrot_pionus_bluehead.glb",
+   "lod": [],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.27,
+    0.27,
+    0.1
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Птицы/Попугай синеголовый",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": false,
+   "tags": [],
+   "no_spawn": true,
+   "spawn_id": "parrot"
+  },
+  {
+   "id": "parrot_kea",
+   "name": "Попугай кеа",
+   "category": "bird",
+   "scene": "res://assets/user_pack/animals/parrots/parrot_kea.glb",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "forest_edge"
+   ],
+   "size_m": [
+    0.37,
+    0.3,
+    0.12
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Птицы/Попугай кеа",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": false,
+   "tags": [],
+   "no_spawn": true,
+   "spawn_id": "parrot"
+  },
+  {
+   "id": "parrot_macaw_red",
+   "name": "Красный ара",
+   "category": "bird",
+   "scene": "res://assets/user_pack/animals/parrots/parrot_macaw_red.glb",
+   "lod": [],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.69,
+    0.45,
+    0.15
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Птицы/Попугай ара",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": false,
+   "tags": [
+    "v5"
+   ],
+   "no_spawn": true,
+   "spawn_id": "parrot"
+  },
+  {
+   "id": "frog_tree",
+   "name": "Лягушка",
+   "category": "creature",
+   "scene": "res://assets/user_pack/animals/frog/animal_frog.glb",
+   "lod": [],
+   "zones": [
+    "jungle",
+    "mangrove"
+   ],
+   "size_m": [
+    0.08,
+    0.06,
+    0.1
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Ящерицы/Лягушка (готовая модель FBX)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5",
+    "static"
+   ],
+   "scale": 0.2,
+   "hp": 4.0
+  },
+  {
+   "id": "butterfly",
+   "name": "Бабочка",
+   "category": "insect",
+   "scene": "res://assets/user_pack/animals/insects/insect_butterfly.glb",
+   "lod": [],
+   "zones": [
+    "jungle",
+    "forest_edge",
+    "palm_belt"
+   ],
+   "size_m": [
+    0.1,
+    0.03,
+    0.05
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Насекомые/Бабочка (готовая модель)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5",
+    "static"
+   ],
+   "scale": 0.013,
+   "height": 0.8,
+   "hp": 1.0
+  },
+  {
+   "id": "parrot_amazon_perch",
+   "name": "Попугай амазон (на ветке)",
+   "category": "creature",
+   "scene": "res://assets/user_pack/animals/parrots/bird_amazon_parrot.glb",
+   "lod": [],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.31,
+    0.19,
+    0.1
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Птицы/Попугай амазон (готовая модель)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": false,
+   "tags": [
+    "v5",
+    "static"
+   ],
+   "scale": 0.01,
+   "hp": 6.0,
+   "drops": [
+    {
+     "id": "feather",
+     "n": 2
+    }
+   ]
+  }
+ ]
+}

@@ -6,11 +6,20 @@ extends Node3D
 ## замирает, ещё дальше модель скрывается — бот почти ничего не стоит.
 
 const MODEL_PATH := "res://scenes/bots/model/mannequiny.glb"
+## v5: персонаж пользователя (Персонажи/«Мужчина (модель с анимациями)», Mixamo: idle/walk/run/jump/death,
+## текстуры Fuse). Есть файл и use_user = true — боты (и тело игрока для тени/3-го лица) в нём; иначе манекен.
+const USER_MODEL_PATH := "res://assets/user_pack/characters/character_male.glb"
+const USER_HAND_BONE := "mixamorig_RightHand"
+const USER_ARM_BONE := "mixamorig_LeftArm"
+static var use_user := true
 const ANIM_FAR := 70.0      # дальше — анимация не обновляется
 const HIDE_FAR := 420.0     # дальше — модель не рисуется
 const SKIN_TONES: Array[Color] = [Color(0.55, 0.38, 0.27), Color(0.71, 0.52, 0.39), Color(0.42, 0.29, 0.2), Color(0.8, 0.62, 0.48)]
 
 static var _scene: PackedScene = null
+static var _user_scene: PackedScene = null
+static var _user_fixed := false
+var user_model := false
 static var _loops_set := false
 static var _mat_cache: Dictionary = {}
 
@@ -42,6 +51,10 @@ static func clear_cache() -> void:
 	_scene = null
 
 func _ready() -> void:
+	user_model = use_user and ResourceLoader.exists(USER_MODEL_PATH)
+	if user_model:
+		_ready_user()
+		return
 	if _scene == null:
 		_scene = load(MODEL_PATH) as PackedScene
 	body_root = Node3D.new()
@@ -60,6 +73,62 @@ func _ready() -> void:
 		hand_r.bone_name = "hand.r"
 		skeleton.add_child(hand_r)
 	play(&"idle")
+
+## Персонаж пользователя: свои текстуры (без «раскраски» манекена), повязка цвета команды на левом плече,
+## предмет в правой руке Mixamo, клипы idle/walk/run/jump/death (корень клипов не уезжает — ход делает бот).
+func _ready_user() -> void:
+	if _user_scene == null:
+		_user_scene = load(USER_MODEL_PATH) as PackedScene
+	body_root = Node3D.new()
+	body_root.name = "Body"
+	add_child(body_root)
+	var inst := _user_scene.instantiate() as Node3D
+	inst.rotation.y = PI   # Mixamo смотрит в +Z, бот — в −Z
+	body_root.add_child(inst)
+	anim = inst.find_child("AnimationPlayer", true, false) as AnimationPlayer
+	skeleton = inst.find_child("Skeleton3D", true, false) as Skeleton3D
+	if anim and not _user_fixed:
+		_user_fixed = true
+		for a: StringName in anim.get_animation_list():
+			var an := anim.get_animation(a)
+			an.loop_mode = Animation.LOOP_LINEAR if String(a) in ["idle", "walk", "run"] else Animation.LOOP_NONE
+			_pin_root(an)
+	for mi in inst.find_children("*", "MeshInstance3D", true, false):
+		(mi as MeshInstance3D).visibility_range_end = HIDE_FAR
+		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	if skeleton:
+		hand_r = BoneAttachment3D.new()
+		hand_r.bone_name = USER_HAND_BONE
+		skeleton.add_child(hand_r)
+		var arm := BoneAttachment3D.new()
+		arm.bone_name = USER_ARM_BONE
+		skeleton.add_child(arm)
+		var band := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.058
+		cm.bottom_radius = 0.058
+		cm.height = 0.07
+		cm.radial_segments = 12
+		band.mesh = cm
+		band.material_override = _mat("band%d" % team, Game.team_color(team), 0.8)
+		band.position = Vector3(0.0, 0.12, 0.0)
+		arm.add_child(band)
+	play(&"idle")
+
+## Ход корня (Hips) в клипах Mixamo по горизонтали — убрать: двигает тело код бота.
+static func _pin_root(an: Animation) -> void:
+	for t in an.get_track_count():
+		if an.track_get_type(t) != Animation.TYPE_POSITION_3D:
+			continue
+		var path := String(an.track_get_path(t))
+		if not path.ends_with("Hips"):
+			continue
+		if an.track_get_key_count(t) == 0:
+			continue
+		var p0: Vector3 = an.track_get_key_value(t, 0)
+		for k in an.track_get_key_count(t):
+			var v: Vector3 = an.track_get_key_value(t, k)
+			an.track_set_key_value(t, k, Vector3(p0.x, v.y, p0.z))
 
 func _set_loops() -> void:
 	if anim == null or _loops_set:
@@ -205,6 +274,10 @@ func set_logs(n: int) -> void:
 
 func set_dead(on: bool) -> void:
 	_dead = on
+	if on and user_model and anim and anim.has_animation(&"death"):
+		_cur = &"death"
+		anim.play(&"death", 0.15)
+		return
 	if on:
 		var tw := create_tween()
 		_cur = &""
@@ -238,6 +311,8 @@ func update_pose(delta: float, hspeed: float, swim: bool, run: bool) -> void:
 		return
 	if swim:
 		play(&"run", 0.45 + hspeed * 0.12)
+	elif user_model and hspeed > 0.35 and hspeed < 2.4 and not run:
+		play(&"walk", clampf(hspeed / 1.5, 0.6, 1.4))
 	elif hspeed > 0.35:
 		play(&"run", clampf(hspeed / (5.2 if run else 4.4), 0.45, 1.25))
 	else:

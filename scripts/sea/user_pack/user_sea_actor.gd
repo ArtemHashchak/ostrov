@@ -19,6 +19,7 @@ var data: Dictionary = {}
 var sea: Object = null
 ## Закреплён (экспонат полигона): менеджер не убирает по дальности.
 var pinned := false
+var dead := false               # убит (CreatureHitbox)
 var home := Vector3.ZERO
 var state: S = S.CRUISE
 var speed := 0.0
@@ -186,6 +187,8 @@ func _threat_source(viewer: Vector3, player: Node3D) -> Vector3:
 
 ## dt — шаг; viewer — камера; player — игрок (может быть null); near — подробная анимация.
 func tick(dt: float, viewer: Vector3, player: Node3D, near: bool) -> void:
+	if dead:
+		return
 	_t += dt
 	_cool = maxf(_cool - dt, 0.0)
 	var src := _threat_source(viewer, player)
@@ -539,3 +542,28 @@ func force(s: S) -> void:
 		_flee_dir = forward()
 		if s == S.JET:
 			ink(global_position + Vector3(0.0, 0.15, 0.0), body_len)
+
+
+## Хитбокс одиночной особи (не внутри SeaCritter — у того свой).
+func add_hitbox() -> CreatureHitbox:
+	var meat := &"fish_raw"
+	return CreatureHitbox.attach(self, {"hp": clampf(body_len * 40.0, 6.0, 200.0),
+		"drops": [{"id": meat, "n": clampi(int(ceil(body_len * 3.0)), 1, 6)}] if body_len >= 0.12 else [],
+		"solid": body_len >= 1.8})
+
+func startle(from: Vector3) -> void:
+	_startle = 1.0
+	_flee_dir = (global_position - from).normalized() if global_position.distance_to(from) > 0.01 else Vector3.FORWARD
+
+func die() -> void:
+	if dead:
+		return
+	dead = true
+	var ws := _water()
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(self, ^"rotation:z", rotation.z + PI, 2.5).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(self, ^"global_position:y", ws - 0.15, maxf(4.0, (ws - global_position.y) * 1.5))
+	tw.set_parallel(false)
+	tw.tween_interval(CreatureHitbox.CORPSE_TIME)
+	tw.tween_callback(queue_free)

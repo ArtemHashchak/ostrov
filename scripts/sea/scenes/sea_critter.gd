@@ -64,6 +64,8 @@ var _phase := 0.0
 var _rng := RandomNumberGenerator.new()
 var _wander_t := 0.0
 var _scale := 1.0
+var dead := false               # убит (CreatureHitbox): не тикает, тело всплывает
+var hitbox: CreatureHitbox = null
 
 static var _proxy_mats: Dictionary = {}
 
@@ -149,6 +151,31 @@ func _setup(p_sp: Dictionary, vis: Dictionary, p_sea: Object, pos: Vector3, seed
 		min_above_floor = 0.0
 	if g == "mammal" or g == "turtle":
 		max_below_surface = 0.15
+	_add_hitbox(g)
+
+## Хитбокс (пули, острога, стрелы, удар): урон, испуг, смерть, добыча — CreatureHitbox.
+func _add_hitbox(g: String) -> void:
+	var meat := &"meat_raw" if g in ["mammal", "turtle"] else &"fish_raw"
+	var n := clampi(int(ceil(length * 3.0)), 1, 8)
+	var hp := clampf(length * 40.0, 6.0, 240.0)
+	hitbox = CreatureHitbox.attach(self, {"hp": hp, "drops": [{"id": meat, "n": n}] if length >= 0.12 else [],
+		"solid": length >= 1.8})
+
+func die() -> void:
+	if dead:
+		return
+	dead = true
+	if skel and skel.has_role("death"):
+		skel.pose("death")
+	var ws := water_y()
+	var tw := create_tween()
+	tw.set_parallel(true)
+	if not (skel and skel.has_role("death")):
+		tw.tween_property(self, ^"rotation:z", rotation.z + PI, 2.5).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(self, ^"position:y", position.y + maxf(0.0, ws - 0.2 - global_position.y), maxf(4.0, (ws - global_position.y) * 1.5))
+	tw.set_parallel(false)
+	tw.tween_interval(CreatureHitbox.CORPSE_TIME)
+	tw.tween_callback(queue_free)
 
 static func _proxy_material(kind: String) -> ShaderMaterial:
 	if _proxy_mats.has(kind):
@@ -264,7 +291,9 @@ func _pick_wander() -> void:
 # --- тик ------------------------------------------------------------------------
 
 func tick(dt: float) -> void:
-	if dt <= 0.0:
+	if dt <= 0.0 or dead:
+		if dead and skel:
+			skel.drive(dt, 0.0, cruise, 0.0, true)
 		return
 	var p := global_position
 	var desired := Vector3.ZERO

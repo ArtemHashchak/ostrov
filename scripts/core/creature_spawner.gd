@@ -181,6 +181,29 @@ static func _file_entries() -> Array[Dictionary]:
 					d["cat"] = String(d.get("cat", "animals"))
 					d["name"] = String(d.get("name", d.id))
 					out.append(d)
+	# каталог ассетов v5 (assets/catalog/*.json, docs/V5_AGENTS.md): существа со сценой
+	for d2: Dictionary in _catalog_v5():
+		out.append(d2)
+	return out
+
+const CATALOG_CATS := {"creature": "animals", "insect": "animals", "bird": "birds", "sea": "sea"}
+
+## Существа каталога v5: [{id, name, category, scene, size_m, …}] → записи спавнера (src = scene).
+static func _catalog_v5() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for e: Dictionary in AssetCatalog.entries():
+		var cat := String(e.get("category", ""))
+		if not CATALOG_CATS.has(cat) or not e.has("scene") or bool(e.get("no_spawn", false)):
+			continue
+		var sc := String(e.scene)
+		if not sc.begins_with("res://"):
+			continue
+		var d := {"id": String(e.id), "name": String(e.get("name", e.id)), "cat": CATALOG_CATS[cat], "src": "scene",
+			"scene": sc, "catalog": true}
+		for k in ["scale", "height", "hp", "drops", "solid"]:
+			if e.has(k):
+				d[k] = e[k]
+		out.append(d)
 	return out
 
 static func _scan(dir_path: String, out: Array[String], depth: int) -> void:
@@ -404,12 +427,32 @@ func _spawn_one(info: Dictionary, p: Vector3, _r: float) -> Node:
 			n.rotation.y = _rng.randf() * TAU
 			if info.has("scale"):
 				n.scale = Vector3.ONE * float(info.scale)
+			# своего урона нет — общий хитбокс (пули, острога, удар; крупное ещё и твёрдое)
+			if not n.has_method(&"apply_damage") and n.find_children("*", "CreatureHitbox", true, false).is_empty() \
+					and not _has_damage_child(n):
+				var opts := {}
+				for k in ["hp", "solid"]:
+					if info.has(k):
+						opts[k] = info[k]
+				if info.has("drops"):
+					var dr: Array[Dictionary] = []
+					for e: Variant in info.drops:
+						if e is Dictionary:
+							dr.append({"id": StringName(String((e as Dictionary).id)), "n": int((e as Dictionary).get("n", 1))})
+					opts["drops"] = dr
+				CreatureHitbox.attach(n, opts)
 			return n
 		"callable":
 			var cb: Callable = info.get("spawn", Callable())
 			if cb.is_valid():
 				return cb.call(p) as Node
 	return null
+
+static func _has_damage_child(n: Node) -> bool:
+	for c in n.get_children():
+		if c.has_method(&"apply_damage"):
+			return true
+	return false
 
 ## Сцена-контейнер для морских существ консоли (тикает сам spawner; бессрочная).
 func _stage() -> SeaScene:

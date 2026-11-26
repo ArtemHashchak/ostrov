@@ -116,6 +116,10 @@ const DEFS := {
 		"tris": 14932, "clips": SEAHORSE_CLIPS, "loops": ["grip"], "extras": [["eat", 1.5], ["look", 1.0]]},
 	"seahorse_red": {"name": "Морской конёк (красный)", "file": "animal_seahorse_red.glb", "len": 0.158, "upright": true, "ref": 0.05,
 		"tris": 14932, "clips": SEAHORSE_CLIPS, "loops": ["grip"], "extras": [["eat", 1.5], ["look", 1.0]]},
+	# v5 (агент B): тунец пользователя (готовая модель со скелетом и одним клипом «swim»)
+	"tuna": {"name": "Желтопёрый тунец", "file": "animal_fish_tuna.glb", "lod1": "animal_fish_tuna_LOD1.glb", "lod_dist": 18.0,
+		"len": 11.69, "flip": true, "ref": 1.2, "tris": 26996, "tris_lod1": 3179,
+		"clips": {"idle": "swim", "swim": "swim", "fast": "swim", "turn_l": "swim", "turn_r": "swim"}},
 	"sardine": {"name": "Сардина", "file": "animal_fish_sardine.glb", "len": 0.186, "ref": 0.25, "tris": 550,
 		"clips": {"idle": "swim", "swim": "swim", "fast": "swim_fast", "turn_l": "turn_L", "turn_r": "turn_R", "startle": "startle"}},
 }
