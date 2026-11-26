@@ -42,6 +42,7 @@ const CMDS := {
 	"fly": ["fly", "полёт", "полет", "лететь"],
 	"give": ["give", "дать"],
 	"fps": ["fps", "фпс"],
+	"replay": ["replay", "реплей", "повтор"],
 	"help": ["help", "помощь", "?", "справка"],
 	"cls": ["cls", "стереть"],
 }
@@ -60,6 +61,7 @@ const HELP := {
 	"fly": "fly — полёт сквозь стены вкл/выкл",
 	"give": "give <предмет> [n] — выдать предмет (id или название)",
 	"fps": "fps — счётчик кадров вкл/выкл",
+	"replay": "replay [сек] — реплей последних секунд (до 60) в максимальной графике (только на полигоне)",
 	"help": "help [команда] — справка",
 	"cls": "cls — очистить журнал",
 }
@@ -121,6 +123,11 @@ func _build() -> void:
 
 func _sandbox() -> Node:
 	var cs := get_tree().current_scene
+	if cs and cs.is_in_group(&"polygon"):
+		return cs
+	var pg := get_tree().get_first_node_in_group(&"polygon")
+	if pg:
+		return pg
 	if cs is Sandbox:
 		return cs
 	for c in get_tree().root.get_children():
@@ -365,6 +372,11 @@ func execute(line: String) -> String:
 		"fps":
 			_fps_label.visible = not _fps_label.visible
 			res = "Счётчик FPS: " + ("вкл" if _fps_label.visible else "выкл")
+		"replay":
+			var secs := float(args[0]) if not args.is_empty() and args[0].is_valid_float() else 30.0
+			close()
+			var path := ReplayRecorder.request(get_tree(), secs)
+			res = ("Реплей: рендер %d с в максимальной графике…" % int(secs)) if path != "" else "!Реплей — только на полигоне (и после нескольких секунд игры)"
 		"help": res = _c_help(args)
 		"cls":
 			_log.clear()
@@ -540,6 +552,20 @@ func _c_tp(args: PackedStringArray) -> String:
 			y = maxf(y, float(w.call(&"water_level")))
 		_teleport(Vector3(x, y + 1.2, z))
 		return "Телепорт: %.0f, %.0f" % [x, z]
+	var sb0 := _sandbox()
+	if sb0 is Polygon:
+		var pg := sb0 as Polygon
+		if args.is_empty():
+			return "Разделы: центр, " + ", ".join(PackedStringArray(PolygonLayout.get_layout().sections.map(func(s0: Dictionary) -> String: return String(s0.name).to_lower())))
+		var q0 := " ".join(args).to_lower()
+		if "центр".begins_with(q0) or q0 == "hub":
+			pg.goto_hub()
+			return "Телепорт: центр"
+		for s0: Dictionary in PolygonLayout.get_layout().sections:
+			if String(s0.name).to_lower().begins_with(q0) or String(s0.id).begins_with(q0):
+				pg.goto_section(s0.id)
+				return "Телепорт: " + String(s0.name)
+		return "!Нет раздела «%s». tp — список." % q0
 	var zs := _zones()
 	if zs == null:
 		return "!tp <x> <z> (зоны — только на полигоне)"

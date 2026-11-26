@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/polygon/polygon_island_stage.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/polygon/polygon_island_world.gd" id="2"]
+
+[node name="PolygonIsland" type="Node3D"]
+script = ExtResource("1")
+
+[node name="World" type="Node3D" parent="."]
+script = ExtResource("2")
+
+[node name="Flora" type="Node3D" parent="."]
+
+[node name="Build" type="Node3D" parent="."]
+
+[node name="Sea" type="Node3D" parent="."]
+
+[node name="Fauna" type="Node3D" parent="."]
+
+[node name="Combat" type="Node" parent="."]

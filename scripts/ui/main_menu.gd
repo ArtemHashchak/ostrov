@@ -14,6 +14,9 @@ var _cam: Camera3D
 var _t := 0.0
 
 func _ready() -> void:
+	# дочерний процесс рендера реплея (scripts/replay): сразу в сцену клипа
+	if ReplayPlayback.maybe_start(get_tree()):
+		return
 	theme = UITheme.get_theme()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	get_tree().paused = false
@@ -50,8 +53,7 @@ func _ready() -> void:
 	var play := PauseMenu.menu_button("Играть", open_lobby)
 	_menu.add_child(play)
 	_menu.add_child(PauseMenu.menu_button("Обучение" if not TutorialLauncher.is_done() else "Обучение  ✓", func() -> void: TutorialLauncher.start(get_tree())))
-	_menu.add_child(PauseMenu.menu_button("Полигон", func() -> void: Sandbox.start(get_tree())))
-	_menu.add_child(PauseMenu.menu_button("Полигон островов", func() -> void: IslandsShowcase.start(get_tree())))
+	_menu.add_child(PauseMenu.menu_button("Полигон", func() -> void: Polygon.start(get_tree())))
 	_menu.add_child(PauseMenu.menu_button("Настройки", func() -> void:
 		_menu.visible = false
 		settings.visible = true))
