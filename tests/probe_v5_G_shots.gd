@@ -30,6 +30,9 @@ func run() -> void:
 	if not fl.populated:
 		await fl.flora_ready
 	w.set_weather(&"clear", true)
+	# время стоит (иначе за стриминг флоры под llvmpipe «день» уходит в вечер)
+	if w.has_method(&"set_time_paused"):
+		w.set_time_paused(true)
 	cam = Camera3D.new()
 	cam.far = 20000.0
 	cam.fov = 70.0
@@ -105,11 +108,26 @@ func run() -> void:
 				if best_j < 0 or abs(j - 150) < abs(best_j - 150):
 					best_j = j
 					jp = p
-		var dd := (cc - jp).normalized().rotated(0.6)
-		await _view(Vector3(jp.x, w.height_at(jp.x, jp.y) + 1.7, jp.y), Vector3(jp.x + dd.x * 15.0, w.height_at(jp.x, jp.y) + 3.5, jp.y + dd.y * 15.0), "jungle_inside", 6.0)
+		# лучше всего читается с края звериной тропы (на тропе нет растений перед объективом):
+		# точка тропы в зоне джунглей, взгляд вдоль тропы с поворотом в чащу, на уровне глаз
+		var cam_p := jp
+		var look_p := jp + (cc - jp).normalized().rotated(0.6) * 15.0
+		for t in w.trails.trails:
+			var found := false
+			for ti in range(2, t.size() - 4):
+				var q: Vector2 = t[ti]
+				if zm.zone_at(q.x, q.y) == ZoneMap.Z_JUNGLE:
+					var dir := (t[ti + 3] - q).normalized().rotated(0.45)
+					cam_p = q
+					look_p = q + dir * 14.0
+					found = true
+					break
+			if found:
+				break
+		await _view(Vector3(cam_p.x, w.height_at(cam_p.x, cam_p.y) + 1.6, cam_p.y), Vector3(look_p.x, w.height_at(cam_p.x, cam_p.y) + 2.6, look_p.y), "jungle_inside", 6.0)
 	# 5) архипелаг с холма на закате — вершина крупного острова
 	if only == "" or only.contains("sunset"):
-		w.set_time_of_day(18.35)
+		w.set_time_of_day(17.6)
 		var top := Vector2.ZERO
 		var th := -INF
 		var L: Dictionary = {}
@@ -153,7 +171,8 @@ func run() -> void:
 			if done.has(t) or not (t in [&"shipwreck", &"lighthouse"]):
 				continue
 			done[t] = true
-			var mp: Vector2 = m.pos
+			var mp3: Vector3 = m.pos
+			var mp := Vector2(mp3.x, mp3.z)
 			var mh := w.height_at(mp.x, mp.y)
 			var off := Vector2.from_angle(float(m.get("yaw", 0.0)) + 0.9) * (28.0 if t == &"shipwreck" else 55.0)
 			var eh := maxf(w.height_at(mp.x + off.x, mp.y + off.y), wl) + (4.0 if t == &"shipwreck" else 12.0)
@@ -176,6 +195,17 @@ func _view(pos: Vector3, look: Vector3, nm: String, settle: float) -> void:
 	await wait_frames(3)
 	var img := get_viewport().get_texture().get_image()
 	if img and not img.is_empty():
+		var lum := 0.0
+		for yy in range(0, img.get_height(), 16):
+			for xx in range(0, img.get_width(), 16):
+				lum += img.get_pixel(xx, yy).get_luminance()
+		print("[lum] %s %.3f" % [nm, lum / float((img.get_height() / 16) * (img.get_width() / 16))])
+		var sk: Node = w.sky
+		var env: Environment = sk.get(&"_env")
+		print("[lum] canopy=%.2f amb_e=%.2f amb_sky=%.2f exp=%.2f dl=%.2f tod=%.2f fog=%s/%.4f sun_e=%.2f" % [float(sk.get(&"_canopy")),
+			env.ambient_light_energy if env else -1.0, env.ambient_light_sky_contribution if env else -1.0,
+			float(sk.get(&"sky3d").get(&"tonemap_exposure")), float(sk.call(&"daylight")), float(sk.call(&"time_of_day")),
+			str(env.fog_enabled) if env else "-", env.fog_density if env else -1.0, float(sk.get(&"sky3d").get(&"sun_energy"))])
 		img.save_png("/mnt/user-data/outputs/v5_G_%s.png" % nm)
 		print("[shot] v5_G_%s.png" % nm)
 	shot(nm)

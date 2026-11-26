@@ -50,11 +50,11 @@ func _ready() -> void:
 		_model.scale = Vector3.ONE * k
 		if aabb.size.x > aabb.size.z:
 			_model.rotation.y = PI * 0.5
-		# низ корпуса — на 0,15 м под водой (осадка), палуба ~0,25 м над водой
+		# низ брёвен — на 0,06 м под водой (осадка плота), палуба над водой
 		var c := aabb.get_center()
 		if aabb.size.x > aabb.size.z:
 			c = Vector3(c.z, c.y, -c.x)   # поворот модели на +90° вокруг Y
-		_model.position = Vector3(-c.x * k, -aabb.position.y * k - 0.15, -c.z * k)
+		_model.position = Vector3(-c.x * k, -_hull_bottom(_model) * k - 0.06, -c.z * k)
 	var cs := CollisionShape3D.new()
 	var sh := BoxShape3D.new()
 	sh.size = Vector3(1.5, 0.6, 4.2)
@@ -78,6 +78,36 @@ static func _aabb_of(n: Node3D) -> AABB:
 		out = a if first else out.merge(a)
 		first = false
 	return out
+
+## Низ корпуса: 3-й процентиль высот вершин (брёвна плота — основная масса; верёвки и
+## кривые такелажа, свисающие ниже, низом корпуса не считаем). Кэш на модель.
+static var _hull_cache := {}
+static func _hull_bottom(n: Node3D) -> float:
+	if _hull_cache.has(MODEL):
+		return float(_hull_cache[MODEL])
+	var ys := PackedFloat32Array()
+	for c in n.find_children("*", "MeshInstance3D", true, false):
+		var mi := c as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		var t := Transform3D.IDENTITY
+		var q: Node = mi
+		while q != null and q != n:
+			if q is Node3D:
+				t = (q as Node3D).transform * t
+			q = q.get_parent()
+		for si in mi.mesh.get_surface_count():
+			var arr := mi.mesh.surface_get_arrays(si)
+			var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			var step := maxi(1, vs.size() / 4000)
+			for i in range(0, vs.size(), step):
+				ys.append((t * vs[i]).y)
+	if ys.is_empty():
+		return 0.0
+	ys.sort()
+	var b := ys[int(ys.size() * 0.03)]
+	_hull_cache[MODEL] = b
+	return b
 
 ## Свободна ли лодка (не плывёт, не тонет).
 func free_for_ride() -> bool:
