@@ -5,16 +5,12 @@ extends RefCounted
 ## Загружаются по одному — отдельной сценой PolygonIslandStage (музей выгружается).
 ##
 ## Контракт с генератором (docs/V5_AGENTS.md п.2): раскладка — класс-наследник
-## Archipelago/IslandGen; для архипелага v5 — res://scripts/world/gen/archipelago_v5.gd
-## (ArchipelagoV5.new(seed)). Скрипт берётся по пути, чтобы полигон не ломался, пока
-## генератора нет.
-
-const V5_PATH := "res://scripts/world/gen/archipelago_v5.gd"
+## Archipelago/IslandGen; архипелаги (v5 и пресет матча) строит сам World (gen_version)
+## — со всем, что у мира игры: потоковый рельеф, карта зон, тропы, рассадка.
 
 static func list() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
-	if ResourceLoader.exists(V5_PATH):
-		out.append({"id": "archipelago_v5", "name": "Новый архипелаг 3×3 км (версия 5)", "kind": "v5"})
+	out.append({"id": "archipelago_v5", "name": "Новый архипелаг 3×3 км (версия 5)", "kind": "v5"})
 	out.append({"id": "archipelago_match", "name": "Карта матча (пресет)", "kind": "match"})
 	for e: Array in _order():
 		var t: StringName = e[0]
@@ -36,9 +32,7 @@ static func name_of(id: String) -> String:
 static func make_arch(id: String, seed_value: int) -> Archipelago:
 	match id:
 		"archipelago_v5":
-			if ResourceLoader.exists(V5_PATH):
-				return (load(V5_PATH) as Script).new(seed_value) as Archipelago
-			return Archipelago.new(seed_value)
+			return ArchipelagoV5.new(seed_value)
 		"archipelago_match":
 			return Archipelago.new(seed_value)
 	OneIslandArch.only = StringName(id)

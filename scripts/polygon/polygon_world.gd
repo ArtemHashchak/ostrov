@@ -16,7 +16,12 @@ func _ready() -> void:
 	terrain = TerrainChunks.new()
 	terrain.name = "Terrain"
 	add_child(terrain)
-	terrain.build(arch, terrain_material)
+	# карта зон и тропы — как у мира игры (модули спрашивают zone_at/sea_ok/trail_at)
+	zones = ZoneMap.new()
+	zones.build(arch, Callable(), ZoneMap.make_key(seed_value, "polygon|%s" % str(arch.bounds)))
+	trails = TrailNet.new()
+	trails.build(zones, arch, seed_value)
+	terrain.build(arch, terrain_material, zones)
 	_make_deep_floor()
 	ocean = Ocean.new()
 	add_child(ocean)

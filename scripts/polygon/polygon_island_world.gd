@@ -7,6 +7,16 @@ extends World
 var decor: IslandDecor
 
 func _ready() -> void:
+	# архипелаги — тем же путём, что мир игры (v5: потоковый рельеф, карта зон, тропы)
+	match PolygonIslandStage.island_id:
+		"archipelago_v5":
+			gen_version = 5
+			super._ready()
+			return
+		"archipelago_match":
+			gen_version = 4
+			super._ready()
+			return
 	add_to_group(&"world")
 	var t0 := Time.get_ticks_msec()
 	arch = PolygonIslands.make_arch(PolygonIslandStage.island_id, seed_value)
@@ -14,7 +24,11 @@ func _ready() -> void:
 	terrain = TerrainChunks.new()
 	terrain.name = "Terrain"
 	add_child(terrain)
-	terrain.build(arch, terrain_material)
+	zones = ZoneMap.new()
+	zones.build(arch, Callable(), ZoneMap.make_key(seed_value, "polygon_island|%s|%s" % [PolygonIslandStage.island_id, str(arch.bounds)]))
+	trails = TrailNet.new()
+	trails.build(zones, arch, seed_value)
+	terrain.build(arch, terrain_material, zones)
 	_make_deep_floor()
 	ocean = Ocean.new()
 	add_child(ocean)
@@ -39,6 +53,8 @@ func _ready() -> void:
 
 ## Острова + тип рецепта и профиль флоры (Flora берёт flora_profile, если есть).
 func islands() -> Array[Dictionary]:
+	if PolygonIslandStage.island_id in ["archipelago_v5", "archipelago_match"]:
+		return super.islands()
 	var out: Array[Dictionary] = []
 	for I in arch.islands:
 		var e := {"id": I.id, "kind": I.kind, "team": I.team, "center": I.center, "radius": I.radius,
