@@ -5,5 +5,8 @@
 
 [node name="Match" instance=ExtResource("1")]
 
+[node name="World" parent="."]
+gen_version = 4
+
 [node name="Tutorial" type="Node" parent="."]
 script = ExtResource("2")
