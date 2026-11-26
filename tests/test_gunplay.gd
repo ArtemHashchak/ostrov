@@ -97,7 +97,7 @@ func run() -> void:
 	var pd := WeaponDef.of(&"pistol_9mm")
 	var rd := WeaponDef.of(&"rifle")
 	check(pd != null and pd.mag_size >= 12 and pd.mag_size <= 15 and pd.ammo_id == &"ammo_9mm", "WeaponDef пистолета: магазин %d, патроны 9 мм" % (pd.mag_size if pd else 0))
-	check(rd != null and rd.fire_modes.size() == 2 and rd.tracer_every > 0, "WeaponDef автомата: авто/одиночный, трассеры")
+	check(rd != null and rd.fire_modes.size() == 3 and rd.tracer_every > 0, "WeaponDef автомата: авто/одиночный/предохранитель, трассеры")
 	var cw := Combat.weapon(&"pistol_9mm")
 	check(Combat.is_weapon(&"pistol_9mm") and cw.type == &"gun" and int(cw.mag) == pd.mag_size and is_equal_approx(float(cw.cooldown), pd.cooldown()),
 		"Combat.weapon(pistol_9mm) собран из WeaponDef")
@@ -214,6 +214,9 @@ func run() -> void:
 	await tap(&"fire_mode")
 	await wait(0.1)
 	check(Combat.fire_mode(p, &"rifle") == &"semi", "V — одиночный")
+	await tap(&"fire_mode")
+	await wait(0.1)
+	check(Combat.fire_mode(p, &"rifle") == &"safe", "V — предохранитель")
 	await tap(&"fire_mode")
 	await wait(0.1)
 	check(Combat.fire_mode(p, &"rifle") == &"auto", "V — снова автоматический")

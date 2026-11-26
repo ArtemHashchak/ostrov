@@ -54,6 +54,15 @@ var _prev_mode := false
 var _barrel_smoke: CPUParticles3D
 var _slide := 0.0
 var _reload_stage := 0
+## Подвижные детали (WeaponDef: BoltCarrier/Slide, Trigger, Selector, Magazine): спуск 0..1,
+## угол переводчика (плавно к углу режима), исходные позиции/повороты деталей модели.
+var _trig := 0.0
+var _trig_held := false
+var _sel_deg := 0.0
+var _sel_init := false
+var _rest: Dictionary = {}
+## Прицеливание в режиме «переключать» (Settings.aim_toggle): защёлка.
+var _aim_latched := false
 var _mag_label: Label
 var _cross: Control
 ## Текущий разброс (град) — для HUD и тестов.
@@ -100,7 +109,16 @@ func _process(delta: float) -> void:
 	_sync_weapon()
 	var active := _active() and wid != &""
 	var atk := Input.is_action_pressed(&"attack") and active
-	var aim := Input.is_action_pressed(&"aim") and active
+	var aim_raw := Input.is_action_pressed(&"aim") and active
+	var aim := aim_raw
+	if Settings.aim_toggle:
+		# «переключать»: одно нажатие — в прицел, ещё одно — из прицела (тачпад MacBook:
+		# нельзя одновременно держать нажатие двумя пальцами и кликать)
+		if aim_raw and not _prev_aim:
+			_aim_latched = not _aim_latched
+		if not active:
+			_aim_latched = false
+		aim = _aim_latched and active
 	var rel := InputMap.has_action(&"reload") and Input.is_action_pressed(&"reload") and active
 	var atk_down := atk and not _prev_atk
 	var atk_up := not atk and _prev_atk
@@ -109,7 +127,8 @@ func _process(delta: float) -> void:
 	var mode_down := mode and not _prev_mode
 	_prev_mode = mode
 	_prev_atk = atk
-	_prev_aim = aim
+	_prev_aim = aim_raw
+	_trig_held = atk and wdef != null
 	_prev_reload = rel
 	var want_ads := false
 	if active:
@@ -215,6 +234,10 @@ func _unequip() -> void:
 	_barrel_smoke = null
 	gp = null
 	wdef = null
+	_aim_latched = false
+	_rest.clear()
+	_sel_init = false
+	_trig = 0.0
 	if _draw_snd:
 		_draw_snd.queue_free()
 		_draw_snd = null
@@ -228,6 +251,8 @@ func _unequip() -> void:
 
 func _find_model() -> void:
 	_model = null
+	_rest.clear()
+	_sel_init = false
 	if hands == null:
 		return
 	var kids := hands.held_root.get_children()
@@ -263,6 +288,11 @@ func socket(socket_name: StringName) -> Node3D:
 # ---------- современный огнестрел ----------
 
 func _trigger_modern(pressed: bool) -> bool:
+	if Combat.fire_mode(p, wid) == &"safe":
+		# на предохранителе спуск не идёт: глухой щелчок пальца по спуску
+		if pressed:
+			CombatFx.sound_at(p, wdef.sound_dry, _eye() + Vector3.DOWN * 0.3, -18.0)
+		return false
 	if not Combat.is_ready(p, wid) or Combat.is_reloading(p):
 		return false
 	if Combat.rounds(p, wid) <= 0:
@@ -297,7 +327,12 @@ func _cycle_mode() -> void:
 	Events.toast.emit("Режим огня: %s" % mode_name(m))
 
 static func mode_name(m: StringName) -> String:
-	return "автоматический" if m == &"auto" else "одиночный"
+	match m:
+		&"auto":
+			return "автоматический"
+		&"safe":
+			return "предохранитель"
+	return "одиночный"
 
 func _trigger() -> void:
 	if not Combat.is_ready(p, wid):
@@ -344,6 +379,7 @@ func _reload_progress() -> float:
 	return clampf(1.0 - (float(st.reload_end) - Combat._now()) / _reload_len, 0.0, 1.0)
 
 func _recoil(deg: float) -> void:
+	deg *= Gunplay.RECOIL_MULT
 	var yaw: float = p.get(&"_yaw")
 	var pitch: float = p.get(&"_pitch")
 	p.set_look(yaw + deg_to_rad(randf_range(-0.25, 0.25) * deg), clampf(pitch + deg_to_rad(deg * 0.45), -1.5, 1.5))
@@ -671,20 +707,51 @@ func _update_parts() -> void:
 func _update_modern_parts() -> void:
 	var dt := get_process_delta_time()
 	var empty := Combat.rounds(p, wid) <= 0 and not Combat.is_reloading(p)
-	_slide = move_toward(_slide, 0.0, dt / 0.06)
-	var sl := _model.get_node_or_null(^"Slide") as Node3D
+	_slide = move_toward(_slide, 0.0, dt / maxf(wdef.bolt_cycle, 0.01))
 	var rp := _reload_progress()
 	var full := bool(Combat.state(p).get("reload_full", false))
-	if sl:
-		# кожух откатывается на выстреле; пустой — стоит на затворной задержке до конца полной перезарядки
-		var back := sin(_slide * PI) * 0.026
-		if empty or (Combat.is_reloading(p) and full and rp < 0.85):
-			back = 0.022
-		sl.position.z = back
-	var mg := _model.get_node_or_null(^"Magazine") as Node3D
+	var reloading := Combat.is_reloading(p)
+	# затвор: откат на выстреле; пустым — на задержке (если она есть у этого ствола);
+	# при полной перезарядке (charge_on_empty) — отвести и отпустить в конце
+	var back := sin(_slide * PI) * wdef.bolt_travel
+	if wdef.bolt_hold_open and (empty or (reloading and full and rp < 0.85)):
+		back = wdef.bolt_travel * 0.85
+	elif wdef.charge_on_empty and reloading and full:
+		back = maxf(back, wdef.bolt_travel * smoothstep(0.72, 0.82, rp) * (1.0 - smoothstep(0.88, 0.91, rp)))
+	for nm: String in [wdef.bolt_node, wdef.charging_node]:
+		var bn := _part(nm)
+		if bn:
+			bn.position = _rest_xf(bn).origin + Vector3(0.0, 0.0, back)
+	# спуск: тянется, пока зажата атака (на предохранителе — упирается)
+	var safe := Combat.fire_mode(p, wid) == &"safe"
+	_trig = move_toward(_trig, (0.25 if safe else 1.0) if _trig_held else 0.0, dt / 0.05)
+	var tg := _part(wdef.trigger_node)
+	if tg:
+		tg.basis = _rest_xf(tg).basis * Basis(Vector3.RIGHT, deg_to_rad(wdef.trigger_pull_deg) * _trig)
+	# переводчик: к углу режима
+	var sel := _part(wdef.selector_node)
+	if sel and not wdef.selector_deg.is_empty():
+		var target := float(wdef.selector_deg.get(Combat.fire_mode(p, wid), 0.0))
+		if not _sel_init:
+			_sel_deg = target
+			_sel_init = true
+		_sel_deg = move_toward(_sel_deg, target, dt * 400.0)
+		sel.basis = _rest_xf(sel).basis * Basis(Vector3.RIGHT, deg_to_rad(_sel_deg))
+	# магазин: качнуть вперёд и вынуть, новый — тем же путём обратно
+	var mg := _part(wdef.mag_node)
 	if mg:
-		var away := smoothstep(0.12, 0.3, rp) * (1.0 - smoothstep(0.5, 0.72, rp)) if rp < 1.0 else 0.0
-		mg.position = Vector3(0.0, -0.3, 0.06) * away
+		var rock := 0.0
+		var away := 0.0
+		if reloading and rp < 1.0:
+			if rp < 0.4:
+				rock = smoothstep(0.1, 0.2, rp)
+				away = smoothstep(0.18, 0.32, rp)
+			else:
+				away = 1.0 - smoothstep(0.42, 0.54, rp)
+				rock = 1.0 - smoothstep(0.54, 0.62, rp)
+		var r0 := _rest_xf(mg)
+		mg.transform = Transform3D(r0.basis * Basis(Vector3.RIGHT, deg_to_rad(wdef.mag_rock_deg) * rock),
+			r0.origin + wdef.mag_drop * away)
 		mg.visible = away < 0.95
 	if Combat.is_reloading(p):
 		if _reload_stage == 0 and rp > 0.62:
@@ -702,6 +769,19 @@ func _update_modern_parts() -> void:
 			var since := gp.t - gp.last_shot_t
 			_barrel_smoke.emitting = gp.heat > 0.25 and since > 0.15
 			_barrel_smoke.color = Color(1, 1, 1, clampf(gp.heat, 0.0, 1.0))
+
+## Подвижная деталь модели по имени (WeaponDef: bolt_node и т. п.), null — нет такой.
+func _part(nm: String) -> Node3D:
+	if nm == "" or _model == null:
+		return null
+	return _model.find_child(nm, true, false) as Node3D
+
+## Исходный transform детали (запоминается при первом обращении к модели).
+func _rest_xf(n: Node3D) -> Transform3D:
+	var id := n.get_instance_id()
+	if not _rest.has(id):
+		_rest[id] = n.transform
+	return _rest[id]
 
 func _set_cock(cocked: bool) -> void:
 	var c := _model.find_child("Cock", true, false) as Node3D if _model else null
@@ -791,7 +871,7 @@ func _update_ui(_delta: float) -> void:
 		_mag_label.text = "%d / %d" % [mag, reserve]
 		_mag_label.modulate = Color(1.0, 0.45, 0.35) if mag == 0 else (Color(1.0, 0.85, 0.5) if mag <= int(wdef.mag_size * 0.25) else Color.WHITE)
 		var st2 := "перезарядка…" if Combat.is_reloading(p) else ("пусто — R" if mag == 0 and reserve > 0 else ("нет патронов" if mag == 0 else ""))
-		var modes := "" if wdef.fire_modes.size() < 2 else "  [%s — V]" % ("АВТО" if Combat.fire_mode(p, wid) == &"auto" else "ОДИН.")
+		var modes := "" if wdef.fire_modes.size() < 2 else "  [%s — V]" % {&"auto": "АВТО", &"safe": "ПРЕДОХР."}.get(Combat.fire_mode(p, wid), "ОДИН.")
 		_ammo_label.text = "%s%s\nв магазине / в запасе (%s)%s" % [w.name, modes, Items.item_name(wdef.ammo_id), ("  · " + st2) if st2 != "" else ""]
 		# прицел: зазор по разбросу (в прицеле — не нужен)
 		if cam and ads < 0.5:

@@ -51,6 +51,8 @@ const SOCKETS := {
 @export var recoil_pattern: PackedVector2Array = PackedVector2Array([Vector2(0.0, 1.0)])
 @export var recoil_random := 0.25
 @export var recoil_ads_mult := 0.7
+## Множитель отдачи этого ствола (поверх общего Gunplay.RECOIL_MULT).
+@export var recoil_mult := 1.0
 ## Возврат прицела после очереди: задержка (с) и скорость (1/с, экспонента).
 @export var recoil_recover_delay := 0.1
 @export var recoil_recover := 7.0
@@ -85,6 +87,41 @@ const SOCKETS := {
 @export var smoke := 0.6
 @export var casing_len := 0.019
 @export var casing_r := 0.0048
+## Дульный тормоз (АК): часть газов уходит в стороны и вверх — боковые облачка.
+@export var muzzle_brake := false
+
+## ---- Подвижные детали модели (контракт имён узлов) ----
+## CombatController ищет в модели оружия узлы с этими именами (find_child, на любой глубине)
+## и двигает их в ЛОКАЛЬНЫХ осях узла (вперёд по стволу — −Z, вверх — +Y, вправо — +X).
+## Своя модель (glb пользователя) подключается, если её узлы названы так же, а точка
+## (origin) узла стоит в правильном месте:
+##  • bolt_node (затворная рама «BoltCarrier»; у пистолета — кожух «Slide»): в покое —
+##    позиция модели; на выстреле уходит назад (+Z) на bolt_travel и возвращается за
+##    bolt_cycle с. Рукоять затвора — ребёнок рамы (двигается вместе с ней) или отдельный узел
+##    charging_node с той же траекторией. bolt_hold_open — встаёт ли на задержку пустым
+##    (у АК — нет).
+##  • trigger_node («Trigger»): origin — ось спуска; при зажатой атаке поворот вокруг X на
+##    trigger_pull_deg.
+##  • selector_node («Selector»): origin — ось переводчика; поворот вокруг X на угол режима
+##    selector_deg[режим] (&"safe" / &"auto" / &"semi").
+##  • mag_node («Magazine»): origin — передний упор магазина; при перезарядке поворачивается
+##    вокруг X на mag_rock_deg («качнуть» вперёд, как у АК), затем уходит на mag_drop и
+##    скрывается; новый приходит обратно тем же путём. mag_rock_deg = 0 — просто вниз.
+##  • charge_on_empty — при полной (из пустого) перезарядке затвор сам отводится назад и
+##    отпускается (досылание патрона).
+@export var bolt_node := "BoltCarrier"
+@export var charging_node := "ChargingHandle"
+@export var bolt_travel := 0.0
+@export var bolt_cycle := 0.06
+@export var bolt_hold_open := true
+@export var trigger_node := "Trigger"
+@export var trigger_pull_deg := 0.0
+@export var selector_node := "Selector"
+@export var selector_deg: Dictionary = {}
+@export var mag_node := "Magazine"
+@export var mag_rock_deg := 0.0
+@export var mag_drop := Vector3(0.0, -0.3, 0.06)
+@export var charge_on_empty := false
 
 static var _defs: Dictionary = {}
 static var _wcache: Dictionary = {}
@@ -221,6 +258,11 @@ static func _pistol_9mm() -> WeaponDef:
 	d.smoke = 0.4
 	d.casing_len = 0.019
 	d.casing_r = 0.0048
+	# кожух-затвор: откат на выстреле, пустым — на задержке
+	d.bolt_node = "Slide"
+	d.bolt_travel = 0.026
+	d.bolt_cycle = 0.06
+	d.bolt_hold_open = true
 	return d
 
 ## Автомат 7,62 (вымышленный, по мотивам АК): авто/одиночный (V), трассер каждый 4-й.
@@ -231,7 +273,9 @@ static func _rifle() -> WeaponDef:
 	d.ammo_id = &"rifle_ammo"
 	d.mag_size = 20
 	d.rpm = 600.0
-	d.fire_modes = [&"auto", &"semi"]
+	# как у АК: переводчик сверху вниз — предохранитель / автоматический / одиночный;
+	# в руки берётся на автоматическом (боты не переключают режим)
+	d.fire_modes = [&"auto", &"semi", &"safe"]
 	d.damage = 24.0
 	d.falloff_start = 50.0
 	d.falloff_end = 150.0
@@ -254,6 +298,7 @@ static func _rifle() -> WeaponDef:
 	d.recoil_recover_delay = 0.12
 	d.recoil_recover = 6.0
 	d.camera_kick = 0.9
+	d.recoil_mult = 1.1     # АК бьёт чуть сильнее (просьба пользователя 26.11)
 	d.spring_stiffness = 260.0
 	d.spring_damping = 20.0
 	d.kick_back = 0.022
@@ -268,8 +313,19 @@ static func _rifle() -> WeaponDef:
 	d.sound_pitch = 0.82
 	d.sound_volume = 4.0
 	d.tracer_every = 4
-	d.flash_size = 0.7
-	d.smoke = 0.8
+	d.flash_size = 0.85
+	d.smoke = 1.0
+	d.muzzle_brake = true
 	d.casing_len = 0.039
 	d.casing_r = 0.0056
+	# подвижные детали (SupplyModels.rifle или модель пользователя с теми же именами)
+	d.bolt_node = "BoltCarrier"
+	d.bolt_travel = 0.085
+	d.bolt_cycle = 0.075
+	d.bolt_hold_open = false
+	d.trigger_pull_deg = -20.0
+	d.selector_deg = {&"safe": 0.0, &"auto": 14.0, &"semi": 27.0}
+	d.mag_rock_deg = 24.0
+	d.mag_drop = Vector3(0.0, -0.32, -0.08)
+	d.charge_on_empty = true
 	return d

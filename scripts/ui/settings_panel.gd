@@ -105,6 +105,7 @@ func _ready() -> void:
 		Settings.show_perf = on
 		PerfOverlay.ensure(get_tree().root))
 	_check(grid, "Инверсия по Y", Settings.invert_y, func(on: bool) -> void: Settings.invert_y = on)
+	_check(grid, "Прицел: переключать (вкл.) / удерживать (выкл.)", Settings.aim_toggle, func(on: bool) -> void: Settings.aim_toggle = on)
 	_check(grid, "Режим разработчика (консоль ` / Ё)", Settings.dev_mode, func(on: bool) -> void: Settings.dev_mode = on)
 	var bench := Button.new()
 	bench.text = "Тест производительности"

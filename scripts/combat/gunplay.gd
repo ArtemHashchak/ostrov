@@ -23,6 +23,9 @@ var gun_kick_v := 0.0
 var heat := 0.0
 var shots := 0
 
+## Общий множитель отдачи всего огнестрела (+12%, просьба пользователя 26.11).
+const RECOIL_MULT := 1.12
+
 func _init(def: WeaponDef) -> void:
 	d = def
 
@@ -40,8 +43,8 @@ func spread(ads: float, speed01: float, on_floor: bool, crouch: bool) -> float:
 ## Выстрел: паттерн отдачи, рост разброса, импульсы пружин, нагрев.
 func on_shot(ads: float) -> Vector2:
 	var r := d.recoil_at(burst)
-	var k := lerpf(1.0, d.recoil_ads_mult, ads)
-	r = r * k + Vector2(randf_range(-1.0, 1.0), randf_range(-0.3, 0.3)) * d.recoil_random
+	var k := lerpf(1.0, d.recoil_ads_mult, ads) * RECOIL_MULT * d.recoil_mult
+	r = r * k + Vector2(randf_range(-1.0, 1.0), randf_range(-0.3, 0.3)) * d.recoil_random * RECOIL_MULT * d.recoil_mult
 	# вверх — pitch +, вправо — yaw − (как мышь)
 	aim_target += Vector2(deg_to_rad(r.y), -deg_to_rad(r.x))
 	burst += 1

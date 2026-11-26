@@ -139,7 +139,7 @@ static func capacity(ch: Object, id: StringName) -> int:
 		return d.capacity(rounds(ch, id))
 	return int(weapon(id).get("mag", 1))
 
-## Режим огня (&"auto"/&"semi") современного оружия; у остального — по полю auto.
+## Режим огня (&"auto"/&"semi"/&"safe" — предохранитель) современного оружия; у остального — по полю auto.
 static func fire_mode(ch: Object, id: StringName) -> StringName:
 	var d := WeaponDef.of(id)
 	if d == null:
@@ -333,6 +333,9 @@ static func fire(shooter: Node, weapon_id: StringName, origin: Vector3, dir: Vec
 	register_items()
 	var st := state(shooter)
 	if _now() < float(st.busy_until):
+		return false
+	# современный ствол на предохранителе не стреляет (режим &"safe")
+	if WeaponDef.has(weapon_id) and fire_mode(shooter, weapon_id) == &"safe":
 		return false
 	dir = dir.normalized()
 	match w.type:

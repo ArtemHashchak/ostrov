@@ -47,6 +47,18 @@ static func shot(ctx: Node, pos: Vector3, dir: Vector3, d: WeaponDef, muzzle: No
 		CombatFx._ramp([Color(0.85, 0.85, 0.86, 0.45 * s), Color(0.8, 0.8, 0.8, 0.0)]), 0.08 + 0.08 * s, 4.0, 18.0, dir, Vector3(0, 0.2, 0))
 	CombatFx.particles(root, pos + dir * 0.1, int(2 + 3 * s), 1.4, "smoke", false,
 		CombatFx._ramp([Color(0.82, 0.82, 0.84, 0.25 * s), Color(0.8, 0.8, 0.8, 0.0)]), 0.2 + 0.15 * s, 0.8, 40.0, dir, Vector3(0.05, 0.35, 0))
+	if d.muzzle_brake:
+		# дульный тормоз-компенсатор (АК): газы бьют в стороны и вверх — два боковых «уса»
+		# и короткая вспышка сбоку
+		var side := dir.cross(Vector3.UP)
+		if side.length() < 0.1:
+			side = Vector3.RIGHT
+		side = side.normalized()
+		for sg: float in [-1.0, 1.0]:
+			var sd := (side * sg + Vector3.UP * 0.35 + dir * 0.2).normalized()
+			CombatFx.particles(root, pos + dir * 0.02, int(3 + 4 * s), 0.3, "smoke", false,
+				CombatFx._ramp([Color(0.86, 0.86, 0.87, 0.5 * s), Color(0.8, 0.8, 0.8, 0.0)]), 0.06 + 0.06 * s, 3.2, 14.0, sd, Vector3(0, 0.25, 0))
+		muzzle_flash(root, pos + Vector3.UP * 0.012, (Vector3.UP * 0.6 + dir).normalized(), d.flash_size * 0.45, muzzle)
 	var a := CombatFx.sound_at(ctx, d.sound_shot, pos, d.sound_volume, 260.0)
 	if a:
 		a.pitch_scale = d.sound_pitch * randf_range(0.96, 1.04)

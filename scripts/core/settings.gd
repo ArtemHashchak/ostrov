@@ -11,6 +11,9 @@ const TEST_SAVE_PATH := "user://settings_test.cfg"
 var mouse_sensitivity: float = 0.0022
 var gamepad_look_speed: float = 2.6
 var invert_y: bool = false
+## Прицеливание: false — удерживать ПКМ, true — переключать (одно нажатие — в прицел, ещё одно — из него).
+## Нужно для тачпада MacBook: нельзя одновременно держать нажатие двумя пальцами и кликать.
+var aim_toggle: bool = false
 var fov: float = 75.0
 var master_volume: float = 1.0
 var shadows_quality: int = 2 # 0 выкл, 1 низко, 2 высоко
@@ -115,7 +118,7 @@ func _build_input_map() -> void:
 		if not InputMap.has_action(action):
 			InputMap.add_action(action, 0.2)
 	for action: StringName in DEFAULT_KEYS.keys():
-		for key: int in DEFAULT_KEYS[action]:
+		for key: int in default_keys(action):
 			var ev := InputEventKey.new()
 			ev.physical_keycode = key as Key
 			InputMap.action_add_event(action, ev)
@@ -133,6 +136,17 @@ func _build_input_map() -> void:
 		jm.axis_value = DEFAULT_PAD_AXES[action][1]
 		InputMap.action_add_event(action, jm)
 
+## Клавиши действия по умолчанию с поправкой на платформу.
+## macOS: Ctrl+клик система превращает в ПРАВЫЙ клик — в приседе на Ctrl нельзя было стрелять
+## (только прицеливаться). Поэтому на Mac присед по умолчанию — Option (рядом с Control).
+func default_keys(action: StringName) -> Array:
+	if action == &"crouch" and is_macos():
+		return [KEY_ALT]
+	return DEFAULT_KEYS.get(action, [])
+
+static func is_macos() -> bool:
+	return OS.get_name() == "macOS" or OS.has_feature("macos")
+
 ## Переназначить клавишу действия (заменяет все клавиатурные события).
 func rebind_key(action: StringName, keycode: Key) -> void:
 	for ev in InputMap.action_get_events(action):
@@ -147,6 +161,7 @@ func save_settings() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("input", "mouse_sensitivity", mouse_sensitivity)
 	cfg.set_value("input", "invert_y", invert_y)
+	cfg.set_value("input", "aim_toggle", aim_toggle)
 	cfg.set_value("video", "fov", fov)
 	cfg.set_value("video", "shadows_quality", shadows_quality)
 	cfg.set_value("video", "graphics_quality", graphics_quality)
@@ -178,6 +193,7 @@ func load_settings() -> void:
 		return
 	mouse_sensitivity = cfg.get_value("input", "mouse_sensitivity", mouse_sensitivity)
 	invert_y = cfg.get_value("input", "invert_y", invert_y)
+	aim_toggle = bool(cfg.get_value("input", "aim_toggle", aim_toggle))
 	fov = cfg.get_value("video", "fov", fov)
 	shadows_quality = cfg.get_value("video", "shadows_quality", shadows_quality)
 	graphics_quality = cfg.get_value("video", "graphics_quality", graphics_quality)
@@ -192,7 +208,8 @@ func load_settings() -> void:
 	graphics_detected = bool(cfg.get_value("video", "graphics_detected", graphics_detected))
 	view_distance = float(cfg.get_value("video", "view_distance", view_distance))
 	flora_distance = clampf(float(cfg.get_value("video", "flora_distance", flora_distance)), 0.5, 2.0)
-	var old_keys := int(cfg.get_value("meta", "keys_version", 1)) < KEYS_VERSION
+	var keys_ver := int(cfg.get_value("meta", "keys_version", 1))
+	var old_keys := keys_ver < 2
 	master_volume = cfg.get_value("audio", "master_volume", master_volume)
 	tutorial_done = bool(cfg.get_value("progress", "tutorial_done", tutorial_done))
 	for action: StringName in DEFAULT_KEYS.keys():
@@ -201,6 +218,9 @@ func load_settings() -> void:
 		var saved: Variant = cfg.get_value("keys", String(action))
 		# v2: крафт B→C, C больше не приседание (B занят стройкой).
 		if old_keys and action in [&"craft", &"crouch"]:
+			continue
+		# v3: на macOS присед с Ctrl переезжает на Option (Ctrl+клик = правый клик)
+		if keys_ver < 3 and action == &"crouch" and is_macos() and saved is Array and (saved as Array) == [KEY_CTRL]:
 			continue
 		if saved is Array and not (saved as Array).is_empty():
 			for ev in InputMap.action_get_events(action):
@@ -211,7 +231,7 @@ func load_settings() -> void:
 				nk.physical_keycode = int(key) as Key
 				InputMap.action_add_event(action, nk)
 
-const KEYS_VERSION := 2
+const KEYS_VERSION := 3
 
 ## Применить качество графики: масштаб 3D/апскейлер/сглаживание/тени
 ## (GraphicsQuality), синхронизация и лимит кадров, окно, масштаб интерфейса.

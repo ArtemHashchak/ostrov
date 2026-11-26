@@ -179,10 +179,22 @@ static func rifle(root: Node3D) -> void:
 	# ствольная коробка + крышка
 	box(root, Vector3(0.046, 0.064, 0.33), steel, Vector3(0, by - 0.012, -0.075))
 	tube(root, [Vector3(0, by + 0.02, 0.085), Vector3(0, by + 0.024, -0.235)], [Vector2(0.012, 0.022), Vector2(0.012, 0.022)], steel, Vector3.UP, 10)
-	# рукоять затвора справа
-	cyl(root, 0.005, 0.005, 0.03, steel, Vector3(0.033, by + 0.006, -0.12), Vector3(0, 0, PI / 2), 6)
-	# переводчик огня
-	box(root, Vector3(0.004, 0.018, 0.09), steel, Vector3(0.025, by - 0.004, -0.02))
+	# ПОДВИЖНЫЕ ДЕТАЛИ (контракт имён — WeaponDef: BoltCarrier / Trigger / Selector / Magazine).
+	# Затворная рама с рукояткой взведения справа: на выстреле откатывается назад (+Z).
+	var bolt := Node3D.new()
+	bolt.name = "BoltCarrier"
+	root.add_child(bolt)
+	box(bolt, Vector3(0.006, 0.015, 0.075), steel, Vector3(0.0215, by + 0.008, -0.11)) # рама в окне ствольной коробки
+	cyl(bolt, 0.005, 0.005, 0.03, steel, Vector3(0.033, by + 0.006, -0.135), Vector3(0, 0, PI / 2), 6) # рукоятка взведения
+	box(bolt, Vector3(0.008, 0.009, 0.012), steel, Vector3(0.047, by + 0.006, -0.135)) # «грибок» рукоятки
+	# переводчик-предохранитель: длинный рычаг справа, ось спереди; вверху — предохранитель,
+	# ниже — автоматический, в самом низу — одиночный (поворот вокруг X)
+	var sel := Node3D.new()
+	sel.name = "Selector"
+	sel.position = Vector3(0.026, by + 0.004, -0.068)
+	root.add_child(sel)
+	box(sel, Vector3(0.004, 0.016, 0.085), steel, Vector3(0.0, -0.004, 0.042))
+	box(sel, Vector3(0.007, 0.01, 0.012), steel, Vector3(0.002, -0.012, 0.08)) # «полочка» под палец
 	# ствол и дульный тормоз
 	tube(root, [Vector3(0, by, -0.23), Vector3(0, by, -0.7)], [0.0115, 0.0105], steel, Vector3.UP, 12, "Barrel")
 	tube(root, [Vector3(0, by, -0.66), Vector3(0, by, -0.73)], [0.0145, 0.014], steel, Vector3.UP, 10)
@@ -208,20 +220,31 @@ static func rifle(root: Node3D) -> void:
 		tg.append(Vector3(0, by - 0.045 - sin(a) * 0.026, -0.02 + cos(a) * 0.04))
 		tr.append(Vector2(0.003, 0.004))
 	tube(root, tg, tr, steel, Vector3.RIGHT, 6)
-	CombatModels.rod(root, Vector3(0, by - 0.045, -0.025), Vector3(0, by - 0.062, -0.015), 0.0025, steel, 6)
+	# спусковой крючок: ось сверху, при нажатии низ уходит назад
+	var trg := Node3D.new()
+	trg.name = "Trigger"
+	trg.position = Vector3(0, by - 0.043, -0.026)
+	root.add_child(trg)
+	CombatModels.rod(trg, Vector3(0, -0.002, 0.0), Vector3(0, -0.019, 0.011), 0.0025, steel, 6)
 	# приклад (дерево) с затыльником
 	tube(root, [Vector3(0, by - 0.01, 0.085), Vector3(0, by - 0.02, 0.18), Vector3(0, by - 0.04, 0.3), Vector3(0, by - 0.05, 0.37)],
 		[Vector2(0.024, 0.018), Vector2(0.03, 0.019), Vector2(0.045, 0.021), Vector2(0.052, 0.022)], wood, Vector3.UP, 12)
 	box(root, Vector3(0.044, 0.11, 0.012), mat("polymer"), Vector3(0, by - 0.05, 0.376))
 	# изогнутый магазин
+	# магазин: узел «Magazine» с осью у переднего зацепа (АК: магазин «качают» вперёд)
+	var mag := Node3D.new()
+	mag.name = "Magazine"
+	var mpiv := Vector3(0, by - 0.04, -0.06)
+	mag.position = mpiv
+	root.add_child(mag)
 	var mp := []
 	var mr := []
 	for i in 7:
 		var t := float(i) / 6.0
 		var a := t * 0.55
-		mp.append(Vector3(0, by - 0.04 - sin(a + 0.9) * 0.2 + sin(0.9) * 0.2, -0.075 - (1.0 - cos(a + 0.9)) * 0.2 + (1.0 - cos(0.9)) * 0.2))
+		mp.append(Vector3(0, by - 0.04 - sin(a + 0.9) * 0.2 + sin(0.9) * 0.2, -0.075 - (1.0 - cos(a + 0.9)) * 0.2 + (1.0 - cos(0.9)) * 0.2) - mpiv)
 		mr.append(Vector2(0.036, 0.0125))
-	tube(root, mp, mr, mat("steel"), Vector3.FORWARD, 8, "Magazine")
+	tube(mag, mp, mr, mat("steel"), Vector3.FORWARD, 8, "MagBody")
 	marker(root, "Mag", Vector3(0, by - 0.1, -0.1))
 	marker(root, "Sight", Vector3(0, by + 0.065, -0.205))
 	marker(root, "Muzzle", Vector3(0, by, -0.74))
