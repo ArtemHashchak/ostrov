@@ -78,6 +78,8 @@ for mname, spec in job.get("materials", {}).items():
             nt.links.new(t.outputs["Color"], nm.inputs["Color"]); nt.links.new(nm.outputs["Normal"], bsdf.inputs["Normal"])
         for k, v in spec.get("values", {}).items():
             bsdf.inputs[k].default_value = v
+if job.get("double_sided"):   # тонкие плоскости (крылья, листья) — видны с обеих сторон
+    for m in bpy.data.materials: m.use_backface_culling = False
 # уменьшение текстур
 tmax = int(job.get("tex_max", 2048))
 for im in bpy.data.images:

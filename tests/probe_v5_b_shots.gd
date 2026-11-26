@@ -19,7 +19,7 @@ const SHOTS := [
 	["pmx", [["weapons/pmx/weapon_beretta_pmx.glb", Vector3.ZERO, Vector3(0, 90, 0), 1.0]], 0.9, Vector3(0, 0.0, 0)],
 	["macaw", [["animals/parrots/parrot_macaw_red.glb", Vector3.ZERO, Vector3(0, 60, 0), 1.0]], 1.0, Vector3(0, 0.25, 0)],
 	["amazon_frog_butterfly", [["animals/parrots/bird_amazon_parrot.glb", Vector3(-0.15, 0, 0), Vector3(-90, 0, 0), 0.01], ["animals/frog/animal_frog.glb", Vector3(0.2, 0, 0.05), Vector3(0, -30, 0), 0.25],
-		["animals/insects/insect_butterfly.glb", Vector3(0.2, 0.22, 0.0), Vector3(0, 20, 0), 0.02]], 0.9, Vector3(0, 0.12, 0)],
+		["animals/insects/insect_butterfly.glb", Vector3(0.2, 0.25, 0.0), Vector3(35, 20, 0), 0.025]], 0.9, Vector3(0, 0.12, 0)],
 	["tuna", [["sea_skel/animal_fish_tuna.glb", Vector3.ZERO, Vector3(0, 90, 0), 0.12]], 1.8, Vector3(0, 0.0, 0)],
 	["piranha", [["sea/src_v5/animal_fish_piranha.glb", Vector3.ZERO, Vector3(0, 0, 0), 1.0]], 0.45, Vector3(0, 0.07, 0)],
 	["whale", [["sea/src_v5/animal_whale_humpback.glb", Vector3.ZERO, Vector3(0, 90, 0), 0.3]], 18.0, Vector3(0, 0.6, 0)],
@@ -50,7 +50,7 @@ func run() -> void:
 	stage.add_child(cam)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-45, 35, 0)
-	sun.light_energy = 1.6
+	sun.light_energy = float(OS.get_environment("SHOT_SUN")) if OS.get_environment("SHOT_SUN") != "" else 1.1
 	sun.shadow_enabled = true
 	stage.add_child(sun)
 	var fill := DirectionalLight3D.new()
