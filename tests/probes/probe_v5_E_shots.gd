@@ -30,7 +30,8 @@ func run() -> void:
 	var gh := PolygonLayout.GROUND_H
 	var lay := PolygonLayout.get_layout()
 	# обзор музея с высоты над центром
-	if only == "":
+	var extras := only == "" or only == "none"
+	if extras:
 		var hub: Vector2 = lay.hub
 		await _look(pg, Vector3(hub.x - 40.0, 70.0, hub.y - 30.0), Vector3(hub.x, gh, hub.y + 120.0), "museum_overview", 4.0)
 	for s: Dictionary in lay.sections:
@@ -74,7 +75,7 @@ func run() -> void:
 			var rg: Vector2 = s.range
 			await _look(pg, Vector3(rg.x, gh + 1.7, rg.y), Vector3(rg.x, gh + 1.0, rg.y + 60.0), nm + "_range")
 	# меню полигона
-	if only == "":
+	if extras:
 		pg.goto_hub()
 		await wait(2.0)
 		pg.panel.open()
