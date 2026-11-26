@@ -158,7 +158,11 @@ func _save_cache(path: String) -> void:
 func _job(i: int) -> void:
 	_keys_tmp_job(_keys[i], _jobs[i])
 
-func _keys_tmp_job(key: Vector2i, out: Dictionary) -> void:
+func _keys_tmp_job(key: Vector2i, out: Dictionary, a: Archipelago = null) -> void:
+	if a == null:
+		a = arch
+	if a == null:
+		return
 	var origin := Vector2(key.x * CHUNK, key.y * CHUNK)
 	# классификация по пробам через 4 м: суша/мелководье → 1 м,
 	# только подводный шельф (всё ниже −2.5 м) → 2 м, глубина → 4 м
@@ -167,7 +171,7 @@ func _keys_tmp_job(key: Vector2i, out: Dictionary) -> void:
 	while s <= CHUNK:
 		var t := 0.0
 		while t <= CHUNK:
-			hmax = maxf(hmax, arch.height(origin.x + s, origin.y + t))
+			hmax = maxf(hmax, a.height(origin.x + s, origin.y + t))
 			t += 4.0
 		s += 4.0
 	var shallow := hmax > -9.0
@@ -184,7 +188,7 @@ func _keys_tmp_job(key: Vector2i, out: Dictionary) -> void:
 	for j in m:
 		var z := origin.y + (j - 1) * step
 		for ii in m:
-			hh[j * m + ii] = arch.height(origin.x + (ii - 1) * step, z)
+			hh[j * m + ii] = a.height(origin.x + (ii - 1) * step, z)
 	var inner := PackedFloat32Array()
 	inner.resize(n * n)
 	var norms := PackedVector3Array()
@@ -198,7 +202,7 @@ func _keys_tmp_job(key: Vector2i, out: Dictionary) -> void:
 			inner[idx] = h
 			norms[idx] = Vector3(hh[(j + 1) * m + ii] - hh[(j + 1) * m + ii + 2], 2.0 * step,
 					hh[j * m + ii + 1] - hh[(j + 2) * m + ii + 1]).normalized()
-			cols[idx] = arch.biome_weights(origin.x + ii * step, origin.y + j * step, h) if h > -1.0 else Color(0, 0, 0, 0)
+			cols[idx] = a.biome_weights(origin.x + ii * step, origin.y + j * step, h) if h > -1.0 else Color(0, 0, 0, 0)
 	out["shallow"] = shallow
 	out["step"] = step
 	out["n"] = n
@@ -578,7 +582,7 @@ func _update_wanted(foci: Array[Vector3], sync: bool) -> void:
 			_sample_into(key, data)
 			_build_live(key, data)
 			continue
-		_pending[key] = WorkerThreadPool.add_task(_stream_job.bind(key), false, "terrain stream")
+		_pending[key] = WorkerThreadPool.add_task(_stream_job.bind(key, arch), false, "terrain stream")
 
 ## Перед удалением узла дождаться потоков выборки (иначе они читают освобождённое).
 func _notification(what: int) -> void:
@@ -589,9 +593,9 @@ func _notification(what: int) -> void:
 				WorkerThreadPool.wait_for_task_completion(id)
 		_pending.clear()
 
-func _stream_job(key: Vector2i) -> void:
+func _stream_job(key: Vector2i, a: Archipelago) -> void:
 	var data := {}
-	_sample_into(key, data)
+	_keys_tmp_job(key, data, a)
 	_mutex.lock()
 	_ready_q.append([key, data])
 	_mutex.unlock()
