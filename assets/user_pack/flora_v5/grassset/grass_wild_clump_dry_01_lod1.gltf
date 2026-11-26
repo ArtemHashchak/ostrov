@@ -6,7 +6,7 @@
 	"scene":0,
 	"scenes":[
 		{
-			"name":"Scene",
+			"name":"AN",
 			"nodes":[
 				0
 			]
@@ -17,9 +17,9 @@
 			"mesh":0,
 			"name":"Grass Wild Clump Dry 01",
 			"translation":[
-				-0.021053776144981384,
-				0.09584658592939377,
-				-0.048652276396751404
+				-7.82151985168457,
+				0.07909458130598068,
+				-1.7401096820831299
 			]
 		}
 	],
@@ -38,16 +38,15 @@
 	],
 	"meshes":[
 		{
-			"name":"sc_grass_wild_clump_dry_01_high.003",
+			"name":"sc_grass_wild_clump_dry_01_high.005",
 			"primitives":[
 				{
 					"attributes":{
-						"COLOR_0":0,
-						"POSITION":1,
-						"NORMAL":2,
-						"TEXCOORD_0":3
+						"POSITION":0,
+						"NORMAL":1,
+						"TEXCOORD_0":2
 					},
-					"indices":4,
+					"indices":3,
 					"material":0
 				}
 			]
@@ -69,13 +68,6 @@
 	"accessors":[
 		{
 			"bufferView":0,
-			"componentType":5123,
-			"count":1292,
-			"normalized":true,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":1,
 			"componentType":5126,
 			"count":1292,
 			"max":[
@@ -91,19 +83,19 @@
 			"type":"VEC3"
 		},
 		{
-			"bufferView":2,
+			"bufferView":1,
 			"componentType":5126,
 			"count":1292,
 			"type":"VEC3"
 		},
 		{
-			"bufferView":3,
+			"bufferView":2,
 			"componentType":5126,
 			"count":1292,
 			"type":"VEC2"
 		},
 		{
-			"bufferView":4,
+			"bufferView":3,
 			"componentType":5123,
 			"count":2286,
 			"type":"SCALAR"
@@ -112,32 +104,26 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":10336,
+			"byteLength":15504,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":15504,
-			"byteOffset":10336,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":15504,
-			"byteOffset":25840,
+			"byteOffset":15504,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":10336,
-			"byteOffset":41344,
+			"byteOffset":31008,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":4572,
-			"byteOffset":51680,
+			"byteOffset":41344,
 			"target":34963
 		}
 	],
@@ -149,7 +135,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":56252,
+			"byteLength":45916,
 			"uri":"grass_wild_clump_dry_01_lod1.bin"
 		}
 	]

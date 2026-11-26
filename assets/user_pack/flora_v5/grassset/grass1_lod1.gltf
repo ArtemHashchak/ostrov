@@ -6,7 +6,7 @@
 	"scene":0,
 	"scenes":[
 		{
-			"name":"Scene",
+			"name":"AN",
 			"nodes":[
 				0
 			]
@@ -17,9 +17,9 @@
 			"mesh":0,
 			"name":"Grass1",
 			"translation":[
-				12.520254135131836,
-				0.016752004623413086,
-				-2.351073741912842
+				-12.535165786743164,
+				0.011844625696539879,
+				2.4056341648101807
 			]
 		}
 	],
@@ -38,7 +38,7 @@
 	],
 	"meshes":[
 		{
-			"name":"sc_grass_clump_03_high.003",
+			"name":"sc_grass_clump_03_high.005",
 			"primitives":[
 				{
 					"attributes":{

@@ -4893,7 +4893,7 @@
     1.87
    ],
    "collision": "none",
-   "hitbox": "box",
+   "hitbox": "capsule",
    "density": 0.3,
    "cluster": 0.7,
    "source": "KODAK/Остров/MODELS/Plants/Лианы",
@@ -4903,8 +4903,12 @@
     "liana",
     "liana_span"
    ],
+   "tris": [
+    10905,
+    1815
+   ],
    "attach": "span",
-   "note": "провис между двумя деревьями: концы каната в точках крепления по X (0 и ширина), высота крепления ~ верх рамки"
+   "note": "провис между двумя деревьями: концы каната по X (0 и ширина), крепление ~ у верха рамки"
   },
   {
    "id": "flora_liana_span_braid_02",
@@ -4925,7 +4929,7 @@
     0.89
    ],
    "collision": "none",
-   "hitbox": "box",
+   "hitbox": "capsule",
    "density": 0.3,
    "cluster": 0.7,
    "source": "KODAK/Остров/MODELS/Plants/Лианы",
@@ -4935,8 +4939,12 @@
     "liana",
     "liana_span"
    ],
+   "tris": [
+    2714,
+    634
+   ],
    "attach": "span",
-   "note": "провис между двумя деревьями: концы каната в точках крепления по X (0 и ширина), высота крепления ~ верх рамки"
+   "note": "провис между двумя деревьями: концы каната по X (0 и ширина), крепление ~ у верха рамки"
   },
   {
    "id": "flora_liana_span_thorn_03",
@@ -4957,7 +4965,7 @@
     0.6
    ],
    "collision": "none",
-   "hitbox": "box",
+   "hitbox": "capsule",
    "density": 0.3,
    "cluster": 0.7,
    "source": "KODAK/Остров/MODELS/Plants/Лианы",
@@ -4967,8 +4975,12 @@
     "liana",
     "liana_span"
    ],
+   "tris": [
+    1384,
+    435
+   ],
    "attach": "span",
-   "note": "провис между двумя деревьями: концы каната в точках крепления по X (0 и ширина), высота крепления ~ верх рамки"
+   "note": "провис между двумя деревьями: концы каната по X (0 и ширина), крепление ~ у верха рамки"
   },
   {
    "id": "flora_liana_span_leafy_04",
@@ -4989,7 +5001,7 @@
     0.95
    ],
    "collision": "none",
-   "hitbox": "box",
+   "hitbox": "capsule",
    "density": 0.3,
    "cluster": 0.7,
    "source": "KODAK/Остров/MODELS/Plants/Лианы",
@@ -4999,8 +5011,12 @@
     "liana",
     "liana_span"
    ],
+   "tris": [
+    4273,
+    834
+   ],
    "attach": "span",
-   "note": "провис между двумя деревьями: концы каната в точках крепления по X (0 и ширина), высота крепления ~ верх рамки"
+   "note": "провис между двумя деревьями: концы каната по X (0 и ширина), крепление ~ у верха рамки"
   },
   {
    "id": "flora_liana_hang_curtain_05",
@@ -5031,13 +5047,15 @@
     "liana",
     "liana_hang"
    ],
-   "attach": "hang",
-   "note": "свисает с ветки: верх модели — точка крепления",
+   "tris": [
+    2594,
+    299
+   ],
    "shape": {
     "type": "box",
     "size": [
-     1.4000000000000001,
-     4.464,
+     1.4,
+     4.46,
      0.7
     ],
     "offset": [
@@ -5046,6 +5064,8 @@
      0
     ]
    },
+   "attach": "hang",
+   "note": "свисает с ветки: верх модели — точка крепления",
    "slow": 0.8
   },
   {
@@ -5077,13 +5097,15 @@
     "liana",
     "liana_hang"
    ],
-   "attach": "hang",
-   "note": "свисает с ветки: верх модели — точка крепления",
+   "tris": [
+    1662,
+    171
+   ],
    "shape": {
     "type": "box",
     "size": [
-     0.968,
-     4.4799999999999995,
+     0.97,
+     4.48,
      0.53
     ],
     "offset": [
@@ -5092,6 +5114,8 @@
      0
     ]
    },
+   "attach": "hang",
+   "note": "свисает с ветки: верх модели — точка крепления",
    "slow": 0.8
   },
   {
@@ -5113,7 +5137,7 @@
     1.27
    ],
    "collision": "none",
-   "hitbox": "box",
+   "hitbox": "capsule",
    "density": 0.3,
    "cluster": 0.7,
    "source": "KODAK/Остров/MODELS/Plants/Лианы",
@@ -5122,6 +5146,10 @@
    "tags": [
     "liana",
     "liana_climb"
+   ],
+   "tris": [
+    1884,
+    472
    ],
    "attach": "climb",
    "note": "обвивает ствол: ставить в ось ствола, низ на землю"
@@ -5145,7 +5173,7 @@
     0.81
    ],
    "collision": "none",
-   "hitbox": "box",
+   "hitbox": "capsule",
    "density": 0.3,
    "cluster": 0.7,
    "source": "KODAK/Остров/MODELS/Plants/Лианы",
@@ -5154,6 +5182,10 @@
    "tags": [
     "liana",
     "liana_climb"
+   ],
+   "tris": [
+    1370,
+    422
    ],
    "attach": "climb",
    "note": "обвивает ствол: ставить в ось ствола, низ на землю"
@@ -5177,7 +5209,7 @@
     0.55
    ],
    "collision": "none",
-   "hitbox": "box",
+   "hitbox": "capsule",
    "density": 0.3,
    "cluster": 0.7,
    "source": "KODAK/Остров/MODELS/Plants/Лианы",
@@ -5186,6 +5218,10 @@
    "tags": [
     "liana",
     "liana_kit"
+   ],
+   "tris": [
+    3318,
+    944
    ],
    "attach": "kit",
    "note": "набор отдельных плетей для декора"
@@ -5211,11 +5247,6 @@
    ],
    "collision": "soft",
    "hitbox": "capsule",
-   "shape": {
-    "type": "capsule",
-    "radius": 0.6,
-    "height": 1.6
-   },
    "density": 0.4,
    "cluster": 0.6,
    "source": "KODAK/Остров/MODELS/Plants/Стрелиция (готовая модель)",
@@ -5227,9 +5258,14 @@
     "flowers"
    ],
    "tris": [
-    30000,
-    6000
-   ]
+    29999,
+    5999
+   ],
+   "shape": {
+    "type": "capsule",
+    "radius": 0.6,
+    "height": 1.6
+   }
   },
   {
    "id": "flora_matteuccia_a",
@@ -5252,11 +5288,6 @@
    ],
    "collision": "soft",
    "hitbox": "capsule",
-   "shape": {
-    "type": "capsule",
-    "radius": 0.81,
-    "height": 1.02
-   },
    "density": 0.8,
    "cluster": 0.7,
    "source": "KODAK/Остров/MODELS/Plants/Папоротник страусник (Matteuccia, готовая модель)",
@@ -5268,8 +5299,13 @@
    ],
    "tris": [
     24000,
-    5000
-   ]
+    4999
+   ],
+   "shape": {
+    "type": "capsule",
+    "radius": 0.81,
+    "height": 1.02
+   }
   },
   {
    "id": "flora_matteuccia_b",
@@ -5292,11 +5328,6 @@
    ],
    "collision": "soft",
    "hitbox": "capsule",
-   "shape": {
-    "type": "capsule",
-    "radius": 0.71,
-    "height": 0.97
-   },
    "density": 0.8,
    "cluster": 0.7,
    "source": "KODAK/Остров/MODELS/Plants/Папоротник страусник (Matteuccia, готовая модель)",
@@ -5308,8 +5339,13 @@
    ],
    "tris": [
     24000,
-    5000
-   ]
+    4999
+   ],
+   "shape": {
+    "type": "capsule",
+    "radius": 0.71,
+    "height": 0.97
+   }
   },
   {
    "id": "flora_matteuccia_c",
@@ -5332,11 +5368,6 @@
    ],
    "collision": "soft",
    "hitbox": "capsule",
-   "shape": {
-    "type": "capsule",
-    "radius": 0.54,
-    "height": 0.88
-   },
    "density": 0.8,
    "cluster": 0.7,
    "source": "KODAK/Остров/MODELS/Plants/Папоротник страусник (Matteuccia, готовая модель)",
@@ -5347,9 +5378,14 @@
     "ground_cover"
    ],
    "tris": [
-    24000,
-    5000
-   ]
+    23999,
+    4999
+   ],
+   "shape": {
+    "type": "capsule",
+    "radius": 0.54,
+    "height": 0.88
+   }
   },
   {
    "id": "flora_grass_clump_razw",
@@ -5398,25 +5434,11 @@
    ],
    "size_m": [
     5.19,
-    3.38,
-    0.32
+    3.45,
+    0.46
    ],
    "collision": "soft",
    "hitbox": "box",
-   "shape": {
-    "type": "box",
-    "size": [
-     5.19,
-     3.38,
-     0.5
-    ],
-    "offset": [
-     0,
-     1.69,
-     0
-    ]
-   },
-   "slow": 0.6,
    "density": 0.1,
    "cluster": 0.3,
    "source": "KODAK/Остров/MODELS/Plants/Стена из лиан (готовая модель) — Claude используй только модель без цветов в качесвте семпла",
@@ -5427,12 +5449,26 @@
     "wall",
     "hero"
    ],
-   "attach": "wall",
-   "note": "вертикальная занавесь 5,2×3,4 м: ставить к скале/стволам/руинам; тяжёлая (66k/27k треуг.) — редко",
    "tris": [
-    65721,
-    27224
-   ]
+    72705,
+    29048
+   ],
+   "shape": {
+    "type": "box",
+    "size": [
+     5.19,
+     3.45,
+     0.5
+    ],
+    "offset": [
+     0,
+     1.73,
+     0
+    ]
+   },
+   "slow": 0.6,
+   "attach": "wall",
+   "note": "вертикальная занавесь ~5×3,4 м: к скале/стволам/руинам; тяжёлая — редко"
   },
   {
    "id": "flora_gs_clover_flower_001",
@@ -5462,6 +5498,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    1476,
+    845
    ]
   },
   {
@@ -5479,8 +5519,8 @@
    ],
    "size_m": [
     0.38,
-    0.08,
-    0.43
+    0.06,
+    0.42
    ],
    "collision": "none",
    "hitbox": "capsule",
@@ -5492,6 +5532,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    2836,
+    740
    ]
   },
   {
@@ -5509,7 +5553,7 @@
    ],
    "size_m": [
     0.44,
-    0.17,
+    0.15,
     0.76
    ],
    "collision": "none",
@@ -5522,6 +5566,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    2662,
+    817
    ]
   },
   {
@@ -5551,6 +5599,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    768,
+    704
    ]
   },
   {
@@ -5580,6 +5632,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    2900,
+    908
    ]
   },
   {
@@ -5597,7 +5653,7 @@
    "size_m": [
     0.29,
     0.27,
-    0.28
+    0.29
    ],
    "collision": "none",
    "hitbox": "capsule",
@@ -5609,6 +5665,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    512,
+    512
    ]
   },
   {
@@ -5626,9 +5686,9 @@
     "lowland_forest"
    ],
    "size_m": [
-    0.51,
+    0.48,
     0.2,
-    0.49
+    0.48
    ],
    "collision": "none",
    "hitbox": "capsule",
@@ -5640,6 +5700,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    2545,
+    788
    ]
   },
   {
@@ -5671,6 +5735,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    2654,
+    809
    ]
   },
   {
@@ -5688,9 +5756,9 @@
     "lowland_forest"
    ],
    "size_m": [
-    0.88,
+    0.79,
     0.3,
-    0.75
+    0.73
    ],
    "collision": "none",
    "hitbox": "capsule",
@@ -5702,6 +5770,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    2745,
+    757
    ]
   },
   {
@@ -5719,8 +5791,8 @@
     "lowland_forest"
    ],
    "size_m": [
-    0.85,
-    0.45,
+    0.79,
+    0.44,
     0.76
    ],
    "collision": "none",
@@ -5733,6 +5805,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    2710,
+    778
    ]
   },
   {
@@ -5764,6 +5840,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    2576,
+    801
    ]
   },
   {
@@ -5782,7 +5862,7 @@
    ],
    "size_m": [
     0.41,
-    0.17,
+    0.16,
     0.35
    ],
    "collision": "none",
@@ -5795,6 +5875,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    1833,
+    735
    ]
   },
   {
@@ -5826,6 +5910,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    2589,
+    801
    ]
   },
   {
@@ -5844,7 +5932,7 @@
    ],
    "size_m": [
     0.36,
-    0.07,
+    0.06,
     0.38
    ],
    "collision": "none",
@@ -5857,6 +5945,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    1032,
+    750
    ]
   },
   {
@@ -5874,7 +5966,7 @@
     "lowland_forest"
    ],
    "size_m": [
-    0.8,
+    0.79,
     0.82,
     0.68
    ],
@@ -5888,6 +5980,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    2400,
+    762
    ]
   },
   {
@@ -5904,7 +6000,7 @@
     "forest_edge"
    ],
    "size_m": [
-    0.38,
+    0.37,
     0.05,
     0.4
    ],
@@ -5918,6 +6014,10 @@
    "tags": [
     "ground_cover",
     "debris"
+   ],
+   "tris": [
+    835,
+    835
    ]
   },
   {
@@ -5936,7 +6036,7 @@
    "size_m": [
     0.46,
     0.16,
-    0.48
+    0.45
    ],
    "collision": "none",
    "hitbox": "capsule",
@@ -5948,6 +6048,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    2653,
+    837
    ]
   },
   {
@@ -5977,6 +6081,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    1149,
+    1044
    ]
   },
   {
@@ -5993,7 +6101,7 @@
     "forest_edge"
    ],
    "size_m": [
-    0.28,
+    0.27,
     0.04,
     0.4
    ],
@@ -6007,6 +6115,10 @@
    "tags": [
     "ground_cover",
     "debris"
+   ],
+   "tris": [
+    984,
+    984
    ]
   },
   {
@@ -6023,9 +6135,9 @@
     "forest_edge"
    ],
    "size_m": [
-    0.51,
+    0.5,
     0.09,
-    0.47
+    0.4
    ],
    "collision": "none",
    "hitbox": "capsule",
@@ -6037,6 +6149,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    2618,
+    781
    ]
   },
   {
@@ -6066,6 +6182,10 @@
    "tags": [
     "ground_cover",
     "debris"
+   ],
+   "tris": [
+    916,
+    870
    ]
   },
   {
@@ -6095,6 +6215,10 @@
    "tags": [
     "ground_cover",
     "debris"
+   ],
+   "tris": [
+    2622,
+    848
    ]
   },
   {
@@ -6125,6 +6249,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    547,
+    547
    ]
   },
   {
@@ -6155,6 +6283,10 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    1012,
+    804
    ]
   },
   {
@@ -6185,7 +6317,371 @@
    "tags": [
     "ground_cover",
     "grass"
+   ],
+   "tris": [
+    906,
+    906
    ]
+  },
+  {
+   "id": "flora_kingsville_1",
+   "name": "Самшит Kingsville 1 (дерево)",
+   "category": "tree",
+   "scene": "res://assets/user_pack/flora_v5/kingsville/kingsville_wood.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/kingsville/kingsville_wood_lod1.gltf"
+   ],
+   "zones": [
+    "lowland_forest",
+    "forest_edge",
+    "rocks",
+    "jungle"
+   ],
+   "size_m": [
+    3.84,
+    4.43,
+    4.2
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.3,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Tree/Деревья Kingsville (5 видов, готовые модели)",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": false,
+   "tags": [
+    "broadleaf",
+    "small_tree"
+   ],
+   "tris": [
+    58781,
+    15354
+   ],
+   "shape": {
+    "type": "capsule",
+    "radius": 0.28,
+    "height": 2.2
+   }
+  },
+  {
+   "id": "flora_kingsville_2",
+   "name": "Самшит Kingsville 2 (дерево)",
+   "category": "tree",
+   "scene": "res://assets/user_pack/flora_v5/kingsville/kingsville_wood01.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/kingsville/kingsville_wood01_lod1.gltf"
+   ],
+   "zones": [
+    "lowland_forest",
+    "forest_edge",
+    "rocks",
+    "jungle"
+   ],
+   "size_m": [
+    3.81,
+    4.42,
+    4.2
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.3,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Tree/Деревья Kingsville (5 видов, готовые модели)",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": false,
+   "tags": [
+    "broadleaf",
+    "small_tree"
+   ],
+   "tris": [
+    36830,
+    10266
+   ],
+   "shape": {
+    "type": "capsule",
+    "radius": 0.28,
+    "height": 2.2
+   }
+  },
+  {
+   "id": "flora_kingsville_3",
+   "name": "Самшит Kingsville 3 (дерево)",
+   "category": "tree",
+   "scene": "res://assets/user_pack/flora_v5/kingsville/kingsville_wood02.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/kingsville/kingsville_wood02_lod1.gltf"
+   ],
+   "zones": [
+    "lowland_forest",
+    "forest_edge",
+    "rocks",
+    "jungle"
+   ],
+   "size_m": [
+    3.11,
+    4.35,
+    3.6
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.3,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Tree/Деревья Kingsville (5 видов, готовые модели)",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": false,
+   "tags": [
+    "broadleaf",
+    "small_tree"
+   ],
+   "tris": [
+    36123,
+    9579
+   ],
+   "shape": {
+    "type": "capsule",
+    "radius": 0.28,
+    "height": 2.2
+   }
+  },
+  {
+   "id": "flora_kingsville_4",
+   "name": "Самшит Kingsville 4 (дерево)",
+   "category": "tree",
+   "scene": "res://assets/user_pack/flora_v5/kingsville/kingsville_wood03.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/kingsville/kingsville_wood03_lod1.gltf"
+   ],
+   "zones": [
+    "lowland_forest",
+    "forest_edge",
+    "rocks",
+    "jungle"
+   ],
+   "size_m": [
+    2.78,
+    4.48,
+    3.93
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.3,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Tree/Деревья Kingsville (5 видов, готовые модели)",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": false,
+   "tags": [
+    "broadleaf",
+    "small_tree"
+   ],
+   "tris": [
+    48436,
+    12153
+   ],
+   "shape": {
+    "type": "capsule",
+    "radius": 0.28,
+    "height": 2.2
+   }
+  },
+  {
+   "id": "flora_kingsville_5",
+   "name": "Самшит Kingsville 5 (дерево)",
+   "category": "tree",
+   "scene": "res://assets/user_pack/flora_v5/kingsville/kingsville_wood04.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/kingsville/kingsville_wood04_lod1.gltf"
+   ],
+   "zones": [
+    "lowland_forest",
+    "forest_edge",
+    "rocks",
+    "jungle"
+   ],
+   "size_m": [
+    3.46,
+    4.73,
+    3.75
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.3,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Tree/Деревья Kingsville (5 видов, готовые модели)",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": false,
+   "tags": [
+    "broadleaf",
+    "small_tree"
+   ],
+   "tris": [
+    78472,
+    19864
+   ],
+   "shape": {
+    "type": "capsule",
+    "radius": 0.28,
+    "height": 2.2
+   }
+  },
+  {
+   "id": "flora_macrozamia_1",
+   "name": "Пальма макрозамия 1 (саговник)",
+   "category": "tree",
+   "scene": "res://assets/user_pack/flora_v5/macrozamia/macrozamia_moorei_palm_tall.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/macrozamia/macrozamia_moorei_palm_tall_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "rocks",
+    "dunes",
+    "palm_belt"
+   ],
+   "size_m": [
+    2.33,
+    3.6,
+    2.37
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.3,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Tree/Пальма макрозамия (Macrozamia moorei, готовая модель)",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": false,
+   "tags": [
+    "palm",
+    "small_palm"
+   ],
+   "tris": [
+    74705,
+    15497
+   ],
+   "shape": {
+    "type": "capsule",
+    "radius": 0.22,
+    "height": 2.4
+   }
+  },
+  {
+   "id": "flora_macrozamia_2",
+   "name": "Пальма макрозамия 2 (саговник)",
+   "category": "tree",
+   "scene": "res://assets/user_pack/flora_v5/macrozamia/macrozamia_moorei_palm_tall02.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/macrozamia/macrozamia_moorei_palm_tall02_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "rocks",
+    "dunes",
+    "palm_belt"
+   ],
+   "size_m": [
+    2.55,
+    4.23,
+    2.57
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.3,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Tree/Пальма макрозамия (Macrozamia moorei, готовая модель)",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": false,
+   "tags": [
+    "palm",
+    "small_palm"
+   ],
+   "tris": [
+    82030,
+    16710
+   ],
+   "shape": {
+    "type": "capsule",
+    "radius": 0.22,
+    "height": 2.4
+   }
+  },
+  {
+   "id": "flora_howea_1",
+   "name": "Пальма ховея (кентия) 1",
+   "category": "tree",
+   "scene": "res://assets/user_pack/flora_v5/howea/howea_f_a001.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/howea/howea_f_a001_lod1.gltf"
+   ],
+   "zones": [
+    "jungle",
+    "forest_edge",
+    "palm_belt",
+    "lowland_forest"
+   ],
+   "size_m": [
+    3.36,
+    3.6,
+    3.39
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Tree/Пальма ховея (Howea forsteriana, готовая модель)",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "palm",
+    "small_palm"
+   ],
+   "tris": [
+    29999,
+    6999
+   ],
+   "shape": {
+    "type": "capsule",
+    "radius": 0.12,
+    "height": 2.0
+   }
+  },
+  {
+   "id": "flora_howea_2",
+   "name": "Пальма ховея (кентия) 2",
+   "category": "tree",
+   "scene": "res://assets/user_pack/flora_v5/howea/howea_f_a002.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/howea/howea_f_a002_lod1.gltf"
+   ],
+   "zones": [
+    "jungle",
+    "forest_edge",
+    "palm_belt",
+    "lowland_forest"
+   ],
+   "size_m": [
+    3.46,
+    3.6,
+    3.35
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Tree/Пальма ховея (Howea forsteriana, готовая модель)",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "palm",
+    "small_palm"
+   ],
+   "tris": [
+    30000,
+    7000
+   ],
+   "shape": {
+    "type": "capsule",
+    "radius": 0.12,
+    "height": 2.0
+   }
   }
  ]
 }

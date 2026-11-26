@@ -12,7 +12,7 @@
 	"scene":0,
 	"scenes":[
 		{
-			"name":"Scene",
+			"name":"AN",
 			"nodes":[
 				0
 			]
@@ -23,9 +23,9 @@
 			"mesh":0,
 			"name":"Wasteland gravel 02.001",
 			"translation":[
-				14.236246109008789,
-				-0.026225779205560684,
-				-1.1509474515914917
+				-14.256881713867188,
+				0.030289461836218834,
+				1.1890721321105957
 			]
 		}
 	],
@@ -71,7 +71,7 @@
 	],
 	"meshes":[
 		{
-			"name":"sc_wasteland_gravel_02_high.003",
+			"name":"sc_wasteland_gravel_02_high.004",
 			"primitives":[
 				{
 					"attributes":{

@@ -6,7 +6,7 @@
 	"scene":0,
 	"scenes":[
 		{
-			"name":"Scene",
+			"name":"AN",
 			"nodes":[
 				0
 			]
@@ -17,9 +17,9 @@
 			"mesh":0,
 			"name":"Dandelion 01",
 			"translation":[
-				-0.017809607088565826,
-				0.02966161072254181,
-				-0.008097633719444275
+				-5.608432769775391,
+				0.012909606099128723,
+				-1.7281105518341064
 			]
 		}
 	],
@@ -60,36 +60,33 @@
 	],
 	"meshes":[
 		{
-			"name":"sc_dandelion_01_high.002",
+			"name":"sc_dandelion_01_high.003",
 			"primitives":[
 				{
 					"attributes":{
-						"COLOR_0":0,
-						"POSITION":1,
-						"NORMAL":2,
-						"TEXCOORD_0":3
+						"POSITION":0,
+						"NORMAL":1,
+						"TEXCOORD_0":2
 					},
-					"indices":4,
+					"indices":3,
 					"material":0
 				},
 				{
 					"attributes":{
-						"COLOR_0":5,
-						"POSITION":6,
-						"NORMAL":7,
-						"TEXCOORD_0":8
+						"POSITION":4,
+						"NORMAL":5,
+						"TEXCOORD_0":6
 					},
-					"indices":9,
+					"indices":7,
 					"material":1
 				},
 				{
 					"attributes":{
-						"COLOR_0":10,
-						"POSITION":11,
-						"NORMAL":12,
-						"TEXCOORD_0":13
+						"POSITION":8,
+						"NORMAL":9,
+						"TEXCOORD_0":10
 					},
-					"indices":14,
+					"indices":11,
 					"material":2
 				}
 			]
@@ -115,13 +112,6 @@
 	"accessors":[
 		{
 			"bufferView":0,
-			"componentType":5123,
-			"count":464,
-			"normalized":true,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":1,
 			"componentType":5126,
 			"count":464,
 			"max":[
@@ -137,32 +127,25 @@
 			"type":"VEC3"
 		},
 		{
-			"bufferView":2,
+			"bufferView":1,
 			"componentType":5126,
 			"count":464,
 			"type":"VEC3"
 		},
 		{
-			"bufferView":3,
+			"bufferView":2,
 			"componentType":5126,
 			"count":464,
 			"type":"VEC2"
 		},
 		{
-			"bufferView":4,
+			"bufferView":3,
 			"componentType":5123,
 			"count":1422,
 			"type":"SCALAR"
 		},
 		{
-			"bufferView":5,
-			"componentType":5123,
-			"count":60,
-			"normalized":true,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":6,
+			"bufferView":4,
 			"componentType":5126,
 			"count":60,
 			"max":[
@@ -178,32 +161,25 @@
 			"type":"VEC3"
 		},
 		{
-			"bufferView":7,
+			"bufferView":5,
 			"componentType":5126,
 			"count":60,
 			"type":"VEC3"
 		},
 		{
-			"bufferView":8,
+			"bufferView":6,
 			"componentType":5126,
 			"count":60,
 			"type":"VEC2"
 		},
 		{
-			"bufferView":9,
+			"bufferView":7,
 			"componentType":5123,
 			"count":60,
 			"type":"SCALAR"
 		},
 		{
-			"bufferView":10,
-			"componentType":5123,
-			"count":36,
-			"normalized":true,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":11,
+			"bufferView":8,
 			"componentType":5126,
 			"count":36,
 			"max":[
@@ -219,19 +195,19 @@
 			"type":"VEC3"
 		},
 		{
-			"bufferView":12,
+			"bufferView":9,
 			"componentType":5126,
 			"count":36,
 			"type":"VEC3"
 		},
 		{
-			"bufferView":13,
+			"bufferView":10,
 			"componentType":5126,
 			"count":36,
 			"type":"VEC2"
 		},
 		{
-			"bufferView":14,
+			"bufferView":11,
 			"componentType":5123,
 			"count":54,
 			"type":"SCALAR"
@@ -240,92 +216,74 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":3712,
+			"byteLength":5568,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":5568,
-			"byteOffset":3712,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":5568,
-			"byteOffset":9280,
+			"byteOffset":5568,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":3712,
-			"byteOffset":14848,
+			"byteOffset":11136,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":2844,
-			"byteOffset":18560,
+			"byteOffset":14848,
 			"target":34963
 		},
 		{
 			"buffer":0,
-			"byteLength":480,
-			"byteOffset":21404,
+			"byteLength":720,
+			"byteOffset":17692,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":720,
-			"byteOffset":21884,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":720,
-			"byteOffset":22604,
+			"byteOffset":18412,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":480,
-			"byteOffset":23324,
+			"byteOffset":19132,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":120,
-			"byteOffset":23804,
+			"byteOffset":19612,
 			"target":34963
 		},
 		{
 			"buffer":0,
-			"byteLength":288,
-			"byteOffset":23924,
+			"byteLength":432,
+			"byteOffset":19732,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":432,
-			"byteOffset":24212,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":432,
-			"byteOffset":24644,
+			"byteOffset":20164,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":288,
-			"byteOffset":25076,
+			"byteOffset":20596,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":108,
-			"byteOffset":25364,
+			"byteOffset":20884,
 			"target":34963
 		}
 	],
@@ -337,7 +295,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":25472,
+			"byteLength":20992,
 			"uri":"dandelion_01_lod1.bin"
 		}
 	]

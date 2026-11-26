@@ -6,7 +6,7 @@
 	"scene":0,
 	"scenes":[
 		{
-			"name":"Scene",
+			"name":"AN",
 			"nodes":[
 				0
 			]
@@ -17,9 +17,9 @@
 			"mesh":0,
 			"name":"Grass 7",
 			"translation":[
-				16.158424377441406,
-				0.016752004623413086,
-				-2.452335834503174
+				-16.1389217376709,
+				0.0059964098036289215,
+				2.4818477630615234
 			]
 		}
 	],
@@ -38,7 +38,7 @@
 	],
 	"meshes":[
 		{
-			"name":"sc_grass_duo_02_high.003",
+			"name":"sc_grass_duo_02_high.005",
 			"primitives":[
 				{
 					"attributes":{

@@ -10,7 +10,7 @@
 	"scene":0,
 	"scenes":[
 		{
-			"name":"Scene",
+			"name":"AN",
 			"nodes":[
 				0
 			]
@@ -21,9 +21,9 @@
 			"mesh":0,
 			"name":"Daisies",
 			"translation":[
-				-0.015234097838401794,
-				0.0014455189229920506,
-				0.1666012853384018
+				-9.77090072631836,
+				-0.015306485816836357,
+				0.10246680676937103
 			]
 		}
 	],
@@ -66,7 +66,7 @@
 	],
 	"meshes":[
 		{
-			"name":"sc_daisies_high.002",
+			"name":"sc_daisies_high.005",
 			"primitives":[
 				{
 					"attributes":{

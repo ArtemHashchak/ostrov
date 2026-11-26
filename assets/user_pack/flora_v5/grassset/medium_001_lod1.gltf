@@ -14,7 +14,7 @@
 	"scene":0,
 	"scenes":[
 		{
-			"name":"Scene",
+			"name":"AN",
 			"nodes":[
 				0
 			]
@@ -25,9 +25,9 @@
 			"mesh":0,
 			"name":"medium.001",
 			"translation":[
-				15.801252365112305,
-				-0.033035993576049805,
-				0.14520680904388428
+				-15.782611846923828,
+				0.03260652348399162,
+				-0.15202577412128448
 			]
 		}
 	],
@@ -89,7 +89,7 @@
 	],
 	"meshes":[
 		{
-			"name":"sc_type_d_medium_high.003",
+			"name":"sc_type_d_medium_high.004",
 			"primitives":[
 				{
 					"attributes":{

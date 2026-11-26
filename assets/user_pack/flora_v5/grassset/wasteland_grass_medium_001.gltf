@@ -6,7 +6,7 @@
 	"scene":0,
 	"scenes":[
 		{
-			"name":"Scene",
+			"name":"AN",
 			"nodes":[
 				0
 			]
@@ -17,9 +17,9 @@
 			"mesh":0,
 			"name":"Wasteland grass medium.001",
 			"translation":[
-				14.75316047668457,
-				-0.026225779205560684,
-				0.21674251556396484
+				-14.75301742553711,
+				0.024449286982417107,
+				-0.1879022717475891
 			]
 		}
 	],
@@ -38,16 +38,15 @@
 	],
 	"meshes":[
 		{
-			"name":"sc_wasteland_grass_medium_high.003",
+			"name":"sc_wasteland_grass_medium_high.004",
 			"primitives":[
 				{
 					"attributes":{
-						"COLOR_0":0,
-						"POSITION":1,
-						"NORMAL":2,
-						"TEXCOORD_0":3
+						"POSITION":0,
+						"NORMAL":1,
+						"TEXCOORD_0":2
 					},
-					"indices":4,
+					"indices":3,
 					"material":0
 				}
 			]
@@ -69,13 +68,6 @@
 	"accessors":[
 		{
 			"bufferView":0,
-			"componentType":5123,
-			"count":3203,
-			"normalized":true,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":1,
 			"componentType":5126,
 			"count":3203,
 			"max":[
@@ -91,19 +83,19 @@
 			"type":"VEC3"
 		},
 		{
-			"bufferView":2,
+			"bufferView":1,
 			"componentType":5126,
 			"count":3203,
 			"type":"VEC3"
 		},
 		{
-			"bufferView":3,
+			"bufferView":2,
 			"componentType":5126,
 			"count":3203,
 			"type":"VEC2"
 		},
 		{
-			"bufferView":4,
+			"bufferView":3,
 			"componentType":5123,
 			"count":7854,
 			"type":"SCALAR"
@@ -112,32 +104,26 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":25624,
+			"byteLength":38436,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":38436,
-			"byteOffset":25624,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":38436,
-			"byteOffset":64060,
+			"byteOffset":38436,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":25624,
-			"byteOffset":102496,
+			"byteOffset":76872,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":15708,
-			"byteOffset":128120,
+			"byteOffset":102496,
 			"target":34963
 		}
 	],
@@ -149,7 +135,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":143828,
+			"byteLength":118204,
 			"uri":"wasteland_grass_medium_001.bin"
 		}
 	]

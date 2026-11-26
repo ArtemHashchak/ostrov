@@ -12,7 +12,7 @@
 	"scene":0,
 	"scenes":[
 		{
-			"name":"Scene",
+			"name":"AN",
 			"nodes":[
 				0
 			]
@@ -23,9 +23,9 @@
 			"mesh":0,
 			"name":"clump.001",
 			"translation":[
-				13.645730972290039,
-				-0.033035993576049805,
-				0.17333126068115234
+				-13.667081832885742,
+				0.05019593983888626,
+				-0.1737196147441864
 			]
 		}
 	],
@@ -56,7 +56,7 @@
 	],
 	"meshes":[
 		{
-			"name":"sc_type_a_clump_high.003",
+			"name":"sc_type_a_clump_high.004",
 			"primitives":[
 				{
 					"attributes":{

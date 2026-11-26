@@ -6,7 +6,7 @@
 	"scene":0,
 	"scenes":[
 		{
-			"name":"Scene",
+			"name":"AN",
 			"nodes":[
 				0
 			]
@@ -17,9 +17,9 @@
 			"mesh":0,
 			"name":"Grass tiny 1",
 			"translation":[
-				15.471477508544922,
-				0.016752004623413086,
-				-2.517214298248291
+				-15.475738525390625,
+				-0.012208767235279083,
+				2.5257952213287354
 			]
 		}
 	],
@@ -38,7 +38,7 @@
 	],
 	"meshes":[
 		{
-			"name":"sc_grass_tiny_01_high.003",
+			"name":"sc_grass_tiny_01_high.005",
 			"primitives":[
 				{
 					"attributes":{

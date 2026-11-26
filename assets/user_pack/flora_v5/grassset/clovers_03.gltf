@@ -10,7 +10,7 @@
 	"scene":0,
 	"scenes":[
 		{
-			"name":"Scene",
+			"name":"AN",
 			"nodes":[
 				0
 			]
@@ -21,9 +21,9 @@
 			"mesh":0,
 			"name":"Clovers 03",
 			"translation":[
-				-0.022067978978157043,
-				0.023887328803539276,
-				-0.07866263389587402
+				-9.406472206115723,
+				0.00713532418012619,
+				0.03790128231048584
 			]
 		}
 	],
@@ -65,7 +65,7 @@
 	],
 	"meshes":[
 		{
-			"name":"sc_clovers_03_high.003",
+			"name":"sc_clovers_03_high.005",
 			"primitives":[
 				{
 					"attributes":{

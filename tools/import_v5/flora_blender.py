@@ -35,11 +35,24 @@ def import_src(src):
         else:
             bpy.ops.import_scene.obj(filepath=src)
     elif ext == ".blend":
-        with bpy.data.libraries.load(src, link=False) as (src_data, dst):
-            dst.objects = [n for n in src_data.objects]
-        for o in dst.objects:
-            if o is not None and o.type in ("MESH", "EMPTY", "CURVE"):
-                bpy.context.scene.collection.objects.link(o)
+        bpy.ops.wm.open_mainfile(filepath=src)
+        cur = bpy.context.scene
+        for sc in bpy.data.scenes:   # объекты из остальных сцен файла — тоже в текущую
+            if sc == cur:
+                continue
+            for o in sc.objects:
+                if o.name not in cur.objects:
+                    try:
+                        cur.collection.objects.link(o)
+                    except Exception:
+                        pass
+        for o in bpy.data.objects:      # объекты вне сцен (лежат только в файле)
+            if o.type == "MESH" and not o.users_scene:
+                try:
+                    cur.collection.objects.link(o)
+                except Exception:
+                    pass
+        # в сцене — только видимое для рендера (прочие сцены файла не трогаем)
     elif ext == ".ply":
         bpy.ops.wm.ply_import(filepath=src)
     else:
@@ -83,6 +96,7 @@ def select_tree(objs):
     return out
 
 def bbox(objs):
+    bpy.context.view_layer.update()
     mn = Vector((1e9, 1e9, 1e9)); mx = Vector((-1e9, -1e9, -1e9))
     for o in objs:
         if o.type != "MESH":
@@ -135,6 +149,7 @@ def shrink_images(maxs):
 def apply_all(objs):
     """Перенести мировые трансформации в меши (без оператора — он падает на общих мешах)."""
     from mathutils import Matrix
+    bpy.context.view_layer.update()
     sel = select_tree(objs)
     mats = {o.name: o.matrix_world.copy() for o in sel}
     for o in sel:
@@ -181,7 +196,7 @@ def export(objs, path, fmt):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     sep = path.endswith(".gltf")
     kw = dict(filepath=path, use_selection=True, export_format="GLTF_SEPARATE" if sep else "GLB", export_apply=True,
-              export_yup=True, export_texcoords=True, export_normals=True, export_materials="EXPORT",
+              export_yup=True, export_texcoords=True, export_normals=True, export_colors=False, export_materials="EXPORT",
               export_animations=False, export_skins=False, export_morph=False, export_cameras=False, export_lights=False)
     if sep:
         kw["export_texture_dir"] = "tex"
@@ -203,6 +218,40 @@ def apply_mod(o, name):
         else:
             m.show_viewport = True
     o.data = me
+
+def run_op(op, objs):
+    """op: {"op": "thin", material, keep} | {"op": "dec", material, ratio} — dec: грани материала
+    отделяются в свой объект и упрощаются (collapse) отдельно от остального."""
+    if op["op"] == "thin":
+        thin(objs, op)
+        return
+    rxm = re.compile(op["material"], re.I)
+    for o in objs:
+        idx = {i for i, m in enumerate(o.data.materials) if m and rxm.search(m.name)}
+        if not idx:
+            continue
+        bm = bmesh.new(); bm.from_mesh(o.data)
+        part = [f for f in bm.faces if f.material_index in idx]
+        if not part:
+            bm.free(); continue
+        # копия объекта: в ней оставить только эти грани, в исходном — удалить их
+        n = o.copy(); n.data = o.data.copy(); n.name = o.name + "_" + op.get("tag", "dec")
+        bpy.context.scene.collection.objects.link(n)
+        bmesh.ops.delete(bm, geom=part, context="FACES")
+        bm.to_mesh(o.data); bm.free()
+        bm2 = bmesh.new(); bm2.from_mesh(n.data)
+        rest = [f for f in bm2.faces if f.material_index not in idx]
+        bmesh.ops.delete(bm2, geom=rest, context="FACES")
+        bm2.to_mesh(n.data); bm2.free()
+        before = len(n.data.polygons)
+        md = n.modifiers.new("dec", "DECIMATE"); md.ratio = op["ratio"]
+        apply_mod(n, "dec")
+        print("OPDEC", n.name, before, "->", len(n.data.polygons))
+        # вернуть упрощённые грани в исходный объект
+        bpy.ops.object.select_all(action="DESELECT")
+        n.select_set(True); o.select_set(True)
+        bpy.context.view_layer.objects.active = o
+        bpy.ops.object.join()
 
 def assign_textures(spec):
     """spec: {regex материала: {base, alpha, normal, rough}} — пути к картинкам; собирает Principled."""
@@ -277,6 +326,12 @@ def thin(objs, spec):
                 kill.extend(isl)
             elif not spec.get("min_island") and rnd.random() > spec.get("keep", 0.2):
                 kill.extend(isl)
+            elif spec.get("grow"):
+                # оставшиеся листья крупнее — компенсировать прореживание
+                vs = {v for g in isl for v in g.verts}
+                c = sum((v.co for v in vs), Vector()) / max(len(vs), 1)
+                for v in vs:
+                    v.co = c + (v.co - c) * spec["grow"]
         print("THIN kill", o.name, len(kill), "of", len(bm.faces))
         bmesh.ops.delete(bm, geom=kill, context="FACES")
         bm.to_mesh(o.data)
@@ -293,6 +348,7 @@ def decimate(objs, ratio, skip_rx=None):
 def run_job(job, base):
     clear()
     import_src(job["src"])
+    bpy.context.view_layer.update()
     fix_images(job.get("img_dir", ""))
     # убрать камеры/свет/пустые без мешей
     for o in list(bpy.context.scene.objects):
@@ -307,10 +363,13 @@ def run_job(job, base):
             bpy.data.objects.remove(o)
     # скрытые в исходнике (viewport/render off) — не берём
     for o in list(bpy.context.scene.objects):
-        if o.type == "MESH" and (o.hide_render or o.hide_get()):
+        if o.type == "MESH" and (o.hide_render or o.hide_get() or o.hide_viewport):
             if not job.get("keep_hidden"):
                 bpy.data.objects.remove(o)
+            else:
+                o.hide_set(False); o.hide_viewport = False; o.hide_render = False; o.hide_select = False
     for o in bpy.context.scene.objects:
+        o.animation_data_clear()   # анимация объекта сбрасывала бы перенос в начало координат
         if o.type == "MESH" and o.data.users > 1:
             o.data = o.data.copy()
     if job.get("assign"):
@@ -318,6 +377,8 @@ def run_job(job, base):
     if job.get("thin"):
         for t in (job["thin"] if isinstance(job["thin"], list) else [job["thin"]]):
             thin([o for o in bpy.context.scene.objects], t)
+    for op in job.get("ops", []):
+        run_op(op, [o for o in bpy.context.scene.objects if o.type == "MESH"])
     if job.get("separate_dec"):
         # отделить грани материала и упростить их отдельным объектом (ветки), листья не трогать
         sd = job["separate_dec"]

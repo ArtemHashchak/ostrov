@@ -17,9 +17,9 @@
 			"mesh":0,
 			"name":"visteria_wall_01",
 			"translation":[
-				2.465331554412842,
+				2.466999053955078,
 				0,
-				-0.08104165643453598
+				-0.06960780918598175
 			]
 		}
 	],
@@ -51,7 +51,7 @@
 	],
 	"meshes":[
 		{
-			"name":"Mesh.001",
+			"name":"Mesh.002",
 			"primitives":[
 				{
 					"attributes":{
@@ -134,35 +134,35 @@
 		{
 			"bufferView":4,
 			"componentType":5126,
-			"count":9742,
+			"count":15269,
 			"max":[
-				0.08476018905639648,
-				3.368197202682495,
-				0.23972798883914948
+				0.10923314094543457,
+				3.4472341537475586,
+				0.2998504042625427
 			],
 			"min":[
-				-5.007492542266846,
-				0.12852168083190918,
-				-0.07764467597007751
+				-5.061924934387207,
+				0.04338454082608223,
+				-0.16063478589057922
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":5,
 			"componentType":5126,
-			"count":9742,
+			"count":15269,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":6,
 			"componentType":5126,
-			"count":9742,
+			"count":15269,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":7,
 			"componentType":5123,
-			"count":36648,
+			"count":57600,
 			"type":"SCALAR"
 		}
 	],
@@ -193,26 +193,26 @@
 		},
 		{
 			"buffer":0,
-			"byteLength":116904,
+			"byteLength":183228,
 			"byteOffset":1501480,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":116904,
-			"byteOffset":1618384,
+			"byteLength":183228,
+			"byteOffset":1684708,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":77936,
-			"byteOffset":1735288,
+			"byteLength":122152,
+			"byteOffset":1867936,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":73296,
-			"byteOffset":1813224,
+			"byteLength":115200,
+			"byteOffset":1990088,
 			"target":34963
 		}
 	],
@@ -224,7 +224,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":1886520,
+			"byteLength":2105288,
 			"uri":"liana_wall.bin"
 		}
 	]

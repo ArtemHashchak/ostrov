@@ -6,7 +6,7 @@
 	"scene":0,
 	"scenes":[
 		{
-			"name":"Scene",
+			"name":"AN",
 			"nodes":[
 				0
 			]
@@ -17,9 +17,9 @@
 			"mesh":0,
 			"name":"weed 02.001",
 			"translation":[
-				14.266632080078125,
-				-0.033035993576049805,
-				0.1641092300415039
+				-14.270318984985352,
+				0.06438705325126648,
+				-0.15469598770141602
 			]
 		}
 	],
@@ -43,7 +43,7 @@
 	],
 	"meshes":[
 		{
-			"name":"sc_type_a_weed_02_high.003",
+			"name":"sc_type_a_weed_02_high.004",
 			"primitives":[
 				{
 					"attributes":{

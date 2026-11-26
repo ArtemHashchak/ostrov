@@ -6,7 +6,7 @@
 	"scene":0,
 	"scenes":[
 		{
-			"name":"Scene",
+			"name":"AN",
 			"nodes":[
 				0
 			]
@@ -17,9 +17,9 @@
 			"mesh":0,
 			"name":"Grass Dry 01",
 			"translation":[
-				-0.02032904326915741,
-				0.07044962793588638,
-				0.03503844141960144
+				-7.174999237060547,
+				0.0536976233124733,
+				-1.722936749458313
 			]
 		}
 	],
@@ -38,7 +38,7 @@
 	],
 	"meshes":[
 		{
-			"name":"sc_grass_dry_01_high.003",
+			"name":"sc_grass_dry_01_high.005",
 			"primitives":[
 				{
 					"attributes":{

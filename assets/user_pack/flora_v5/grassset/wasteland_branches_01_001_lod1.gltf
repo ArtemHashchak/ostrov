@@ -12,7 +12,7 @@
 	"scene":0,
 	"scenes":[
 		{
-			"name":"Scene",
+			"name":"AN",
 			"nodes":[
 				0
 			]
@@ -23,9 +23,9 @@
 			"mesh":0,
 			"name":"Wasteland branches 01.001",
 			"translation":[
-				16.62089729309082,
-				-0.026225779205560684,
-				0.16173624992370605
+				-16.646657943725586,
+				0.03570503368973732,
+				-0.152253657579422
 			]
 		}
 	],
@@ -71,7 +71,7 @@
 	],
 	"meshes":[
 		{
-			"name":"sc_wasteland_branches_01_high.003",
+			"name":"sc_wasteland_branches_01_high.004",
 			"primitives":[
 				{
 					"attributes":{
