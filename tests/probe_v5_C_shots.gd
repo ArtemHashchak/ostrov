@@ -19,9 +19,9 @@ func run() -> void:
 	if w == null or not w.is_ready:
 		check(false, "мир готов")
 		return
-	Settings.view_distance = ViewDistance.SLIDER_MAXIMUM if Settings.get(&"view_distance") != null else 0
-	if Settings.has_method(&"apply_graphics"):
-		Settings.call(&"apply_graphics")
+	Settings.view_distance = ViewDistance.SLIDER_MAXIMUM
+	if Settings.has_method(&"apply_view"):
+		Settings.call(&"apply_view")
 	var fl := Flora.new()
 	w.get_parent().add_child(fl)
 	if ResourceLoader.exists("res://scenes/sea/sea.tscn"):
@@ -39,7 +39,9 @@ func run() -> void:
 		(pl as Node3D).global_position = Vector3(0, -500, 0)
 	var a := w.arch as ArchipelagoV5
 	# 1) обзор архипелага
-	await _view(Vector3(0, 2300, 1900), Vector3(0, 0, 80), "overview", 4.0)
+	await _view(Vector3(0, 1500, 1750), Vector3(0, 0, 150), "overview", 4.0)
+	if OS.get_environment("ONLY_OVERVIEW") == "1":
+		return
 	# 2) барьерный риф и проход
 	var ps: Vector2 = a.reef_passes[0]
 	var rp := Vector2.from_angle(ps.x) * a.ring_r(ps.x)
