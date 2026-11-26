@@ -26,7 +26,7 @@ const RAIN_PER_S := 1.0 / 120.0
 const WASH_PER_S := 1.0 / 3.0       # под накатом — за 3 с
 const REDRAW_HZ := 8.0
 
-enum { FOOT, HOOF, CLAW, HAND, FLIPPER, DRAG, FOOT_TOE, FOOT_HEEL, KNEE }
+enum { FOOT, HOOF, CLAW, HAND, FLIPPER, DRAG, FOOT_TOE, FOOT_HEEL, KNEE, BIRD, DENT }
 
 ## Походки: шаг (м), штамп, размер штампа (м, сторона квадрата), смещение лап вбок, база (перед—зад),
 ## разворот пальцев наружу (рад), сила вдавливания, борозда хвоста/брюха (ширина м, 0 — нет).
@@ -38,12 +38,19 @@ const GAITS := {
 	&"croc":    {"stride": 0.55, "type": CLAW,    "size": 0.36,  "lat": 0.36, "base": 1.0,  "splay": 0.4, "str": 1.0, "drag": 0.2},
 	&"turtle":  {"stride": 0.32, "type": FLIPPER, "size": 0.36,  "lat": 0.32, "base": 0.0,  "splay": 0.0, "str": 0.85, "drag": 0.5},
 	&"monkey":  {"stride": 0.36, "type": HAND,    "size": 0.15,  "lat": 0.1,  "base": 0.35, "splay": 0.2, "str": 0.6, "drag": 0.0},
+	# v5: змеи — только волнистая борозда тела (без лап); птицы на песке — трёхпалые «крестики»
+	&"snake":   {"stride": 0.22, "type": DRAG,    "size": 0.0,   "lat": 0.16, "base": 0.0,  "splay": 0.0, "str": 0.6, "drag": 0.06},
+	&"python":  {"stride": 0.3,  "type": DRAG,    "size": 0.0,   "lat": 0.22, "base": 0.0,  "splay": 0.0, "str": 0.8, "drag": 0.13},
+	&"gull":    {"stride": 0.11, "type": BIRD,    "size": 0.075, "lat": 0.025, "base": 0.0, "splay": 0.15, "str": 0.45, "drag": 0.0},
 }
+const WIND_PER_S := 1.0 / 240.0     # сильный ветер заметает сухой песок за ~4 мин
 
 ## Приземление на песок: точка (y не задан) и сила — для частиц брызг песка.
 signal land_spray(pos: Vector3, strength: float)
 
 var enabled := true
+## Окно, в котором карта нарисована последний раз (должно совпадать с origin — иначе следы «прыгают»).
+var drawn_origin := Vector2.INF
 var origin := Vector2.ZERO          # мир (x, z) угла окна
 ## [x, z, dirx, dirz, side(0 лев./1 прав.), ширина м, сила 0..1, тип, длина м]
 var prints: Array = []
@@ -100,6 +107,24 @@ func walk_line(species: StringName, a: Vector3, b: Vector3, scale := 1.0) -> voi
 		_step(g, w, p, p - w.last, scale)
 		w.last = p
 		w.side = 1 - int(w.side)
+
+## Вмятина от предмета (посылка, бревно, упавший кокос): pos — мир, radius — м, strength 0..1.
+func dent(pos: Vector3, radius: float, strength := 1.0) -> void:
+	if _world and not _is_sand(Vector2(pos.x, pos.z)):
+		return
+	_add(Vector2(pos.x, pos.z), Vector2(0, -1), 0, strength, radius * 2.0, DENT, radius * 2.0)
+
+## Борозда от волока (плот, бревно, каноэ): от a до b, ширина width м.
+func drag_mark(a: Vector3, b: Vector3, width: float, strength := 0.8) -> void:
+	var d := Vector2(b.x - a.x, b.z - a.z)
+	var n := maxi(1, int(ceil(d.length() / maxf(width * 1.5, 0.2))))
+	for i in n:
+		var t0 := float(i) / n
+		var t1 := float(i + 1) / n
+		var q := Vector2(a.x, a.z) + d * ((t0 + t1) * 0.5)
+		if _world and not _is_sand(q):
+			continue
+		_add(q, d, 0, strength, width, DRAG, d.length() / n + width)
 
 ## Свежесть ближайшего отпечатка (0..1) в радиусе 0.2 м — для тестов/логики.
 func depth_at(x: float, z: float) -> float:
@@ -282,6 +307,10 @@ func _step(g: Dictionary, w: Dictionary, p: Vector2, d: Vector2, sc: float) -> v
 	var spl: float = float(g.splay)
 	var sgn := 1.0 if side == 1 else -1.0
 	match t:
+		DRAG:
+			pass   # змея: только борозда тела ниже
+		BIRD:
+			_add(p + right * lat * sgn, dir.rotated(spl * sgn), side, st, size, BIRD, 0.0)
 		FOOT:
 			_add(p + right * lat * sgn, dir.rotated(spl * sgn), side, st, size, FOOT, 0.0)
 		FLIPPER:
@@ -297,7 +326,7 @@ func _step(g: Dictionary, w: Dictionary, p: Vector2, d: Vector2, sc: float) -> v
 	if dw > 0.0:
 		# борозда хвоста/брюха — за корпусом; хвост виляет (фаза идёт с каждым шагом)
 		w.phase = float(w.phase) + 1.3
-		var sway := sin(float(w.phase)) * lat * 0.45 if t != FLIPPER else 0.0
+		var sway := sin(float(w.phase)) * lat * (1.0 if t == DRAG else 0.45) if t != FLIPPER else 0.0
 		var back := base * 0.9 if t != FLIPPER else 0.0
 		var mid := p - d * 0.5 - dir * back + right * sway
 		_add(mid, dir, 0, st * 0.55, dw, DRAG, d.length() * 1.7 + dw)
@@ -371,7 +400,10 @@ func _decay(dt: float) -> void:
 	var rain := 0.0
 	if _world.has_method("rain_factor"):
 		rain = float(_world.rain_factor())
-	var dry := (FADE_PER_S + RAIN_PER_S * rain) * dt
+	var wind := 0.0
+	if _world.has_method("wind_speed"):
+		wind = smoothstep(6.0, 14.0, float(_world.wind_speed()))
+	var dry := (FADE_PER_S + RAIN_PER_S * rain + WIND_PER_S * wind) * dt
 	var keep: Array = []
 	for p: Array in prints:
 		var x := float(p[0])
@@ -389,6 +421,7 @@ func _decay(dt: float) -> void:
 
 ## Холст карты: каждый отпечаток — штамп, повернутый по направлению шага (верх штампа — носок).
 func _on_draw() -> void:
+	drawn_origin = origin
 	if _stamps.is_empty():
 		return
 	var px := SIZE / RES
@@ -462,6 +495,18 @@ func _shape(t: int, u: float, v: float) -> float:
 			var d := _shape(FOOT, u, v)
 			var k := smoothstep(0.6, -0.5, u)
 			return d * lerpf(0.4, 1.2, k)
+		BIRD:
+			# три пальца вперёд веером + короткий задний
+			var d := 0.0
+			for a in [-0.55, 0.0, 0.55]:
+				var tip := Vector2(-0.2, 0.0) + Vector2(cos(a), sin(a)) * 0.95
+				d = maxf(d, _capsule(u, v, Vector2(-0.2, 0.0), tip, 0.07) * 0.9)
+			d = maxf(d, _capsule(u, v, Vector2(-0.2, 0.0), Vector2(-0.7, 0.0), 0.06) * 0.6)
+			return d
+		DENT:
+			# округлая вмятина с мягким дном
+			var r := Vector2(u, v).length()
+			return smoothstep(1.0, 0.25, r) * 0.85
 		KNEE:
 			# колено + голень: овальная вмятина, след голени назад
 			var d := _ell(u, v, 0.45, 0.0, 0.38, 0.62)
@@ -486,7 +531,7 @@ func _capsule(u: float, v: float, a: Vector2, b: Vector2, r: float) -> float:
 
 func _build_stamps() -> void:
 	var n := STAMP_RES
-	for t in [FOOT, HOOF, CLAW, HAND, FLIPPER, DRAG, FOOT_TOE, FOOT_HEEL, KNEE]:
+	for t in [FOOT, HOOF, CLAW, HAND, FLIPPER, DRAG, FOOT_TOE, FOOT_HEEL, KNEE, BIRD, DENT]:
 		var dimg := Image.create(n, n, false, Image.FORMAT_RF)
 		for y in n:
 			for x in n:

@@ -130,6 +130,13 @@ func _land(water: bool) -> void:
 		CombatFx.particles(get_parent(), global_position + Vector3.UP * 0.1, 18, 1.4, "smoke", false,
 			CombatFx._ramp([Color(0.7, 0.62, 0.48, 0.8), Color(0.7, 0.65, 0.55, 0.0)]), 0.6, 2.5, 80.0, Vector3.UP, Vector3(0, -1.0, 0))
 		CombatFx.sound_at(self, "hit_wood_big", global_position, 2.0, 80.0)
+		var stt := get_node_or_null(^"/root/SandTracks")
+		if stt:
+			stt.call(&"dent", global_position, W * 0.75, 1.0)   # v5 (агент D): вмятина в песке
+	if water:
+		var ww := get_node_or_null(^"/root/WaterWakes")
+		if ww:
+			ww.call(&"splash", global_position, 1.6)
 	_collapse_chute(water)
 	# дымовая шашка рядом с ящиком
 	_smoke_can = Node3D.new()

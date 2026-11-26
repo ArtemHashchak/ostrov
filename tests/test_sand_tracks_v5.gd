@@ -131,10 +131,27 @@ func run() -> void:
 	await wait_frames(3)
 	check(_count(8) == 1, "колено не дублируется за один присед")
 
+	# ---- вмятина и борозда (предметы), змея — только борозда
+	st.clear()
+	st.dent(Vector3(p.x, gy, p.y), 0.4)
+	check(_count(10) == 1, "вмятина от предмета")
+	st.drag_mark(Vector3(p.x, gy, p.y), Vector3(p.x + dir.x * 4.0, gy, p.y + dir.y * 4.0), 0.5)
+	check(_count(5) >= 3, "борозда волока: %d сегментов" % _count(5))
+	st.clear()
+	st.walk_line(&"snake", Vector3(p.x, gy, p.y), Vector3(p.x + dir.x * 3.0, gy, p.y + dir.y * 3.0))
+	var only_drag := true
+	for q: Array in st.prints:
+		if int(q[7]) != 5:
+			only_drag = false
+	check(st.prints.size() >= 5 and only_drag, "змея оставляет только волнистую борозду (%d)" % st.prints.size())
+	st.clear()
+	st.walk_line(&"gull", Vector3(p.x, gy, p.y), Vector3(p.x + dir.x * 1.0, gy, p.y + dir.y * 1.0))
+	check(_count(9) >= 6, "чайка — трёхпалые следы (%d)" % _count(9))
+
 	# ---- сдвиг окна: карта перерисовывается в том же кадре
 	var o0: Vector2 = st.origin
 	cam.global_position += Vector3(20, 0, 20)
 	await wait_frames(1)
 	check(st.origin != o0, "окно следов сдвинулось за камерой")
-	check(not bool(st.get("_dirty")), "после сдвига окна карта перерисована сразу (нет отложенной перерисовки)")
+	check(st.drawn_origin == st.origin, "после сдвига окна карта перерисована в том же кадре (%s / %s)" % [st.drawn_origin, st.origin])
 	n.queue_free()
