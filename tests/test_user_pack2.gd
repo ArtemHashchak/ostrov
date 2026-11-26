@@ -210,7 +210,13 @@ func _lizard_section(p: Vector2, d: Vector2, gy: float) -> void:
 		if a.has_method("set_growth"):
 			a.set_growth(1.0)
 		await wait(0.5)
+		# с 22.11 игуана и варан — собственные модели автора со скелетом и клипами (UserClipRig:
+		# iguana_green, varan_komodo); «ящерица пака» (UserLizard) — только если их нет
 		var mdl := a.find_child("UserLizard", true, false)
+		if mdl == null:
+			for vid: String in ["iguana_green", "varan_komodo"]:
+				if mdl == null:
+					mdl = a.find_child(vid, true, false)
 		check(mdl != null, "%s — модель пользователя" % sp)
 		var right := Vector3(-d.y, 0, d.x)
 		# покой: строго сбоку от зверя (по его собственному боку) и три четверти спереди
