@@ -539,7 +539,7 @@ func _foci() -> Array[Vector3]:
 	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
 	if cam:
 		out.append(cam.global_position)
-	for g: StringName in [&"player", &"bot"]:
+	for g: StringName in [&"player", &"bots"]:
 		for n in get_tree().get_nodes_in_group(g):
 			if n is Node3D:
 				out.append((n as Node3D).global_position)

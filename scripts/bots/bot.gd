@@ -87,6 +87,10 @@ var _think_t: float = 0.0
 var _fall_speed: float = 0.0
 var _water_cache_t: float = 0.0
 var _climb_t: float = 0.0
+## Переправа на лодке (мир v5): лодка, в которой сидим; таймер постройки лодки на берегу.
+var riding: BotBoat = null
+var _boat_build_t := 0.0
+var boat_trips := 0
 var _wl: float = 0.0
 var _ground_h: float = -100.0
 var _dead_t: float = 0.0
@@ -384,7 +388,89 @@ func _vitals(delta: float) -> void:
 	else:
 		breath = minf(BREATH_MAX, breath + 25.0 * delta)
 
+## Шаг пути «лодкой»: найти свободную лодку рядом (свою или чужую — угнать) или собрать
+## её на берегу, сесть, плыть до мели у чужого берега, сойти. В шторм — ждать на берегу.
+func _boat_step(delta: float, wp: Dictionary) -> bool:
+	if riding:
+		if not is_instance_valid(riding) or riding.sinking:
+			riding = null
+			return false
+		global_position = riding.seat_pos()
+		velocity = Vector3.ZERO
+		rotation.y = riding.rotation.y
+		_yaw = rotation.y
+		model.update_pose(delta, BotBoat.SPEED, false, false)
+		if riding.arrived():
+			var b := riding
+			riding = null
+			b.leave()
+			boat_trips += 1
+			var off := b.global_transform.basis.z * -2.8
+			global_position = b.global_position + off + Vector3.UP * 0.6
+			if not path.is_empty() and bool((path[0] as Dictionary).get("boat", false)):
+				# дальше — вброд/на сушу к точке берега (тот же шаг, уже без лодки)
+				var land_p: Vector3 = (path[0] as Dictionary).p
+				path[0] = {"p": land_p, "water": true, "deck": false}
+		return true
+	if not BotBoat.storm_ok(_world):
+		velocity.x = 0.0
+		velocity.z = 0.0
+		return true   # шторм — ждём на берегу
+	var launch: Vector3 = wp.get("launch", global_position)
+	var boat: BotBoat = null
+	var bd := 30.0
+	for n in get_tree().get_nodes_in_group(&"boat"):
+		var b2 := n as BotBoat
+		if b2 and b2.free_for_ride():
+			var d := b2.global_position.distance_to(global_position)
+			if d < bd:
+				bd = d
+				boat = b2
+	if boat == null:
+		# собрать лодку на берегу (время работы; дерево берём из собранного на острове)
+		velocity.x = 0.0
+		velocity.z = 0.0
+		_boat_build_t += delta * cfg("work")
+		if _boat_build_t < BotBoat.BUILD_TIME:
+			return true
+		_boat_build_t = 0.0
+		var dir := Vector3(wp.p - launch)
+		dir.y = 0.0
+		var yaw := atan2(-dir.x, -dir.z) if dir.length() > 0.1 else rotation.y
+		var parent := get_parent() if get_parent() else get_tree().current_scene
+		boat = BotBoat.spawn(parent, Vector3(launch.x, launch.y, launch.z), yaw, team)
+		return true
+	if bd > 3.5:
+		# подойти/подплыть к лодке
+		var to := boat.global_position - global_position
+		to.y = 0.0
+		var wish := _steer(to.normalized(), true, false, delta)
+		var spd := (SWIM_SPEED if swimming else WALK_SPEED) * cfg("speed")
+		velocity.x = wish.x * spd
+		velocity.z = wish.z * spd
+		if not is_on_floor() and not swimming:
+			velocity.y -= _gravity * delta
+		move_and_slide()
+		model.update_pose(delta, spd, swimming, false)
+		_check_progress(delta, wish)
+		if stuck > 6:
+			# лодку не достать — ставим новую у ног (если вода рядом)
+			stuck = 0
+			boat.global_position = Vector3(launch.x, launch.y, launch.z)
+		return true
+	riding = boat
+	swimming = false
+	boat.board(self, wp.get("land", wp.p))
+	return true
+
+## Лодку потопили под нами — дальше вплавь.
+func on_boat_sunk(_b: BotBoat) -> void:
+	riding = null
+
 func _move(delta: float) -> void:
+	if riding or (not path.is_empty() and bool((path[0] as Dictionary).get("boat", false))):
+		if _boat_step(delta, path[0] if not path.is_empty() else {}):
+			return
 	var wish := Vector3.ZERO
 	var allow_water := false
 	if not path.is_empty():

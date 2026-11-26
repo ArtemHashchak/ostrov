@@ -84,7 +84,8 @@ static func _drips(nd: Node3D, w: float) -> void:
 		p.mesh = m
 		nd.add_child(p)
 	p.emitting = true
-	p.amount_ratio = clampf((w - 0.2) / 0.8, 0.1, 1.0)
+	# у CPUParticles3D нет amount_ratio: сила капели — через скорость выпуска
+	p.speed_scale = clampf((w - 0.2) / 0.8, 0.1, 1.0)
 
 static func _ground_is_hard(nd: Node3D) -> bool:
 	var w := nd.get_tree().get_first_node_in_group(&"world")

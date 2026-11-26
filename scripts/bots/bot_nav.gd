@@ -9,6 +9,7 @@ extends RefCounted
 ## Путь — массив точек {p: Vector3, water: bool, deck: bool}.
 
 const PAIR_MAX_GAP := 140.0
+const BOAT_MAX_GAP := 820.0          # мир v5: лодкой между островами (250–700 м воды)
 const SAMPLE := 1.0
 const REFRESH := 3.0
 
@@ -22,6 +23,10 @@ var pairs: Dictionary = {}
 var links: Array[Dictionary] = []
 ## Недостроенные цепочки: root(instance_id) -> {root, tip, team, a}
 var chains: Dictionary = {}
+## Морские переправы (мир v5, лодки BotBoat): key "a|b" -> {a, b, gap, sa, sb, la, lb, dir}
+## sa/sb — последняя суша у берегов, la/lb — точки спуска на воду (глубже 0,8 м).
+var sea_routes: Dictionary = {}
+var boats_ok := false
 var _t := 0.0
 
 func setup(w: Node) -> void:
@@ -36,6 +41,9 @@ func setup(w: Node) -> void:
 		for il: Dictionary in w.call(&"islets"):
 			islets.append(il)
 	_build_pairs()
+	boats_ok = int(w.get(&"gen_version")) >= 5 if w.get(&"gen_version") != null else false
+	if boats_ok:
+		_build_sea_routes()
 
 func wl() -> float:
 	return float(world.call(&"water_level")) if world else 0.0
@@ -117,6 +125,64 @@ func _build_pairs() -> void:
 				"a": int(A.id), "b": int(B.id), "water_len": water, "gap": first_b - last_a,
 				"sa": Vector3(pa.x, h(pa.x, pa.y), pa.y), "sb": Vector3(pb.x, h(pb.x, pb.y), pb.y),
 				"dir": Vector3(dir.x, 0.0, dir.y)}
+
+## Морские переправы мира v5: пары островов с водой ≤ BOAT_MAX_GAP по линии центров,
+## без чужой суши на пути. Точки: суша у берега (sa/sb) и спуск на воду (la/lb).
+func _build_sea_routes() -> void:
+	sea_routes.clear()
+	var lvl := wl()
+	for i in islands.size():
+		for j in range(i + 1, islands.size()):
+			var A := islands[i]
+			var B := islands[j]
+			var ca: Vector2 = A.center
+			var cb: Vector2 = B.center
+			var dist := ca.distance_to(cb)
+			if dist - float(A.radius) - float(B.radius) > BOAT_MAX_GAP:
+				continue
+			var dir := (cb - ca) / maxf(dist, 0.01)
+			var last_a := -1.0
+			var first_b := -1.0
+			var launch_a := -1.0
+			var launch_b := -1.0
+			var blocked := false
+			var in_water := false
+			var t := 0.0
+			while t <= dist:
+				var q := ca + dir * t
+				var hh := h(q.x, q.y)
+				if hh > lvl + 0.05:
+					var I2: Dictionary = world.call(&"island_at", q.x, q.y)
+					var iid := int(I2.id) if not I2.is_empty() else -1
+					if in_water:
+						if iid == int(B.id):
+							first_b = t
+							break
+						if iid != int(A.id):
+							blocked = true
+							break
+					else:
+						last_a = t
+				else:
+					if last_a >= 0.0:
+						in_water = true
+						if launch_a < 0.0 and hh < lvl - 0.8:
+							launch_a = t
+						if hh < lvl - 0.8:
+							launch_b = t
+				t += 2.0
+			if blocked or last_a < 0.0 or first_b < 0.0 or launch_a < 0.0 or launch_b < 0.0:
+				continue
+			var gap := first_b - last_a
+			if gap > BOAT_MAX_GAP or gap <= PAIR_MAX_GAP * 0.5:
+				continue
+			var pa := ca + dir * last_a
+			var pb := ca + dir * first_b
+			var la := ca + dir * launch_a
+			var lb := ca + dir * launch_b
+			sea_routes[_key(int(A.id), int(B.id))] = {"a": int(A.id), "b": int(B.id), "gap": gap,
+				"sa": ground(Vector3(pa.x, 0, pa.y)), "sb": ground(Vector3(pb.x, 0, pb.y)),
+				"la": Vector3(la.x, lvl, la.y), "lb": Vector3(lb.x, lvl, lb.y), "dir": Vector3(dir.x, 0, dir.y)}
 
 # ------------------------------------------------------------------ мосты
 
@@ -278,6 +344,13 @@ func _edges(a: int, swim_max: float) -> Array[Dictionary]:
 			out.append({"to": int(L.b), "cost": float((L.points as Array).size()) * 1.5, "kind": "link", "link": L, "rev": false})
 		elif int(L.b) == a:
 			out.append({"to": int(L.a), "cost": float((L.points as Array).size()) * 1.5, "kind": "link", "link": L, "rev": true})
+	if boats_ok and BotBoat.storm_ok(world):
+		for k in sea_routes:
+			var R: Dictionary = sea_routes[k]
+			if int(R.a) == a:
+				out.append({"to": int(R.b), "cost": float(R.gap) * 1.2 + 60.0, "kind": "boat", "route": R, "rev": false})
+			elif int(R.b) == a:
+				out.append({"to": int(R.a), "cost": float(R.gap) * 1.2 + 60.0, "kind": "boat", "route": R, "rev": true})
 	if swim_max > 0.0:
 		for k in pairs:
 			var P: Dictionary = pairs[k]
@@ -395,6 +468,14 @@ func _append_route(out: Array[Dictionary], ia: int, ib: int, swim_max: float) ->
 				seq.reverse()
 			for i in seq.size():
 				out.append({"p": seq[i], "water": i > 0 and i < seq.size() - 1, "deck": i > 0 and i < seq.size() - 1})
+		elif e.kind == "boat":
+			var R: Dictionary = e.route
+			var s0: Vector3 = R.sb if e.rev else R.sa
+			var l0: Vector3 = R.lb if e.rev else R.la
+			var l1: Vector3 = R.la if e.rev else R.lb
+			var s1: Vector3 = R.sa if e.rev else R.sb
+			out.append({"p": s0, "water": false, "deck": false})
+			out.append({"p": s1, "water": true, "deck": false, "boat": true, "launch": l0, "land": l1})
 		else:
 			var P: Dictionary = e.pair
 			var s: Vector3 = P.sb if e.rev else P.sa
