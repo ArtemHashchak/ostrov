@@ -1,0 +1,4878 @@
+{
+ "version": 1,
+ "owner": "A · Флора",
+ "generated_by": "tools/import_v5/flora_catalog.py",
+ "entries": [
+  {
+   "id": "flora_alocasia_big_01",
+   "name": "Алоказия крупная (слоновое ухо) 01",
+   "category": "plant",
+   "scene": "flora_pack:alocasia_big_01",
+   "lod": [
+    "flora_pack:alocasia_big_01"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    1.65,
+    1.23,
+    1.87
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Алоказия крупная (слоновое ухо)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "big_leaf",
+    "flora_pack"
+   ],
+   "pack_id": "alocasia_big_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.58,
+    "height": 1.23
+   }
+  },
+  {
+   "id": "flora_alocasia_big_02",
+   "name": "Алоказия крупная (слоновое ухо) 02",
+   "category": "plant",
+   "scene": "flora_pack:alocasia_big_02",
+   "lod": [
+    "flora_pack:alocasia_big_02"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    1.47,
+    1.25,
+    1.52
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Алоказия крупная (слоновое ухо)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "big_leaf",
+    "flora_pack"
+   ],
+   "pack_id": "alocasia_big_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.51,
+    "height": 1.25
+   }
+  },
+  {
+   "id": "flora_alocasia_big_03",
+   "name": "Алоказия крупная (слоновое ухо) 03",
+   "category": "plant",
+   "scene": "flora_pack:alocasia_big_03",
+   "lod": [
+    "flora_pack:alocasia_big_03"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    1.62,
+    1.83,
+    1.86
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Алоказия крупная (слоновое ухо)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "big_leaf",
+    "flora_pack"
+   ],
+   "pack_id": "alocasia_big_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.57,
+    "height": 1.83
+   }
+  },
+  {
+   "id": "flora_alocasia_big_04",
+   "name": "Алоказия крупная (слоновое ухо) 04",
+   "category": "plant",
+   "scene": "flora_pack:alocasia_big_04",
+   "lod": [
+    "flora_pack:alocasia_big_04"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    1.1,
+    0.84,
+    1.26
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Алоказия крупная (слоновое ухо)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "big_leaf",
+    "flora_pack"
+   ],
+   "pack_id": "alocasia_big_04",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.39,
+    "height": 0.84
+   }
+  },
+  {
+   "id": "flora_alocasia_var_01",
+   "name": "Алоказия пёстрая 01",
+   "category": "plant",
+   "scene": "flora_pack:alocasia_var_01",
+   "lod": [
+    "flora_pack:alocasia_var_01"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    1.43,
+    1.7,
+    1.82
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.7,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Алоказия пёстрая (куст с корневищами)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "flora_pack"
+   ],
+   "pack_id": "alocasia_var_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.5,
+    "height": 1.7
+   }
+  },
+  {
+   "id": "flora_alocasia_var_02",
+   "name": "Алоказия пёстрая 02",
+   "category": "plant",
+   "scene": "flora_pack:alocasia_var_02",
+   "lod": [
+    "flora_pack:alocasia_var_02"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    1.29,
+    1.58,
+    1.34
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.7,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Алоказия пёстрая (куст с корневищами)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "flora_pack"
+   ],
+   "pack_id": "alocasia_var_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.45,
+    "height": 1.58
+   }
+  },
+  {
+   "id": "flora_alocasia_var_03",
+   "name": "Алоказия пёстрая 03",
+   "category": "plant",
+   "scene": "flora_pack:alocasia_var_03",
+   "lod": [
+    "flora_pack:alocasia_var_03"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    1.92,
+    1.72,
+    1.8
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.7,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Алоказия пёстрая (куст с корневищами)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "flora_pack"
+   ],
+   "pack_id": "alocasia_var_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.63,
+    "height": 1.72
+   }
+  },
+  {
+   "id": "flora_alocasia_young_01",
+   "name": "Алоказия молодая 01",
+   "category": "plant",
+   "scene": "flora_pack:alocasia_young_01",
+   "lod": [
+    "flora_pack:alocasia_young_01"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "forest_edge"
+   ],
+   "size_m": [
+    0.87,
+    0.57,
+    0.86
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.2,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Алоказия молодая (мелкая)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "flora_pack"
+   ],
+   "pack_id": "alocasia_young_01"
+  },
+  {
+   "id": "flora_alocasia_young_02",
+   "name": "Алоказия молодая 02",
+   "category": "plant",
+   "scene": "flora_pack:alocasia_young_02",
+   "lod": [
+    "flora_pack:alocasia_young_02"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "forest_edge"
+   ],
+   "size_m": [
+    0.92,
+    0.65,
+    0.77
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.2,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Алоказия молодая (мелкая)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "flora_pack"
+   ],
+   "pack_id": "alocasia_young_02"
+  },
+  {
+   "id": "flora_alocasia_young_03",
+   "name": "Алоказия молодая 03",
+   "category": "plant",
+   "scene": "flora_pack:alocasia_young_03",
+   "lod": [
+    "flora_pack:alocasia_young_03"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "forest_edge"
+   ],
+   "size_m": [
+    0.58,
+    0.5,
+    0.67
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.2,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Алоказия молодая (мелкая)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "flora_pack"
+   ],
+   "pack_id": "alocasia_young_03"
+  },
+  {
+   "id": "flora_alocasia_young_04",
+   "name": "Алоказия молодая 04",
+   "category": "plant",
+   "scene": "flora_pack:alocasia_young_04",
+   "lod": [
+    "flora_pack:alocasia_young_04"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "forest_edge"
+   ],
+   "size_m": [
+    0.94,
+    0.53,
+    0.91
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.2,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Алоказия молодая (мелкая)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "flora_pack"
+   ],
+   "pack_id": "alocasia_young_04"
+  },
+  {
+   "id": "flora_bamboo_small_01",
+   "name": "Бамбук мелкий 01",
+   "category": "plant",
+   "scene": "flora_pack:bamboo_small_01",
+   "lod": [
+    "flora_pack:bamboo_small_01"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.78,
+    0.87,
+    0.73
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Plants/Бамбук мелкий (кустики)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": false,
+   "tags": [
+    "flora_pack"
+   ],
+   "pack_id": "bamboo_small_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.26,
+    "height": 0.87
+   }
+  },
+  {
+   "id": "flora_bamboo_small_02",
+   "name": "Бамбук мелкий 02",
+   "category": "plant",
+   "scene": "flora_pack:bamboo_small_02",
+   "lod": [
+    "flora_pack:bamboo_small_02"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.59,
+    0.73,
+    0.71
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Plants/Бамбук мелкий (кустики)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": false,
+   "tags": [
+    "flora_pack"
+   ],
+   "pack_id": "bamboo_small_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.21,
+    "height": 0.73
+   }
+  },
+  {
+   "id": "flora_bamboo_small_03",
+   "name": "Бамбук мелкий 03",
+   "category": "plant",
+   "scene": "flora_pack:bamboo_small_03",
+   "lod": [
+    "flora_pack:bamboo_small_03"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.8,
+    1.05,
+    0.91
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Plants/Бамбук мелкий (кустики)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": false,
+   "tags": [
+    "flora_pack"
+   ],
+   "pack_id": "bamboo_small_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.28,
+    "height": 1.05
+   }
+  },
+  {
+   "id": "flora_banana_01",
+   "name": "Банан 01",
+   "category": "plant",
+   "scene": "flora_pack:banana_01",
+   "lod": [
+    "flora_pack:banana_01"
+   ],
+   "zones": [
+    "jungle",
+    "forest_edge",
+    "lowland_forest"
+   ],
+   "size_m": [
+    3.77,
+    3.54,
+    3.7
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Банан",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_tree",
+    "food",
+    "flora_pack"
+   ],
+   "pack_id": "banana_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.44,
+    "height": 2.0
+   }
+  },
+  {
+   "id": "flora_banana_02",
+   "name": "Банан 02",
+   "category": "plant",
+   "scene": "flora_pack:banana_02",
+   "lod": [
+    "flora_pack:banana_02"
+   ],
+   "zones": [
+    "jungle",
+    "forest_edge",
+    "lowland_forest"
+   ],
+   "size_m": [
+    3.06,
+    3.02,
+    3.05
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Банан",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_tree",
+    "food",
+    "flora_pack"
+   ],
+   "pack_id": "banana_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.37,
+    "height": 2.0
+   }
+  },
+  {
+   "id": "flora_banana_03",
+   "name": "Банан 03",
+   "category": "plant",
+   "scene": "flora_pack:banana_03",
+   "lod": [
+    "flora_pack:banana_03"
+   ],
+   "zones": [
+    "jungle",
+    "forest_edge",
+    "lowland_forest"
+   ],
+   "size_m": [
+    2.79,
+    2.78,
+    3.22
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Банан",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_tree",
+    "food",
+    "flora_pack"
+   ],
+   "pack_id": "banana_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.33,
+    "height": 2.0
+   }
+  },
+  {
+   "id": "flora_banana_04",
+   "name": "Банан 04",
+   "category": "plant",
+   "scene": "flora_pack:banana_04",
+   "lod": [
+    "flora_pack:banana_04"
+   ],
+   "zones": [
+    "jungle",
+    "forest_edge",
+    "lowland_forest"
+   ],
+   "size_m": [
+    4.16,
+    4.08,
+    4.3
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Банан",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_tree",
+    "food",
+    "flora_pack"
+   ],
+   "pack_id": "banana_04",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.5,
+    "height": 2.0
+   }
+  },
+  {
+   "id": "flora_coconut_green",
+   "name": "Кокос",
+   "category": "item",
+   "scene": "flora_pack:coconut_green",
+   "lod": [
+    "flora_pack:coconut_green"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach"
+   ],
+   "size_m": [
+    0.2,
+    0.25,
+    0.2
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Plants/Кокосы",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "food",
+    "floats",
+    "flora_pack"
+   ],
+   "pack_id": "coconut_green"
+  },
+  {
+   "id": "flora_coconut_green_stem",
+   "name": "Кокос",
+   "category": "item",
+   "scene": "flora_pack:coconut_green_stem",
+   "lod": [
+    "flora_pack:coconut_green_stem"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach"
+   ],
+   "size_m": [
+    0.24,
+    0.26,
+    0.22
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Plants/Кокосы",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "food",
+    "floats",
+    "flora_pack"
+   ],
+   "pack_id": "coconut_green_stem"
+  },
+  {
+   "id": "flora_coconut_half_a",
+   "name": "Кокос",
+   "category": "item",
+   "scene": "flora_pack:coconut_half_a",
+   "lod": [
+    "flora_pack:coconut_half_a"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach"
+   ],
+   "size_m": [
+    0.11,
+    0.06,
+    0.11
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Plants/Кокосы",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "food",
+    "floats",
+    "flora_pack"
+   ],
+   "pack_id": "coconut_half_a"
+  },
+  {
+   "id": "flora_coconut_half_b",
+   "name": "Кокос",
+   "category": "item",
+   "scene": "flora_pack:coconut_half_b",
+   "lod": [
+    "flora_pack:coconut_half_b"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach"
+   ],
+   "size_m": [
+    0.11,
+    0.07,
+    0.11
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Plants/Кокосы",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "food",
+    "floats",
+    "flora_pack"
+   ],
+   "pack_id": "coconut_half_b"
+  },
+  {
+   "id": "flora_coconut_nut_brown",
+   "name": "Кокос",
+   "category": "item",
+   "scene": "flora_pack:coconut_nut_brown",
+   "lod": [
+    "flora_pack:coconut_nut_brown"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach"
+   ],
+   "size_m": [
+    0.13,
+    0.11,
+    0.11
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Plants/Кокосы",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "food",
+    "floats",
+    "flora_pack"
+   ],
+   "pack_id": "coconut_nut_brown"
+  },
+  {
+   "id": "flora_coconut_nut_hairy",
+   "name": "Кокос",
+   "category": "item",
+   "scene": "flora_pack:coconut_nut_hairy",
+   "lod": [
+    "flora_pack:coconut_nut_hairy"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach"
+   ],
+   "size_m": [
+    0.14,
+    0.14,
+    0.13
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Plants/Кокосы",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "food",
+    "floats",
+    "flora_pack"
+   ],
+   "pack_id": "coconut_nut_hairy"
+  },
+  {
+   "id": "flora_coconut_shard_1",
+   "name": "Кокос 1",
+   "category": "item",
+   "scene": "flora_pack:coconut_shard_1",
+   "lod": [
+    "flora_pack:coconut_shard_1"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach"
+   ],
+   "size_m": [
+    0.03,
+    0.03,
+    0.03
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Plants/Кокосы",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "food",
+    "floats",
+    "flora_pack"
+   ],
+   "pack_id": "coconut_shard_1"
+  },
+  {
+   "id": "flora_coconut_shard_2",
+   "name": "Кокос 2",
+   "category": "item",
+   "scene": "flora_pack:coconut_shard_2",
+   "lod": [
+    "flora_pack:coconut_shard_2"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach"
+   ],
+   "size_m": [
+    0.03,
+    0.03,
+    0.03
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Plants/Кокосы",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "food",
+    "floats",
+    "flora_pack"
+   ],
+   "pack_id": "coconut_shard_2"
+  },
+  {
+   "id": "flora_coconut_shard_3",
+   "name": "Кокос 3",
+   "category": "item",
+   "scene": "flora_pack:coconut_shard_3",
+   "lod": [
+    "flora_pack:coconut_shard_3"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach"
+   ],
+   "size_m": [
+    0.03,
+    0.03,
+    0.03
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Plants/Кокосы",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "food",
+    "floats",
+    "flora_pack"
+   ],
+   "pack_id": "coconut_shard_3"
+  },
+  {
+   "id": "flora_coconut_shard_4",
+   "name": "Кокос 4",
+   "category": "item",
+   "scene": "flora_pack:coconut_shard_4",
+   "lod": [
+    "flora_pack:coconut_shard_4"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach"
+   ],
+   "size_m": [
+    0.03,
+    0.03,
+    0.02
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Plants/Кокосы",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "food",
+    "floats",
+    "flora_pack"
+   ],
+   "pack_id": "coconut_shard_4"
+  },
+  {
+   "id": "flora_coconut_yellowgreen",
+   "name": "Кокос",
+   "category": "item",
+   "scene": "flora_pack:coconut_yellowgreen",
+   "lod": [
+    "flora_pack:coconut_yellowgreen"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach"
+   ],
+   "size_m": [
+    0.21,
+    0.19,
+    0.22
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Plants/Кокосы",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "food",
+    "floats",
+    "flora_pack"
+   ],
+   "pack_id": "coconut_yellowgreen"
+  },
+  {
+   "id": "flora_colocasia1_01",
+   "name": "Колоказия (таро), набор 1 01",
+   "category": "plant",
+   "scene": "flora_pack:colocasia1_01",
+   "lod": [
+    "flora_pack:colocasia1_01"
+   ],
+   "zones": [
+    "mangrove",
+    "lowland_forest",
+    "jungle"
+   ],
+   "size_m": [
+    2.07,
+    1.66,
+    1.71
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Колоказия (набор 1)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "wet",
+    "big_leaf",
+    "flora_pack"
+   ],
+   "pack_id": "colocasia1_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.6,
+    "height": 1.66
+   }
+  },
+  {
+   "id": "flora_colocasia1_02",
+   "name": "Колоказия (таро), набор 1 02",
+   "category": "plant",
+   "scene": "flora_pack:colocasia1_02",
+   "lod": [
+    "flora_pack:colocasia1_02"
+   ],
+   "zones": [
+    "mangrove",
+    "lowland_forest",
+    "jungle"
+   ],
+   "size_m": [
+    1.51,
+    1.7,
+    1.88
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Колоказия (набор 1)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "wet",
+    "big_leaf",
+    "flora_pack"
+   ],
+   "pack_id": "colocasia1_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.53,
+    "height": 1.7
+   }
+  },
+  {
+   "id": "flora_colocasia1_03",
+   "name": "Колоказия (таро), набор 1 03",
+   "category": "plant",
+   "scene": "flora_pack:colocasia1_03",
+   "lod": [
+    "flora_pack:colocasia1_03"
+   ],
+   "zones": [
+    "mangrove",
+    "lowland_forest",
+    "jungle"
+   ],
+   "size_m": [
+    2.24,
+    1.88,
+    1.99
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Колоказия (набор 1)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "wet",
+    "big_leaf",
+    "flora_pack"
+   ],
+   "pack_id": "colocasia1_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.7,
+    "height": 1.88
+   }
+  },
+  {
+   "id": "flora_colocasia1_04",
+   "name": "Колоказия (таро), набор 1 04",
+   "category": "plant",
+   "scene": "flora_pack:colocasia1_04",
+   "lod": [
+    "flora_pack:colocasia1_04"
+   ],
+   "zones": [
+    "mangrove",
+    "lowland_forest",
+    "jungle"
+   ],
+   "size_m": [
+    1.6,
+    1.18,
+    1.4
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Колоказия (набор 1)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "wet",
+    "big_leaf",
+    "flora_pack"
+   ],
+   "pack_id": "colocasia1_04",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.49,
+    "height": 1.18
+   }
+  },
+  {
+   "id": "flora_colocasia2_01",
+   "name": "Колоказия (таро), набор 2 01",
+   "category": "plant",
+   "scene": "flora_pack:colocasia2_01",
+   "lod": [
+    "flora_pack:colocasia2_01"
+   ],
+   "zones": [
+    "mangrove",
+    "lowland_forest",
+    "jungle"
+   ],
+   "size_m": [
+    0.87,
+    1.08,
+    1.03
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Колоказия (набор 2)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "wet",
+    "big_leaf",
+    "flora_pack"
+   ],
+   "pack_id": "colocasia2_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.3,
+    "height": 1.08
+   }
+  },
+  {
+   "id": "flora_colocasia2_02",
+   "name": "Колоказия (таро), набор 2 02",
+   "category": "plant",
+   "scene": "flora_pack:colocasia2_02",
+   "lod": [
+    "flora_pack:colocasia2_02"
+   ],
+   "zones": [
+    "mangrove",
+    "lowland_forest",
+    "jungle"
+   ],
+   "size_m": [
+    1.07,
+    0.95,
+    1.19
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Колоказия (набор 2)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "wet",
+    "big_leaf",
+    "flora_pack"
+   ],
+   "pack_id": "colocasia2_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.37,
+    "height": 0.95
+   }
+  },
+  {
+   "id": "flora_colocasia2_03",
+   "name": "Колоказия (таро), набор 2 03",
+   "category": "plant",
+   "scene": "flora_pack:colocasia2_03",
+   "lod": [
+    "flora_pack:colocasia2_03"
+   ],
+   "zones": [
+    "mangrove",
+    "lowland_forest",
+    "jungle"
+   ],
+   "size_m": [
+    1.0,
+    0.78,
+    0.88
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Колоказия (набор 2)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "wet",
+    "big_leaf",
+    "flora_pack"
+   ],
+   "pack_id": "colocasia2_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.31,
+    "height": 0.78
+   }
+  },
+  {
+   "id": "flora_colocasia2_04",
+   "name": "Колоказия (таро), набор 2 04",
+   "category": "plant",
+   "scene": "flora_pack:colocasia2_04",
+   "lod": [
+    "flora_pack:colocasia2_04"
+   ],
+   "zones": [
+    "mangrove",
+    "lowland_forest",
+    "jungle"
+   ],
+   "size_m": [
+    0.83,
+    0.62,
+    0.82
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Колоказия (набор 2)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "wet",
+    "big_leaf",
+    "flora_pack"
+   ],
+   "pack_id": "colocasia2_04",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.29,
+    "height": 0.62
+   }
+  },
+  {
+   "id": "flora_dieffenbachia_01",
+   "name": "Диффенбахия 01",
+   "category": "plant",
+   "scene": "flora_pack:dieffenbachia_01",
+   "lod": [
+    "flora_pack:dieffenbachia_01"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.84,
+    0.49,
+    0.77
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.8,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Диффенбахия",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "flora_pack"
+   ],
+   "pack_id": "dieffenbachia_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.27,
+    "height": 0.5
+   }
+  },
+  {
+   "id": "flora_dieffenbachia_02",
+   "name": "Диффенбахия 02",
+   "category": "plant",
+   "scene": "flora_pack:dieffenbachia_02",
+   "lod": [
+    "flora_pack:dieffenbachia_02"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.93,
+    0.58,
+    0.88
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.8,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Диффенбахия",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "flora_pack"
+   ],
+   "pack_id": "dieffenbachia_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.31,
+    "height": 0.58
+   }
+  },
+  {
+   "id": "flora_dieffenbachia_03",
+   "name": "Диффенбахия 03",
+   "category": "plant",
+   "scene": "flora_pack:dieffenbachia_03",
+   "lod": [
+    "flora_pack:dieffenbachia_03"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.6,
+    0.42,
+    0.7
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.8,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Диффенбахия",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "flora_pack"
+   ],
+   "pack_id": "dieffenbachia_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.21,
+    "height": 0.5
+   }
+  },
+  {
+   "id": "flora_dieffenbachia_04",
+   "name": "Диффенбахия 04",
+   "category": "plant",
+   "scene": "flora_pack:dieffenbachia_04",
+   "lod": [
+    "flora_pack:dieffenbachia_04"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.87,
+    0.57,
+    0.91
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.8,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Диффенбахия",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "flora_pack"
+   ],
+   "pack_id": "dieffenbachia_04",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.3,
+    "height": 0.57
+   }
+  },
+  {
+   "id": "flora_dracaena_branched_01",
+   "name": "Драцена ветвистая 01",
+   "category": "plant",
+   "scene": "flora_pack:dracaena_branched_01",
+   "lod": [
+    "flora_pack:dracaena_branched_01"
+   ],
+   "zones": [
+    "jungle",
+    "rocks",
+    "forest_edge"
+   ],
+   "size_m": [
+    1.7,
+    2.09,
+    1.71
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.4,
+   "cluster": 0.3,
+   "source": "KODAK/Остров/MODELS/Plants/Драцена ветвистая (древовидная)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_tree",
+    "flora_pack"
+   ],
+   "pack_id": "dracaena_branched_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.2,
+    "height": 2.0
+   }
+  },
+  {
+   "id": "flora_dracaena_branched_02",
+   "name": "Драцена ветвистая 02",
+   "category": "plant",
+   "scene": "flora_pack:dracaena_branched_02",
+   "lod": [
+    "flora_pack:dracaena_branched_02"
+   ],
+   "zones": [
+    "jungle",
+    "rocks",
+    "forest_edge"
+   ],
+   "size_m": [
+    1.12,
+    1.62,
+    0.97
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.4,
+   "cluster": 0.3,
+   "source": "KODAK/Остров/MODELS/Plants/Драцена ветвистая (древовидная)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_tree",
+    "flora_pack"
+   ],
+   "pack_id": "dracaena_branched_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.12,
+    "height": 1.62
+   }
+  },
+  {
+   "id": "flora_dracaena_branched_03",
+   "name": "Драцена ветвистая 03",
+   "category": "plant",
+   "scene": "flora_pack:dracaena_branched_03",
+   "lod": [
+    "flora_pack:dracaena_branched_03"
+   ],
+   "zones": [
+    "jungle",
+    "rocks",
+    "forest_edge"
+   ],
+   "size_m": [
+    2.6,
+    2.62,
+    1.99
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.4,
+   "cluster": 0.3,
+   "source": "KODAK/Остров/MODELS/Plants/Драцена ветвистая (древовидная)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_tree",
+    "flora_pack"
+   ],
+   "pack_id": "dracaena_branched_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.24,
+    "height": 2.0
+   }
+  },
+  {
+   "id": "flora_dracaena_fragrans_01",
+   "name": "Драцена душистая (молодая) 01",
+   "category": "plant",
+   "scene": "flora_pack:dracaena_fragrans_01",
+   "lod": [
+    "flora_pack:dracaena_fragrans_01"
+   ],
+   "zones": [
+    "jungle",
+    "forest_edge",
+    "rocks"
+   ],
+   "size_m": [
+    0.66,
+    0.48,
+    0.65
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.8,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Plants/Драцена душистая (молодая, розетка)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "flora_pack"
+   ],
+   "pack_id": "dracaena_fragrans_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.23,
+    "height": 0.5
+   }
+  },
+  {
+   "id": "flora_dracaena_fragrans_02",
+   "name": "Драцена душистая (молодая) 02",
+   "category": "plant",
+   "scene": "flora_pack:dracaena_fragrans_02",
+   "lod": [
+    "flora_pack:dracaena_fragrans_02"
+   ],
+   "zones": [
+    "jungle",
+    "forest_edge",
+    "rocks"
+   ],
+   "size_m": [
+    0.55,
+    0.37,
+    0.51
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.8,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Plants/Драцена душистая (молодая, розетка)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "flora_pack"
+   ],
+   "pack_id": "dracaena_fragrans_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.2,
+    "height": 0.5
+   }
+  },
+  {
+   "id": "flora_dracaena_fragrans_03",
+   "name": "Драцена душистая (молодая) 03",
+   "category": "plant",
+   "scene": "flora_pack:dracaena_fragrans_03",
+   "lod": [
+    "flora_pack:dracaena_fragrans_03"
+   ],
+   "zones": [
+    "jungle",
+    "forest_edge",
+    "rocks"
+   ],
+   "size_m": [
+    0.94,
+    0.66,
+    0.83
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.8,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Plants/Драцена душистая (молодая, розетка)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "flora_pack"
+   ],
+   "pack_id": "dracaena_fragrans_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.29,
+    "height": 0.66
+   }
+  },
+  {
+   "id": "flora_fern_asplenium_01",
+   "name": "Асплениум (птичье гнездо) 01",
+   "category": "plant",
+   "scene": "flora_pack:fern_asplenium_01",
+   "lod": [
+    "flora_pack:fern_asplenium_01"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "rocks"
+   ],
+   "size_m": [
+    0.92,
+    0.52,
+    1.0
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Plants/Асплениум (папоротник «птичье гнездо»)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_asplenium_01"
+  },
+  {
+   "id": "flora_fern_asplenium_02",
+   "name": "Асплениум (птичье гнездо) 02",
+   "category": "plant",
+   "scene": "flora_pack:fern_asplenium_02",
+   "lod": [
+    "flora_pack:fern_asplenium_02"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "rocks"
+   ],
+   "size_m": [
+    0.73,
+    0.35,
+    0.69
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Plants/Асплениум (папоротник «птичье гнездо»)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_asplenium_02"
+  },
+  {
+   "id": "flora_fern_asplenium_03",
+   "name": "Асплениум (птичье гнездо) 03",
+   "category": "plant",
+   "scene": "flora_pack:fern_asplenium_03",
+   "lod": [
+    "flora_pack:fern_asplenium_03"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "rocks"
+   ],
+   "size_m": [
+    1.27,
+    0.62,
+    1.21
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Plants/Асплениум (папоротник «птичье гнездо»)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_asplenium_03"
+  },
+  {
+   "id": "flora_fern_low_01",
+   "name": "Папоротник низкий 01",
+   "category": "plant",
+   "scene": "flora_pack:fern_low_01",
+   "lod": [
+    "flora_pack:fern_low_01"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "forest_edge"
+   ],
+   "size_m": [
+    0.95,
+    0.45,
+    0.92
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.6,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротник низкий",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_low_01"
+  },
+  {
+   "id": "flora_fern_low_02",
+   "name": "Папоротник низкий 02",
+   "category": "plant",
+   "scene": "flora_pack:fern_low_02",
+   "lod": [
+    "flora_pack:fern_low_02"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "forest_edge"
+   ],
+   "size_m": [
+    0.58,
+    0.36,
+    0.66
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.6,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротник низкий",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_low_02"
+  },
+  {
+   "id": "flora_fern_low_03",
+   "name": "Папоротник низкий 03",
+   "category": "plant",
+   "scene": "flora_pack:fern_low_03",
+   "lod": [
+    "flora_pack:fern_low_03"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "forest_edge"
+   ],
+   "size_m": [
+    1.13,
+    0.59,
+    1.13
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.6,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротник низкий",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_low_03"
+  },
+  {
+   "id": "flora_fern_nephrolepis_01",
+   "name": "Папоротник нефролепис 01",
+   "category": "plant",
+   "scene": "flora_pack:fern_nephrolepis_01",
+   "lod": [
+    "flora_pack:fern_nephrolepis_01"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    1.21,
+    0.53,
+    1.23
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.2,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротник нефролепис",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_nephrolepis_01"
+  },
+  {
+   "id": "flora_fern_nephrolepis_02",
+   "name": "Папоротник нефролепис 02",
+   "category": "plant",
+   "scene": "flora_pack:fern_nephrolepis_02",
+   "lod": [
+    "flora_pack:fern_nephrolepis_02"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    0.89,
+    0.36,
+    0.89
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.2,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротник нефролепис",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_nephrolepis_02"
+  },
+  {
+   "id": "flora_fern_nephrolepis_03",
+   "name": "Папоротник нефролепис 03",
+   "category": "plant",
+   "scene": "flora_pack:fern_nephrolepis_03",
+   "lod": [
+    "flora_pack:fern_nephrolepis_03"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    1.59,
+    0.7,
+    1.31
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.2,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротник нефролепис",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_nephrolepis_03"
+  },
+  {
+   "id": "flora_fern_nest_01",
+   "name": "Папоротник-гнездо 01",
+   "category": "plant",
+   "scene": "flora_pack:fern_nest_01",
+   "lod": [
+    "flora_pack:fern_nest_01"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    1.46,
+    0.58,
+    1.52
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротники",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_nest_01"
+  },
+  {
+   "id": "flora_fern_nest_02",
+   "name": "Папоротник-гнездо 02",
+   "category": "plant",
+   "scene": "flora_pack:fern_nest_02",
+   "lod": [
+    "flora_pack:fern_nest_02"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    1.05,
+    0.43,
+    1.0
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротники",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_nest_02"
+  },
+  {
+   "id": "flora_fern_nest_03",
+   "name": "Папоротник-гнездо 03",
+   "category": "plant",
+   "scene": "flora_pack:fern_nest_03",
+   "lod": [
+    "flora_pack:fern_nest_03"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    2.23,
+    0.91,
+    2.11
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротники",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_nest_03"
+  },
+  {
+   "id": "flora_fern_pinnate_small_01",
+   "name": "Папоротник перистый мелкий 01",
+   "category": "plant",
+   "scene": "flora_pack:fern_pinnate_small_01",
+   "lod": [
+    "flora_pack:fern_pinnate_small_01"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "forest_edge"
+   ],
+   "size_m": [
+    0.93,
+    0.6,
+    0.71
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.6,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротник перистый мелкий",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_pinnate_small_01"
+  },
+  {
+   "id": "flora_fern_pinnate_small_02",
+   "name": "Папоротник перистый мелкий 02",
+   "category": "plant",
+   "scene": "flora_pack:fern_pinnate_small_02",
+   "lod": [
+    "flora_pack:fern_pinnate_small_02"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "forest_edge"
+   ],
+   "size_m": [
+    0.55,
+    0.42,
+    0.48
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.6,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротник перистый мелкий",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_pinnate_small_02"
+  },
+  {
+   "id": "flora_fern_pinnate_small_03",
+   "name": "Папоротник перистый мелкий 03",
+   "category": "plant",
+   "scene": "flora_pack:fern_pinnate_small_03",
+   "lod": [
+    "flora_pack:fern_pinnate_small_03"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "forest_edge"
+   ],
+   "size_m": [
+    1.04,
+    0.66,
+    0.95
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.6,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротник перистый мелкий",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_pinnate_small_03"
+  },
+  {
+   "id": "flora_fern_pinnate_small_04",
+   "name": "Папоротник перистый мелкий 04",
+   "category": "plant",
+   "scene": "flora_pack:fern_pinnate_small_04",
+   "lod": [
+    "flora_pack:fern_pinnate_small_04"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "forest_edge"
+   ],
+   "size_m": [
+    0.81,
+    0.49,
+    0.46
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.6,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротник перистый мелкий",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_pinnate_small_04"
+  },
+  {
+   "id": "flora_fern_sword_01",
+   "name": "Папоротник мечевидный 01",
+   "category": "plant",
+   "scene": "flora_pack:fern_sword_01",
+   "lod": [
+    "flora_pack:fern_sword_01"
+   ],
+   "zones": [
+    "jungle",
+    "mangrove",
+    "lowland_forest"
+   ],
+   "size_m": [
+    1.53,
+    0.59,
+    1.57
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротники",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_sword_01"
+  },
+  {
+   "id": "flora_fern_sword_02",
+   "name": "Папоротник мечевидный 02",
+   "category": "plant",
+   "scene": "flora_pack:fern_sword_02",
+   "lod": [
+    "flora_pack:fern_sword_02"
+   ],
+   "zones": [
+    "jungle",
+    "mangrove",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.93,
+    0.36,
+    0.94
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротники",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_sword_02"
+  },
+  {
+   "id": "flora_fern_sword_03",
+   "name": "Папоротник мечевидный 03",
+   "category": "plant",
+   "scene": "flora_pack:fern_sword_03",
+   "lod": [
+    "flora_pack:fern_sword_03"
+   ],
+   "zones": [
+    "jungle",
+    "mangrove",
+    "lowland_forest"
+   ],
+   "size_m": [
+    1.98,
+    0.71,
+    1.92
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротники",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "fern",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "fern_sword_03"
+  },
+  {
+   "id": "flora_grass_curculigo_01",
+   "name": "Куркулиго (пальмовая трава) 01",
+   "category": "plant",
+   "scene": "flora_pack:grass_curculigo_01",
+   "lod": [
+    "flora_pack:grass_curculigo_01"
+   ],
+   "zones": [
+    "forest_edge",
+    "dunes",
+    "rocks",
+    "palm_belt"
+   ],
+   "size_m": [
+    1.15,
+    0.57,
+    1.07
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Куркулиго (пальмовая трава)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "grass",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "grass_curculigo_01"
+  },
+  {
+   "id": "flora_grass_curculigo_02",
+   "name": "Куркулиго (пальмовая трава) 02",
+   "category": "plant",
+   "scene": "flora_pack:grass_curculigo_02",
+   "lod": [
+    "flora_pack:grass_curculigo_02"
+   ],
+   "zones": [
+    "forest_edge",
+    "dunes",
+    "rocks",
+    "palm_belt"
+   ],
+   "size_m": [
+    0.79,
+    0.49,
+    0.78
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Куркулиго (пальмовая трава)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "grass",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "grass_curculigo_02"
+  },
+  {
+   "id": "flora_grass_curculigo_03",
+   "name": "Куркулиго (пальмовая трава) 03",
+   "category": "plant",
+   "scene": "flora_pack:grass_curculigo_03",
+   "lod": [
+    "flora_pack:grass_curculigo_03"
+   ],
+   "zones": [
+    "forest_edge",
+    "dunes",
+    "rocks",
+    "palm_belt"
+   ],
+   "size_m": [
+    1.37,
+    0.76,
+    1.53
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Куркулиго (пальмовая трава)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "grass",
+    "ground_cover",
+    "flora_pack"
+   ],
+   "pack_id": "grass_curculigo_03"
+  },
+  {
+   "id": "flora_mangrove_01",
+   "name": "Мангровое дерево 01",
+   "category": "tree",
+   "scene": "flora_pack:mangrove_01",
+   "lod": [
+    "flora_pack:mangrove_01"
+   ],
+   "zones": [
+    "mangrove"
+   ],
+   "size_m": [
+    8.4,
+    8.21,
+    6.6
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Tree/Мангры (набор)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "wet",
+    "flora_pack"
+   ],
+   "pack_id": "mangrove_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.21,
+    "height": 2.44,
+    "offset": [
+     0.22,
+     1.22,
+     -0.28
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "flora_mangrove_02",
+   "name": "Мангровое дерево 02",
+   "category": "tree",
+   "scene": "flora_pack:mangrove_02",
+   "lod": [
+    "flora_pack:mangrove_02"
+   ],
+   "zones": [
+    "mangrove"
+   ],
+   "size_m": [
+    8.46,
+    11.08,
+    8.17
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Tree/Мангры (набор)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "wet",
+    "flora_pack"
+   ],
+   "pack_id": "mangrove_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.5,
+    "height": 1.2,
+    "offset": [
+     -0.13,
+     0.6,
+     -0.05
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "flora_mangrove_03",
+   "name": "Мангровое дерево 03",
+   "category": "tree",
+   "scene": "flora_pack:mangrove_03",
+   "lod": [
+    "flora_pack:mangrove_03"
+   ],
+   "zones": [
+    "mangrove"
+   ],
+   "size_m": [
+    7.34,
+    5.1,
+    7.03
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Tree/Мангры (набор)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "wet",
+    "flora_pack"
+   ],
+   "pack_id": "mangrove_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.56,
+    "height": 1.6,
+    "offset": [
+     0.3,
+     0.8,
+     0.53
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "flora_mangrove_04",
+   "name": "Мангровое дерево 04",
+   "category": "tree",
+   "scene": "flora_pack:mangrove_04",
+   "lod": [
+    "flora_pack:mangrove_04"
+   ],
+   "zones": [
+    "mangrove"
+   ],
+   "size_m": [
+    7.02,
+    5.67,
+    5.91
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Tree/Мангры (набор)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "wet",
+    "flora_pack"
+   ],
+   "pack_id": "mangrove_04",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.55,
+    "height": 1.63,
+    "offset": [
+     -0.13,
+     0.81,
+     0.21
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "flora_mangrove_05",
+   "name": "Мангровое дерево 05",
+   "category": "tree",
+   "scene": "flora_pack:mangrove_05",
+   "lod": [
+    "flora_pack:mangrove_05"
+   ],
+   "zones": [
+    "mangrove"
+   ],
+   "size_m": [
+    8.67,
+    8.23,
+    8.25
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Tree/Мангры (набор)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "wet",
+    "flora_pack"
+   ],
+   "pack_id": "mangrove_05",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.16,
+    "height": 1.65,
+    "offset": [
+     0.56,
+     0.82,
+     0.32
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "flora_mangrove_06",
+   "name": "Мангровое дерево 06",
+   "category": "tree",
+   "scene": "flora_pack:mangrove_06",
+   "lod": [
+    "flora_pack:mangrove_06"
+   ],
+   "zones": [
+    "mangrove"
+   ],
+   "size_m": [
+    4.58,
+    4.08,
+    3.93
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Tree/Мангры (набор)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "wet",
+    "flora_pack"
+   ],
+   "pack_id": "mangrove_06",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.49,
+    "height": 1.63,
+    "offset": [
+     -0.01,
+     0.81,
+     -0.1
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "flora_mangrove_07",
+   "name": "Мангровое дерево 07",
+   "category": "tree",
+   "scene": "flora_pack:mangrove_07",
+   "lod": [
+    "flora_pack:mangrove_07"
+   ],
+   "zones": [
+    "mangrove"
+   ],
+   "size_m": [
+    7.64,
+    3.77,
+    6.04
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Tree/Мангры (набор)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "wet",
+    "flora_pack"
+   ],
+   "pack_id": "mangrove_07",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.66,
+    "height": 1.2,
+    "offset": [
+     -0.01,
+     0.6,
+     -0.09
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "flora_mangrove_08",
+   "name": "Мангровое дерево 08",
+   "category": "tree",
+   "scene": "flora_pack:mangrove_08",
+   "lod": [
+    "flora_pack:mangrove_08"
+   ],
+   "zones": [
+    "mangrove"
+   ],
+   "size_m": [
+    9.48,
+    10.19,
+    9.04
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.8,
+   "source": "KODAK/Остров/MODELS/Tree/Мангры (набор)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "wet",
+    "flora_pack"
+   ],
+   "pack_id": "mangrove_08",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.71,
+    "height": 3.0,
+    "offset": [
+     0.04,
+     1.5,
+     -0.07
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "flora_monstera_01",
+   "name": "Монстера 01",
+   "category": "plant",
+   "scene": "flora_pack:monstera_01",
+   "lod": [
+    "flora_pack:monstera_01"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    1.59,
+    0.73,
+    1.54
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.9,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Монстера",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "big_leaf",
+    "flora_pack"
+   ],
+   "pack_id": "monstera_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.54,
+    "height": 0.73
+   }
+  },
+  {
+   "id": "flora_monstera_02",
+   "name": "Монстера 02",
+   "category": "plant",
+   "scene": "flora_pack:monstera_02",
+   "lod": [
+    "flora_pack:monstera_02"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    1.49,
+    0.76,
+    1.54
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.9,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Монстера",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "big_leaf",
+    "flora_pack"
+   ],
+   "pack_id": "monstera_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.52,
+    "height": 0.76
+   }
+  },
+  {
+   "id": "flora_monstera_03",
+   "name": "Монстера 03",
+   "category": "plant",
+   "scene": "flora_pack:monstera_03",
+   "lod": [
+    "flora_pack:monstera_03"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    1.17,
+    0.51,
+    1.2
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.9,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Монстера",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "big_leaf",
+    "flora_pack"
+   ],
+   "pack_id": "monstera_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.41,
+    "height": 0.51
+   }
+  },
+  {
+   "id": "flora_monstera_04",
+   "name": "Монстера 04",
+   "category": "plant",
+   "scene": "flora_pack:monstera_04",
+   "lod": [
+    "flora_pack:monstera_04"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    1.72,
+    0.87,
+    1.84
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.9,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Монстера",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "big_leaf",
+    "flora_pack"
+   ],
+   "pack_id": "monstera_04",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.6,
+    "height": 0.87
+   }
+  },
+  {
+   "id": "flora_orchid_pink_01",
+   "name": "Орхидеи розовые 01",
+   "category": "plant",
+   "scene": "flora_pack:orchid_pink_01",
+   "lod": [
+    "flora_pack:orchid_pink_01"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.59,
+    0.79,
+    0.48
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.4,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Орхидеи розовые",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "orchid_pink_01"
+  },
+  {
+   "id": "flora_orchid_pink_02",
+   "name": "Орхидеи розовые 02",
+   "category": "plant",
+   "scene": "flora_pack:orchid_pink_02",
+   "lod": [
+    "flora_pack:orchid_pink_02"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.32,
+    0.42,
+    0.32
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.4,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Орхидеи розовые",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "orchid_pink_02"
+  },
+  {
+   "id": "flora_orchid_pink_03",
+   "name": "Орхидеи розовые 03",
+   "category": "plant",
+   "scene": "flora_pack:orchid_pink_03",
+   "lod": [
+    "flora_pack:orchid_pink_03"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.67,
+    0.86,
+    0.58
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.4,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Орхидеи розовые",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "orchid_pink_03"
+  },
+  {
+   "id": "flora_orchid_pink_04",
+   "name": "Орхидеи розовые 04",
+   "category": "plant",
+   "scene": "flora_pack:orchid_pink_04",
+   "lod": [
+    "flora_pack:orchid_pink_04"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.64,
+    0.69,
+    0.52
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.4,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Орхидеи розовые",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "orchid_pink_04"
+  },
+  {
+   "id": "flora_orchid_pink_05_epi",
+   "name": "Орхидея розовая (эпифит на стволе)",
+   "category": "plant",
+   "scene": "flora_pack:orchid_pink_05_epi",
+   "lod": [
+    "flora_pack:orchid_pink_05_epi"
+   ],
+   "zones": [
+    "jungle"
+   ],
+   "size_m": [
+    0.68,
+    0.78,
+    0.43
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.3,
+   "cluster": 0.3,
+   "source": "KODAK/Остров/MODELS/Plants/Орхидеи розовые",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "epiphyte",
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "orchid_pink_05_epi"
+  },
+  {
+   "id": "flora_orchid_white_01",
+   "name": "Орхидеи белые 01",
+   "category": "plant",
+   "scene": "flora_pack:orchid_white_01",
+   "lod": [
+    "flora_pack:orchid_white_01"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.54,
+    0.87,
+    0.67
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.4,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Орхидеи белые",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "orchid_white_01"
+  },
+  {
+   "id": "flora_orchid_white_02",
+   "name": "Орхидеи белые 02",
+   "category": "plant",
+   "scene": "flora_pack:orchid_white_02",
+   "lod": [
+    "flora_pack:orchid_white_02"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.29,
+    0.48,
+    0.45
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.4,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Орхидеи белые",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "orchid_white_02"
+  },
+  {
+   "id": "flora_orchid_white_03",
+   "name": "Орхидеи белые 03",
+   "category": "plant",
+   "scene": "flora_pack:orchid_white_03",
+   "lod": [
+    "flora_pack:orchid_white_03"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.61,
+    0.95,
+    0.68
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.4,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Орхидеи белые",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "orchid_white_03"
+  },
+  {
+   "id": "flora_orchid_white_04",
+   "name": "Орхидеи белые 04",
+   "category": "plant",
+   "scene": "flora_pack:orchid_white_04",
+   "lod": [
+    "flora_pack:orchid_white_04"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.6,
+    0.7,
+    0.48
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.4,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Орхидеи белые",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "orchid_white_04"
+  },
+  {
+   "id": "flora_orchid_white_05_epi",
+   "name": "Орхидея белая (эпифит на стволе)",
+   "category": "plant",
+   "scene": "flora_pack:orchid_white_05_epi",
+   "lod": [
+    "flora_pack:orchid_white_05_epi"
+   ],
+   "zones": [
+    "jungle"
+   ],
+   "size_m": [
+    0.61,
+    0.64,
+    0.35
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 0.3,
+   "cluster": 0.3,
+   "source": "KODAK/Остров/MODELS/Plants/Орхидеи белые",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "epiphyte",
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "orchid_white_05_epi"
+  },
+  {
+   "id": "flora_palm_01",
+   "name": "Пальма кокосовая 01",
+   "category": "tree",
+   "scene": "flora_pack:palm_01",
+   "lod": [
+    "flora_pack:palm_01"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach",
+    "forest_edge",
+    "dunes"
+   ],
+   "size_m": [
+    13.82,
+    10.57,
+    7.6
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Tree/Пальма кокосовая",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "palm",
+    "fells_seaward",
+    "flora_pack"
+   ],
+   "pack_id": "palm_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.26,
+    "height": 3.0,
+    "offset": [
+     0.02,
+     1.5,
+     -0.02
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "flora_palm_02",
+   "name": "Пальма кокосовая 02",
+   "category": "tree",
+   "scene": "flora_pack:palm_02",
+   "lod": [
+    "flora_pack:palm_02"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach",
+    "forest_edge",
+    "dunes"
+   ],
+   "size_m": [
+    10.34,
+    12.15,
+    8.05
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Tree/Пальма кокосовая",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "palm",
+    "fells_seaward",
+    "flora_pack"
+   ],
+   "pack_id": "palm_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.28,
+    "height": 3.0,
+    "offset": [
+     0.19,
+     1.5,
+     -0.01
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "flora_palm_03",
+   "name": "Пальма кокосовая 03",
+   "category": "tree",
+   "scene": "flora_pack:palm_03",
+   "lod": [
+    "flora_pack:palm_03"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach",
+    "forest_edge",
+    "dunes"
+   ],
+   "size_m": [
+    5.81,
+    8.93,
+    6.28
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Tree/Пальма кокосовая",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "palm",
+    "fells_seaward",
+    "flora_pack"
+   ],
+   "pack_id": "palm_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.18,
+    "height": 3.0,
+    "offset": [
+     -0.01,
+     1.5,
+     -0.04
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "flora_palm_04",
+   "name": "Пальма кокосовая 04",
+   "category": "tree",
+   "scene": "flora_pack:palm_04",
+   "lod": [
+    "flora_pack:palm_04"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach",
+    "forest_edge",
+    "dunes"
+   ],
+   "size_m": [
+    14.43,
+    12.65,
+    8.45
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Tree/Пальма кокосовая",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "palm",
+    "fells_seaward",
+    "flora_pack"
+   ],
+   "pack_id": "palm_04",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.3,
+    "height": 3.0,
+    "offset": [
+     0.4,
+     1.5,
+     -0.07
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "flora_palm_05",
+   "name": "Пальма кокосовая 05",
+   "category": "tree",
+   "scene": "flora_pack:palm_05",
+   "lod": [
+    "flora_pack:palm_05"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach",
+    "forest_edge",
+    "dunes"
+   ],
+   "size_m": [
+    4.83,
+    6.87,
+    4.8
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Tree/Пальма кокосовая",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "palm",
+    "fells_seaward",
+    "flora_pack"
+   ],
+   "pack_id": "palm_05",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.15,
+    "height": 3.0,
+    "offset": [
+     0.01,
+     1.5,
+     -0.03
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "flora_palm_areca_01",
+   "name": "Пальма арека 01",
+   "category": "plant",
+   "scene": "flora_pack:palm_areca_01",
+   "lod": [
+    "flora_pack:palm_areca_01"
+   ],
+   "zones": [
+    "jungle",
+    "forest_edge",
+    "palm_belt"
+   ],
+   "size_m": [
+    2.32,
+    2.02,
+    2.06
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Пальма арека (хризалидокарпус)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_palm",
+    "flora_pack"
+   ],
+   "pack_id": "palm_areca_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.25,
+    "height": 2.0
+   }
+  },
+  {
+   "id": "flora_palm_areca_02",
+   "name": "Пальма арека 02",
+   "category": "plant",
+   "scene": "flora_pack:palm_areca_02",
+   "lod": [
+    "flora_pack:palm_areca_02"
+   ],
+   "zones": [
+    "jungle",
+    "forest_edge",
+    "palm_belt"
+   ],
+   "size_m": [
+    1.8,
+    1.65,
+    1.85
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Пальма арека (хризалидокарпус)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_palm",
+    "flora_pack"
+   ],
+   "pack_id": "palm_areca_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.22,
+    "height": 1.65
+   }
+  },
+  {
+   "id": "flora_palm_areca_03",
+   "name": "Пальма арека 03",
+   "category": "plant",
+   "scene": "flora_pack:palm_areca_03",
+   "lod": [
+    "flora_pack:palm_areca_03"
+   ],
+   "zones": [
+    "jungle",
+    "forest_edge",
+    "palm_belt"
+   ],
+   "size_m": [
+    2.37,
+    2.46,
+    2.57
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Пальма арека (хризалидокарпус)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_palm",
+    "flora_pack"
+   ],
+   "pack_id": "palm_areca_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.28,
+    "height": 2.0
+   }
+  },
+  {
+   "id": "flora_palm_bush_stemless_01",
+   "name": "Пальма кустовая без ствола 01",
+   "category": "plant",
+   "scene": "flora_pack:palm_bush_stemless_01",
+   "lod": [
+    "flora_pack:palm_bush_stemless_01"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach",
+    "dunes",
+    "forest_edge"
+   ],
+   "size_m": [
+    2.74,
+    1.59,
+    2.45
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.8,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Plants/Пальма кустовая без ствола",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_palm",
+    "flora_pack"
+   ],
+   "pack_id": "palm_bush_stemless_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.86,
+    "height": 1.59
+   }
+  },
+  {
+   "id": "flora_palm_bush_stemless_02",
+   "name": "Пальма кустовая без ствола 02",
+   "category": "plant",
+   "scene": "flora_pack:palm_bush_stemless_02",
+   "lod": [
+    "flora_pack:palm_bush_stemless_02"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach",
+    "dunes",
+    "forest_edge"
+   ],
+   "size_m": [
+    1.82,
+    1.19,
+    1.79
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.8,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Plants/Пальма кустовая без ствола",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_palm",
+    "flora_pack"
+   ],
+   "pack_id": "palm_bush_stemless_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.63,
+    "height": 1.19
+   }
+  },
+  {
+   "id": "flora_palm_bush_stemless_03",
+   "name": "Пальма кустовая без ствола 03",
+   "category": "plant",
+   "scene": "flora_pack:palm_bush_stemless_03",
+   "lod": [
+    "flora_pack:palm_bush_stemless_03"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach",
+    "dunes",
+    "forest_edge"
+   ],
+   "size_m": [
+    2.99,
+    1.86,
+    2.95
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.8,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Plants/Пальма кустовая без ствола",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_palm",
+    "flora_pack"
+   ],
+   "pack_id": "palm_bush_stemless_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 1.03,
+    "height": 1.86
+   }
+  },
+  {
+   "id": "flora_palm_rhapis_01",
+   "name": "Рапис (бамбуковая пальма) 01",
+   "category": "plant",
+   "scene": "flora_pack:palm_rhapis_01",
+   "lod": [
+    "flora_pack:palm_rhapis_01"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    1.53,
+    1.88,
+    1.54
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Рапис (бамбуковая пальма)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_palm",
+    "flora_pack"
+   ],
+   "pack_id": "palm_rhapis_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.54,
+    "height": 1.88
+   }
+  },
+  {
+   "id": "flora_palm_rhapis_02",
+   "name": "Рапис (бамбуковая пальма) 02",
+   "category": "plant",
+   "scene": "flora_pack:palm_rhapis_02",
+   "lod": [
+    "flora_pack:palm_rhapis_02"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    1.11,
+    1.39,
+    1.17
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Рапис (бамбуковая пальма)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_palm",
+    "flora_pack"
+   ],
+   "pack_id": "palm_rhapis_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.39,
+    "height": 1.39
+   }
+  },
+  {
+   "id": "flora_palm_rhapis_03",
+   "name": "Рапис (бамбуковая пальма) 03",
+   "category": "plant",
+   "scene": "flora_pack:palm_rhapis_03",
+   "lod": [
+    "flora_pack:palm_rhapis_03"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    1.84,
+    2.14,
+    1.72
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Рапис (бамбуковая пальма)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_palm",
+    "flora_pack"
+   ],
+   "pack_id": "palm_rhapis_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.6,
+    "height": 2.14
+   }
+  },
+  {
+   "id": "flora_palm_short_trunk_01",
+   "name": "Пальма низкая с коротким стволом 01",
+   "category": "plant",
+   "scene": "flora_pack:palm_short_trunk_01",
+   "lod": [
+    "flora_pack:palm_short_trunk_01"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach",
+    "forest_edge"
+   ],
+   "size_m": [
+    3.26,
+    2.19,
+    3.13
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Plants/Пальма низкая с коротким стволом",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_palm",
+    "flora_pack"
+   ],
+   "pack_id": "palm_short_trunk_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.38,
+    "height": 2.0
+   }
+  },
+  {
+   "id": "flora_palm_short_trunk_02",
+   "name": "Пальма низкая с коротким стволом 02",
+   "category": "plant",
+   "scene": "flora_pack:palm_short_trunk_02",
+   "lod": [
+    "flora_pack:palm_short_trunk_02"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach",
+    "forest_edge"
+   ],
+   "size_m": [
+    2.33,
+    1.53,
+    2.24
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Plants/Пальма низкая с коротким стволом",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_palm",
+    "flora_pack"
+   ],
+   "pack_id": "palm_short_trunk_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.27,
+    "height": 1.53
+   }
+  },
+  {
+   "id": "flora_palm_short_trunk_03",
+   "name": "Пальма низкая с коротким стволом 03",
+   "category": "plant",
+   "scene": "flora_pack:palm_short_trunk_03",
+   "lod": [
+    "flora_pack:palm_short_trunk_03"
+   ],
+   "zones": [
+    "palm_belt",
+    "beach",
+    "forest_edge"
+   ],
+   "size_m": [
+    3.7,
+    2.6,
+    3.49
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.5,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Plants/Пальма низкая с коротким стволом",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "small_palm",
+    "flora_pack"
+   ],
+   "pack_id": "palm_short_trunk_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.42,
+    "height": 2.0
+   }
+  },
+  {
+   "id": "flora_sapling_umbrella_01",
+   "name": "Саженец зонтичный 01",
+   "category": "plant",
+   "scene": "flora_pack:sapling_umbrella_01",
+   "lod": [
+    "flora_pack:sapling_umbrella_01"
+   ],
+   "zones": [
+    "jungle",
+    "forest_edge",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.96,
+    0.73,
+    0.91
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.8,
+   "cluster": 0.3,
+   "source": "KODAK/Остров/MODELS/Plants/Саженец зонтичный с перистыми листьями",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "flora_pack"
+   ],
+   "pack_id": "sapling_umbrella_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.32,
+    "height": 0.73
+   }
+  },
+  {
+   "id": "flora_sapling_umbrella_02",
+   "name": "Саженец зонтичный 02",
+   "category": "plant",
+   "scene": "flora_pack:sapling_umbrella_02",
+   "lod": [
+    "flora_pack:sapling_umbrella_02"
+   ],
+   "zones": [
+    "jungle",
+    "forest_edge",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.82,
+    0.62,
+    0.8
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.8,
+   "cluster": 0.3,
+   "source": "KODAK/Остров/MODELS/Plants/Саженец зонтичный с перистыми листьями",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "flora_pack"
+   ],
+   "pack_id": "sapling_umbrella_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.28,
+    "height": 0.62
+   }
+  },
+  {
+   "id": "flora_sapling_umbrella_03",
+   "name": "Саженец зонтичный 03",
+   "category": "plant",
+   "scene": "flora_pack:sapling_umbrella_03",
+   "lod": [
+    "flora_pack:sapling_umbrella_03"
+   ],
+   "zones": [
+    "jungle",
+    "forest_edge",
+    "lowland_forest"
+   ],
+   "size_m": [
+    1.03,
+    0.84,
+    1.1
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.8,
+   "cluster": 0.3,
+   "source": "KODAK/Остров/MODELS/Plants/Саженец зонтичный с перистыми листьями",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "flora_pack"
+   ],
+   "pack_id": "sapling_umbrella_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.36,
+    "height": 0.84
+   }
+  },
+  {
+   "id": "flora_shrub_bluehibiscus_01",
+   "name": "Куст с фиолетовыми цветами 01",
+   "category": "plant",
+   "scene": "flora_pack:shrub_bluehibiscus_01",
+   "lod": [
+    "flora_pack:shrub_bluehibiscus_01"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt"
+   ],
+   "size_m": [
+    1.68,
+    1.33,
+    1.54
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Куст с фиолетовыми цветами",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "shrub",
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "shrub_bluehibiscus_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.54,
+    "height": 1.33
+   }
+  },
+  {
+   "id": "flora_shrub_bluehibiscus_02",
+   "name": "Куст с фиолетовыми цветами 02",
+   "category": "plant",
+   "scene": "flora_pack:shrub_bluehibiscus_02",
+   "lod": [
+    "flora_pack:shrub_bluehibiscus_02"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt"
+   ],
+   "size_m": [
+    0.98,
+    0.77,
+    0.97
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Куст с фиолетовыми цветами",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "shrub",
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "shrub_bluehibiscus_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.34,
+    "height": 0.77
+   }
+  },
+  {
+   "id": "flora_shrub_bluehibiscus_03",
+   "name": "Куст с фиолетовыми цветами 03",
+   "category": "plant",
+   "scene": "flora_pack:shrub_bluehibiscus_03",
+   "lod": [
+    "flora_pack:shrub_bluehibiscus_03"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt"
+   ],
+   "size_m": [
+    1.87,
+    1.88,
+    1.84
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Куст с фиолетовыми цветами",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "shrub",
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "shrub_bluehibiscus_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.64,
+    "height": 1.88
+   }
+  },
+  {
+   "id": "flora_shrub_bluehibiscus_04",
+   "name": "Куст с фиолетовыми цветами 04",
+   "category": "plant",
+   "scene": "flora_pack:shrub_bluehibiscus_04",
+   "lod": [
+    "flora_pack:shrub_bluehibiscus_04"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt"
+   ],
+   "size_m": [
+    1.16,
+    1.24,
+    1.25
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Куст с фиолетовыми цветами",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "shrub",
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "shrub_bluehibiscus_04",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.41,
+    "height": 1.24
+   }
+  },
+  {
+   "id": "flora_shrub_bluehibiscus_05",
+   "name": "Куст с фиолетовыми цветами 05",
+   "category": "plant",
+   "scene": "flora_pack:shrub_bluehibiscus_05",
+   "lod": [
+    "flora_pack:shrub_bluehibiscus_05"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt"
+   ],
+   "size_m": [
+    1.33,
+    1.29,
+    1.33
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Куст с фиолетовыми цветами",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "shrub",
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "shrub_bluehibiscus_05",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.47,
+    "height": 1.29
+   }
+  },
+  {
+   "id": "flora_shrub_ixora_01",
+   "name": "Иксора (красные цветы) 01",
+   "category": "plant",
+   "scene": "flora_pack:shrub_ixora_01",
+   "lod": [
+    "flora_pack:shrub_ixora_01"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "jungle"
+   ],
+   "size_m": [
+    1.53,
+    1.53,
+    1.52
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Иксора (красные цветы)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "shrub",
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "shrub_ixora_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.53,
+    "height": 1.53
+   }
+  },
+  {
+   "id": "flora_shrub_ixora_02",
+   "name": "Иксора (красные цветы) 02",
+   "category": "plant",
+   "scene": "flora_pack:shrub_ixora_02",
+   "lod": [
+    "flora_pack:shrub_ixora_02"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "jungle"
+   ],
+   "size_m": [
+    1.19,
+    0.94,
+    1.06
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Иксора (красные цветы)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "shrub",
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "shrub_ixora_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.37,
+    "height": 0.94
+   }
+  },
+  {
+   "id": "flora_shrub_ixora_03",
+   "name": "Иксора (красные цветы) 03",
+   "category": "plant",
+   "scene": "flora_pack:shrub_ixora_03",
+   "lod": [
+    "flora_pack:shrub_ixora_03"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "jungle"
+   ],
+   "size_m": [
+    1.9,
+    2.0,
+    1.91
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Иксора (красные цветы)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "shrub",
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "shrub_ixora_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.66,
+    "height": 2.0
+   }
+  },
+  {
+   "id": "flora_shrub_ixora_04",
+   "name": "Иксора (красные цветы) 04",
+   "category": "plant",
+   "scene": "flora_pack:shrub_ixora_04",
+   "lod": [
+    "flora_pack:shrub_ixora_04"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "jungle"
+   ],
+   "size_m": [
+    1.72,
+    1.31,
+    1.79
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Иксора (красные цветы)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "shrub",
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "shrub_ixora_04",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.6,
+    "height": 1.31
+   }
+  },
+  {
+   "id": "flora_shrub_ixora_05",
+   "name": "Иксора (красные цветы) 05",
+   "category": "plant",
+   "scene": "flora_pack:shrub_ixora_05",
+   "lod": [
+    "flora_pack:shrub_ixora_05"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "jungle"
+   ],
+   "size_m": [
+    1.28,
+    1.26,
+    1.33
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Иксора (красные цветы)",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "shrub",
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "shrub_ixora_05",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.45,
+    "height": 1.26
+   }
+  },
+  {
+   "id": "flora_shrub_smallleaf_01",
+   "name": "Кустарник мелколистный 01",
+   "category": "plant",
+   "scene": "flora_pack:shrub_smallleaf_01",
+   "lod": [
+    "flora_pack:shrub_smallleaf_01"
+   ],
+   "zones": [
+    "forest_edge",
+    "rocks",
+    "dunes",
+    "palm_belt"
+   ],
+   "size_m": [
+    1.03,
+    0.99,
+    1.04
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.9,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Кустарник мелколистный",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "shrub",
+    "flora_pack"
+   ],
+   "pack_id": "shrub_smallleaf_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.36,
+    "height": 0.99
+   }
+  },
+  {
+   "id": "flora_shrub_smallleaf_02",
+   "name": "Кустарник мелколистный 02",
+   "category": "plant",
+   "scene": "flora_pack:shrub_smallleaf_02",
+   "lod": [
+    "flora_pack:shrub_smallleaf_02"
+   ],
+   "zones": [
+    "forest_edge",
+    "rocks",
+    "dunes",
+    "palm_belt"
+   ],
+   "size_m": [
+    0.78,
+    0.7,
+    0.67
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.9,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Кустарник мелколистный",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "shrub",
+    "flora_pack"
+   ],
+   "pack_id": "shrub_smallleaf_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.23,
+    "height": 0.7
+   }
+  },
+  {
+   "id": "flora_shrub_smallleaf_03",
+   "name": "Кустарник мелколистный 03",
+   "category": "plant",
+   "scene": "flora_pack:shrub_smallleaf_03",
+   "lod": [
+    "flora_pack:shrub_smallleaf_03"
+   ],
+   "zones": [
+    "forest_edge",
+    "rocks",
+    "dunes",
+    "palm_belt"
+   ],
+   "size_m": [
+    1.29,
+    1.24,
+    1.31
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "density": 0.9,
+   "cluster": 0.5,
+   "source": "KODAK/Остров/MODELS/Plants/Кустарник мелколистный",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "shrub",
+    "flora_pack"
+   ],
+   "pack_id": "shrub_smallleaf_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.45,
+    "height": 1.24
+   }
+  },
+  {
+   "id": "flora_spathiphyllum_01",
+   "name": "Спатифиллум 01",
+   "category": "plant",
+   "scene": "flora_pack:spathiphyllum_01",
+   "lod": [
+    "flora_pack:spathiphyllum_01"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    0.75,
+    0.58,
+    0.88
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Спатифиллум",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "spathiphyllum_01"
+  },
+  {
+   "id": "flora_spathiphyllum_02",
+   "name": "Спатифиллум 02",
+   "category": "plant",
+   "scene": "flora_pack:spathiphyllum_02",
+   "lod": [
+    "flora_pack:spathiphyllum_02"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    0.87,
+    0.58,
+    0.91
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Спатифиллум",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "spathiphyllum_02"
+  },
+  {
+   "id": "flora_spathiphyllum_03",
+   "name": "Спатифиллум 03",
+   "category": "plant",
+   "scene": "flora_pack:spathiphyllum_03",
+   "lod": [
+    "flora_pack:spathiphyllum_03"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    0.73,
+    0.54,
+    0.68
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Спатифиллум",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "spathiphyllum_03"
+  },
+  {
+   "id": "flora_spathiphyllum_04",
+   "name": "Спатифиллум 04",
+   "category": "plant",
+   "scene": "flora_pack:spathiphyllum_04",
+   "lod": [
+    "flora_pack:spathiphyllum_04"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    0.8,
+    0.26,
+    0.74
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 1.0,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Спатифиллум",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "flowers",
+    "flora_pack"
+   ],
+   "pack_id": "spathiphyllum_04"
+  },
+  {
+   "id": "flora_umbrella_01",
+   "name": "Дерево с зонтичной кроной 01",
+   "category": "tree",
+   "scene": "flora_pack:umbrella_01",
+   "lod": [
+    "flora_pack:umbrella_01"
+   ],
+   "zones": [
+    "lowland_forest",
+    "forest_edge",
+    "jungle"
+   ],
+   "size_m": [
+    16.57,
+    7.66,
+    12.05
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Tree/Дерево с зонтичной кроной",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "broadleaf",
+    "flora_pack"
+   ],
+   "pack_id": "umbrella_01",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.31,
+    "height": 1.2,
+    "offset": [
+     0.08,
+     0.6,
+     0.0
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "flora_umbrella_02",
+   "name": "Дерево с зонтичной кроной 02",
+   "category": "tree",
+   "scene": "flora_pack:umbrella_02",
+   "lod": [
+    "flora_pack:umbrella_02"
+   ],
+   "zones": [
+    "lowland_forest",
+    "forest_edge",
+    "jungle"
+   ],
+   "size_m": [
+    15.7,
+    9.18,
+    13.22
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Tree/Дерево с зонтичной кроной",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "broadleaf",
+    "flora_pack"
+   ],
+   "pack_id": "umbrella_02",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.37,
+    "height": 1.98,
+    "offset": [
+     0.1,
+     0.99,
+     -0.11
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "flora_umbrella_03",
+   "name": "Дерево с зонтичной кроной 03",
+   "category": "tree",
+   "scene": "flora_pack:umbrella_03",
+   "lod": [
+    "flora_pack:umbrella_03"
+   ],
+   "zones": [
+    "lowland_forest",
+    "forest_edge",
+    "jungle"
+   ],
+   "size_m": [
+    12.07,
+    6.71,
+    13.58
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Tree/Дерево с зонтичной кроной",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "broadleaf",
+    "flora_pack"
+   ],
+   "pack_id": "umbrella_03",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.34,
+    "height": 1.02,
+    "offset": [
+     0.06,
+     0.51,
+     0.16
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "flora_umbrella_04",
+   "name": "Дерево с зонтичной кроной 04",
+   "category": "tree",
+   "scene": "flora_pack:umbrella_04",
+   "lod": [
+    "flora_pack:umbrella_04"
+   ],
+   "zones": [
+    "lowland_forest",
+    "forest_edge",
+    "jungle"
+   ],
+   "size_m": [
+    18.22,
+    9.93,
+    13.08
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Tree/Дерево с зонтичной кроной",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "broadleaf",
+    "flora_pack"
+   ],
+   "pack_id": "umbrella_04",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.38,
+    "height": 1.96,
+    "offset": [
+     0.22,
+     0.98,
+     -0.13
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "flora_umbrella_05",
+   "name": "Дерево с зонтичной кроной 05",
+   "category": "tree",
+   "scene": "flora_pack:umbrella_05",
+   "lod": [
+    "flora_pack:umbrella_05"
+   ],
+   "zones": [
+    "lowland_forest",
+    "forest_edge",
+    "jungle"
+   ],
+   "size_m": [
+    8.51,
+    5.56,
+    10.4
+   ],
+   "collision": "solid",
+   "hitbox": "capsule",
+   "density": 0.6,
+   "cluster": 0.4,
+   "source": "KODAK/Остров/MODELS/Tree/Дерево с зонтичной кроной",
+   "license": "модели пользователя (пак)",
+   "climate_ok": true,
+   "tags": [
+    "broadleaf",
+    "flora_pack"
+   ],
+   "pack_id": "umbrella_05",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.27,
+    "height": 1.1,
+    "offset": [
+     0.04,
+     0.55,
+     -0.02
+    ]
+   },
+   "hulls": "FloraPack.hulls"
+  },
+  {
+   "id": "rock_boulder_round",
+   "name": "Валун округлый",
+   "category": "rock",
+   "scene": "res://assets/user_pack/rocks/boulder_round.glb",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "beach",
+    "forest_edge",
+    "jungle"
+   ],
+   "size_m": [
+    1.0,
+    0.76,
+    0.52
+   ],
+   "collision": "solid",
+   "hitbox": "box",
+   "shape": {
+    "type": "box",
+    "size": [
+     0.85,
+     0.68,
+     0.44
+    ]
+   },
+   "density": 1.0,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Rocks",
+   "license": "модели пользователя",
+   "climate_ok": true,
+   "tags": [
+    "scalable"
+   ],
+   "note": "размер — для масштаба 1; UserRocks масштабирует"
+  },
+  {
+   "id": "rock_boulder_split",
+   "name": "Валун расколотый",
+   "category": "rock",
+   "scene": "res://assets/user_pack/rocks/boulder_split.glb",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "beach",
+    "jungle"
+   ],
+   "size_m": [
+    1.0,
+    0.92,
+    0.67
+   ],
+   "collision": "solid",
+   "hitbox": "box",
+   "shape": {
+    "type": "box",
+    "size": [
+     0.85,
+     0.83,
+     0.57
+    ]
+   },
+   "density": 1.0,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Rocks",
+   "license": "модели пользователя",
+   "climate_ok": true,
+   "tags": [
+    "scalable"
+   ],
+   "note": "размер — для масштаба 1; UserRocks масштабирует"
+  },
+  {
+   "id": "rock_rock_angular",
+   "name": "Камень угловатый",
+   "category": "rock",
+   "scene": "res://assets/user_pack/rocks/rock_angular.glb",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "jungle",
+    "forest_edge"
+   ],
+   "size_m": [
+    1.0,
+    0.81,
+    0.67
+   ],
+   "collision": "solid",
+   "hitbox": "box",
+   "shape": {
+    "type": "box",
+    "size": [
+     0.85,
+     0.73,
+     0.57
+    ]
+   },
+   "density": 1.0,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Rocks",
+   "license": "модели пользователя",
+   "climate_ok": true,
+   "tags": [
+    "scalable"
+   ],
+   "note": "размер — для масштаба 1; UserRocks масштабирует"
+  },
+  {
+   "id": "rock_rock_karst",
+   "name": "Карстовый камень",
+   "category": "rock",
+   "scene": "res://assets/user_pack/rocks/rock_karst.glb",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "reef_crest"
+   ],
+   "size_m": [
+    1.0,
+    0.93,
+    1.14
+   ],
+   "collision": "solid",
+   "hitbox": "box",
+   "shape": {
+    "type": "box",
+    "size": [
+     0.85,
+     0.84,
+     0.97
+    ]
+   },
+   "density": 1.0,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Rocks",
+   "license": "модели пользователя",
+   "climate_ok": true,
+   "tags": [
+    "scalable"
+   ],
+   "note": "размер — для масштаба 1; UserRocks масштабирует"
+  },
+  {
+   "id": "rock_rock_low",
+   "name": "Камень низкий",
+   "category": "rock",
+   "scene": "res://assets/user_pack/rocks/rock_low.glb",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "beach",
+    "dunes"
+   ],
+   "size_m": [
+    0.99,
+    1.0,
+    0.36
+   ],
+   "collision": "solid",
+   "hitbox": "box",
+   "shape": {
+    "type": "box",
+    "size": [
+     0.84,
+     0.9,
+     0.31
+    ]
+   },
+   "density": 1.0,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Rocks",
+   "license": "модели пользователя",
+   "climate_ok": true,
+   "tags": [
+    "scalable"
+   ],
+   "note": "размер — для масштаба 1; UserRocks масштабирует"
+  },
+  {
+   "id": "rock_rock_slab",
+   "name": "Плита каменная",
+   "category": "rock",
+   "scene": "res://assets/user_pack/rocks/rock_slab.glb",
+   "lod": [],
+   "zones": [
+    "rocks",
+    "beach"
+   ],
+   "size_m": [
+    0.99,
+    1.0,
+    0.32
+   ],
+   "collision": "solid",
+   "hitbox": "box",
+   "shape": {
+    "type": "box",
+    "size": [
+     0.84,
+     0.9,
+     0.27
+    ]
+   },
+   "density": 1.0,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Rocks",
+   "license": "модели пользователя",
+   "climate_ok": true,
+   "tags": [
+    "scalable"
+   ],
+   "note": "размер — для масштаба 1; UserRocks масштабирует"
+  }
+ ]
+}
