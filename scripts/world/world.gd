@@ -8,6 +8,10 @@ signal world_ready
 signal weather_changed(w: StringName)
 
 @export var seed_value: int = 2026
+## Генератор мира: 4 — прежний архипелаг (25 островов), 5 — новый (ArchipelagoV5,
+## ≈3×3 км, граф островов, барьерный риф). Переменная окружения OSTROVA_GEN
+## переопределяет (тесты). Карта зон (ZoneMap) строится для обоих.
+@export var gen_version: int = 4
 @export var start_hour: float = 8.5
 @export var tide_amplitude: float = 0.8
 @export var tide_period: float = 480.0     # секунд на цикл прилив→отлив→прилив
@@ -15,6 +19,8 @@ signal weather_changed(w: StringName)
 const SAND_TOP := 1.6
 
 var arch: Archipelago
+## Карта зон (A11): все, кто ставит что-то в мир, спрашивают её (zone_at и др.).
+var zones: ZoneMap
 var terrain: TerrainChunks
 var ocean: Ocean
 var sky: SkyWeather
@@ -28,7 +34,11 @@ var _lake_mat: StandardMaterial3D
 func _ready() -> void:
 	add_to_group(&"world")
 	var t0 := Time.get_ticks_msec()
-	arch = Archipelago.new(seed_value)
+	var gv := gen_version
+	if OS.get_environment("OSTROVA_GEN") != "":
+		gv = int(OS.get_environment("OSTROVA_GEN"))
+	gen_version = gv
+	arch = ArchipelagoV5.new(seed_value) if gv >= 5 else Archipelago.new(seed_value)
 	terrain_material = TerrainMaterial.make_tropic(0.0)
 	terrain = TerrainChunks.new()
 	terrain.name = "Terrain"
@@ -36,6 +46,9 @@ func _ready() -> void:
 	var t_arch := Time.get_ticks_msec()
 	terrain.build(arch, terrain_material)
 	var t_terr := Time.get_ticks_msec()
+	zones = ZoneMap.new()
+	zones.build(arch, Callable(), ZoneMap.make_key(seed_value, "g%d|%s" % [gen_version, str(arch.bounds)]))
+	var t_zone := Time.get_ticks_msec()
 	_make_deep_floor()
 	ocean = Ocean.new()
 	add_child(ocean)
@@ -50,7 +63,8 @@ func _ready() -> void:
 	sky.weather_changed.connect(func(w: StringName) -> void: weather_changed.emit(w))
 	build_ms = Time.get_ticks_msec() - t0
 	build_stats = {"total_ms": build_ms, "layout_ms": t_arch - t0, "terrain_ms": t_terr - t_arch,
-			"ocean_ms": t_ocean - t_terr, "terrain": terrain.stats, "islands": arch.islands.size()}
+			"zones_ms": t_zone - t_terr, "ocean_ms": t_ocean - t_zone, "terrain": terrain.stats, "islands": arch.islands.size(),
+			"gen": gen_version}
 	print("[world] построен за %d мс: %s, чанки %s" % [build_ms, str(build_stats), str(terrain.chunk_count())])
 	is_ready = true
 	world_ready.emit()
@@ -258,6 +272,34 @@ func biome_at(x: float, z: float) -> StringName:
 	if w.r > 0.5:
 		return &"jungle"
 	return &"meadow"
+
+## Зона в точке (ZoneMap.NAMES: beach, jungle, reef_crest, lagoon, …).
+func zone_at(x: float, z: float) -> StringName:
+	return zones.zone_name_at(x, z) if zones else biome_at(x, z)
+
+## Густота джунглей 0..1 (стена в центре острова).
+func jungle_density(x: float, z: float) -> float:
+	return zones.jungle_density(x, z) if zones else 0.0
+
+## Можно ли ставить морскую жизнь: открытое море (не отрезанная яма),
+## глубже min_depth даже в самый низкий отлив.
+func sea_ok(x: float, z: float, min_depth: float = 0.4) -> bool:
+	if zones:
+		return zones.water_ok(x, z, min_depth)
+	return height_at(x, z) < -tide_amplitude - min_depth
+
+## Самый низкий уровень воды (отлив без нагона).
+func low_tide_level() -> float:
+	return -tide_amplitude
+
+## Памятники генератора v5: [{type, pos: Vector3, island, yaw}].
+func monuments() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if arch is ArchipelagoV5:
+		for m in (arch as ArchipelagoV5).monuments:
+			var p: Vector2 = m.pos
+			out.append({"type": m.type, "pos": Vector3(p.x, height_at(p.x, p.y), p.y), "island": m.island, "yaw": m.yaw})
+	return out
 
 ## Текущий уровень воды (среднее 0 + прилив).
 func water_level() -> float:

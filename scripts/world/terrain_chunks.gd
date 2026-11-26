@@ -90,12 +90,14 @@ func _cache_path() -> String:
 		return ""
 	var ctx := HashingContext.new()
 	ctx.start(HashingContext.HASH_MD5)
-	ctx.update(("%s|%d|%d" % [str(arch.bounds), arch.islands.size(), _keys.size()]).to_utf8_buffer())
-	var files := DirAccess.get_files_at("res://scripts/world")
-	files.sort()
-	for f in files:
-		if f.ends_with(".gd"):
-			ctx.update(FileAccess.get_file_as_bytes("res://scripts/world/" + f))
+	ctx.update(("%s|%d|%d|%s|%s" % [str(arch.bounds), arch.islands.size(), _keys.size(), str(arch.get(&"seed_used")),
+			arch.get_script().resource_path]).to_utf8_buffer())
+	for d in ["res://scripts/world", "res://scripts/world/gen", "res://scripts/world/islands"]:
+		var files := DirAccess.get_files_at(d)
+		files.sort()
+		for f in files:
+			if f.ends_with(".gd"):
+				ctx.update(FileAccess.get_file_as_bytes(d + "/" + f))
 	var key := ctx.finish().hex_encode().substr(0, 16)
 	var dir := ProjectSettings.globalize_path("res://.godot/test_cache")
 	DirAccess.make_dir_recursive_absolute(dir)
@@ -145,7 +147,8 @@ func _job(i: int) -> void:
 		s += 4.0
 	var shallow := hmax > -9.0
 	var step := COARSE
-	if hmax > -2.5:
+	# 1 м — только там, где есть суша/линия прибоя; подводные рифы (гребень −1.2 м) — 2 м
+	if hmax > -0.6:
 		step = FINE
 	elif shallow:
 		step = MID
@@ -170,7 +173,7 @@ func _job(i: int) -> void:
 			inner[idx] = h
 			norms[idx] = Vector3(hh[(j + 1) * m + ii] - hh[(j + 1) * m + ii + 2], 2.0 * step,
 					hh[j * m + ii + 1] - hh[(j + 2) * m + ii + 1]).normalized()
-			cols[idx] = arch.biome_weights(origin.x + ii * step, origin.y + j * step, h) if h > -2.5 else Color(0, 0, 0, 0)
+			cols[idx] = arch.biome_weights(origin.x + ii * step, origin.y + j * step, h) if h > -1.0 else Color(0, 0, 0, 0)
 	out["shallow"] = shallow
 	out["step"] = step
 	out["n"] = n
