@@ -6,10 +6,11 @@ extends TestCase
 ## (по своей глубине), камера — в 3–8 м от действия, 3 кадра на сцену:
 ## tests/shots/test_sea_scenes_real_<id>_a/b/c.png. SEA_SCENES_ONLY=id1,id2 — только эти.
 
-var sb: Sandbox
+var sb: PolygonIslandStage
 
 func _init() -> void:
-	scene_path = "res://scenes/sandbox/sandbox.tscn"
+	PolygonIslandStage.island_id = "coral"
+	scene_path = "res://scenes/polygon/polygon_island.tscn"
 	timeout_sec = 5400.0
 
 func _photo(on: bool) -> void:
@@ -95,7 +96,7 @@ func _frame(s: SeaScene, view: String, k: int) -> void:
 
 func run() -> void:
 	Engine.max_physics_steps_per_frame = 30
-	sb = scene as Sandbox
+	sb = scene as PolygonIslandStage
 	var t0 := Time.get_ticks_msec()
 	while not sb.is_built and Time.get_ticks_msec() - t0 < 1200000:
 		await wait(0.5)
@@ -109,11 +110,18 @@ func run() -> void:
 	d.auto = false
 	d.stop_all()
 	var w := sb.world
-	var garden := get_tree().root.find_child("CoralGarden", true, false) as Node3D
-	var gc := Vector3.ZERO
-	if sb.zones.points.has(&"pack_corals_reef"):
-		gc = sb.zones.points[&"pack_corals_reef"].look
-	check(garden != null, "коралловый сад есть")
+	# риф у кораллового острова: от пляжа в море до глубины ~4 м
+	var b0 := sb.spawn_pos()
+	var I0: Dictionary = w.arch.islands[0]
+	var c0: Vector2 = I0.center
+	var out := (Vector2(b0.x, b0.z) - c0).normalized()
+	var gc := b0
+	for k in 120:
+		var q := Vector2(b0.x, b0.z) + out * float(k)
+		if w.height_at(q.x, q.y) < -4.0:
+			gc = Vector3(q.x, w.height_at(q.x, q.y), q.y)
+			break
+	check(gc.y < -3.0, "риф у острова: глубина %.1f м" % gc.y)
 	sb.cheats.set_fly(true)
 	_photo(true)
 	var only := OS.get_environment("SEA_SCENES_ONLY")

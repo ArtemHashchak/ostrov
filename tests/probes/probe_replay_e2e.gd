@@ -44,6 +44,6 @@ func run() -> void:
 		"видео собрано: %s (%d байт)" % [ogv, FileAccess.get_file_as_bytes(ogv).size() if FileAccess.file_exists(ogv) else 0])
 	var vs := VideoStreamTheora.new()
 	vs.file = ogv
-	var pb := vs.instantiate_playback()
+	var pb: Object = vs.instantiate_playback()
 	check(pb != null, "видео открывается проигрывателем")
 	print("[probe] видео: ", ogv)

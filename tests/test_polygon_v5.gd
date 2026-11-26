@@ -86,6 +86,9 @@ func run() -> void:
 				check(get_tree().get_nodes_in_group(&"pickups").size() >= 10, "оружие на столах")
 			&"items":
 				check(get_tree().get_nodes_in_group(&"pickups").size() >= 30, "предметы на столах (%d)" % get_tree().get_nodes_in_group(&"pickups").size())
+			&"buildings":
+				var nb := BuildModule.instance().blueprints().size() if BuildModule.instance() else 0
+				check(nb >= 14, "постройки стоят (%d, вместе с домом)" % nb)
 			&"animals":
 				var live := 0
 				for a in get_tree().get_nodes_in_group(&"wild_animals"):

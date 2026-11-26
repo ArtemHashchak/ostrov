@@ -1,6 +1,6 @@
 class_name SandboxSeaSkel
 extends RefCounted
-## Полигон, зона «Пак моделей» — морские модели со скелетом и клипами автора (SeaSkel, 2026-11-22):
+## Полигон (раздел «Море», на берегу) — морские модели со скелетом и клипами автора (SeaSkel, 2026-11-22):
 ##  * на суше: витрины в три ряда (рифовые рыбы · крупные · донные), каждая модель по кругу
 ##    показывает все свои клипы; подпись — вид, треугольники (LOD0 / LOD1), текущий клип;
 ##  * под водой у пирса: живые особи всех видов со скелетом с поведением по заданиям автора
@@ -47,7 +47,7 @@ class Showcase extends Node3D:
 			lbl.text = "%s\nклип: %s  (%d/%d)" % [head, c, i + 1, clips.size()]
 
 
-static func build(zones: SandboxZones, root: Node3D, c: Vector2) -> void:
+static func build(root: Node3D, c: Vector2) -> void:
 	var z_rows := [c.y - 17.0, c.y - 22.5, c.y - 27.5]
 	var step := 3.4
 	var placed := 0
@@ -94,71 +94,6 @@ static func build(zones: SandboxZones, root: Node3D, c: Vector2) -> void:
 			placed += 1
 	P.signpost(root, c.x - 22.0, c.y - 17.0, "МОРЕ: МОДЕЛИ СО СКЕЛЕТОМ",
 		"%d моделей автора · клипы по кругу\nпод водой у пирса — живые, с поведением" % placed)
-	zones._point(&"pack_skel_row", "Пак: море — модели со скелетом (витрины)",
-		Vector3(c.x, P.ground(c.x, c.y - 11.0) + 2.4, c.y - 11.0), Vector3(c.x, P.ground(c.x, c.y - 22.0) + 1.0, c.y - 22.0))
-
-
-## Под водой: живые особи видов со скелетом и стаи (менеджер PackSeaLive из SandboxSeaPack).
-static func build_sea(zones: SandboxZones, root: Node3D) -> void:
-	var live := root.find_child("PackSeaLive", true, false) as UserSeaActors
-	var w := zones.world
-	if live == null or w == null:
-		return
-	var I: Dictionary = w.arch.islands[0]
-	var cc: Vector2 = I.center
-	var dir := Vector2.from_angle(-PI * 0.5 + 0.45)
-	var spot := Vector2.INF
-	for st in range(40, 320, 2):
-		var q := cc + dir * float(st)
-		if P.ground(q.x, q.y) < -6.0:
-			spot = q + dir * 10.0
-			break
-	if spot.x == INF:
-		return
-	var sea: Object = live.sea
-	var wy := float(sea.call(&"water_y"))
-	var gy := float(sea.call(&"floor_at", spot.x, spot.y))
-	var n := 0
-	var sps: Array = []
-	for sp: Dictionary in OceanRoster.all_species():
-		if String(OceanRoster.visual(sp).get("kind", "")) == "skel":
-			sps.append(sp)
-	for i in sps.size():
-		var sp: Dictionary = sps[i]
-		var vs: Array = OceanRoster.visual(sp).variants
-		var a := float(i) / float(sps.size()) * TAU
-		for v in vs.size():
-			var r := 5.0 + float(v) * 1.2 + (4.0 if float(sp.get("length", 0.4)) > 1.5 else 0.0)
-			var q := spot + Vector2.from_angle(a + v * 0.25) * r
-			var fl := float(sea.call(&"floor_at", q.x, q.y))
-			var g := String(sp.get("group", ""))
-			var y := clampf(fl + 1.2 + float(sp.get("length", 0.4)) * 0.5, fl + 0.6, wy - 0.8)
-			if g in ["crustacean", "echinoderm"]:
-				y = fl + 0.02
-			elif String(sp.id) == "moray":
-				y = fl + 0.12
-			SeaSkel.next_variant = v
-			var c := live.spawn_critter(sp, Vector3(q.x, y, q.y))
-			if c:
-				n += 1
-				if String(sp.id) in ["dolphin", "manta"]:
-					c.wander(Vector3(spot.x, clampf(gy + 3.0, gy + 2.0, wy - 1.5), spot.y), 12.0)
-	# стаи: сардины (VAT) и хирурги — на сцене-подставке, тик — её
-	var stage := SeaScene.new()
-	stage.name = "PackSkelSchools"
-	stage.sea = sea
-	stage.duration = -1.0
-	root.add_child(stage)
-	var cy := clampf(gy + 2.5, gy + 1.5, wy - 1.2)
-	var s1 := stage.school("baitfish", 60, Vector3(spot.x + 6.0, cy, spot.y - 4.0), 1.8)
-	s1.mill(s1.center, 1.8)
-	var s2 := stage.school("surgeonfish", 14, Vector3(spot.x - 6.0, cy - 0.5, spot.y + 3.0), 1.4)
-	s2.cruise_to(s2.center + Vector3(2, 0, 2))
-	var tk := Ticker.new()
-	tk.stage = stage
-	stage.add_child(tk)
-	zones._point(&"pack_skel_sea", "Пак: море — модели со скелетом (под водой, %d особей)" % n,
-		Vector3(spot.x - dir.x * 9.0, clampf(gy + 2.5, gy + 1.2, wy - 1.2), spot.y - dir.y * 9.0), Vector3(spot.x, gy + 1.5, spot.y))
 
 
 ## Тик стай витрины (вне режиссёра сцен; duration = 0 — без конца).

@@ -3,10 +3,11 @@ extends TestCase
 ## в ясную погоду, в дождь и в шторм; серия кадров при ходьбе (нет «выскакивания»).
 ## Снимки: tests/shots/test_view_distance_*.png
 
-var sb: Sandbox
+var sb: PolygonIslandStage
 
 func _init() -> void:
-	scene_path = "res://scenes/sandbox/sandbox.tscn"
+	PolygonIslandStage.island_id = "archipelago_match"
+	scene_path = "res://scenes/polygon/polygon_island.tscn"
 	timeout_sec = 3500.0
 
 func _stats() -> String:
@@ -18,22 +19,21 @@ func _stats() -> String:
 
 func run() -> void:
 	Engine.max_physics_steps_per_frame = 30
-	sb = scene as Sandbox
+	sb = scene as PolygonIslandStage
 	var t0 := Time.get_ticks_msec()
 	while not sb.is_built and Time.get_ticks_msec() - t0 < 1200000:
 		await wait(0.5)
 	check(sb.is_built, "полигон собран")
 	if not sb.is_built:
 		return
-	var z := sb.zones
-	var hub: Vector3 = z.points[&"hub"].pos
+	var hub: Vector3 = sb.spawn_pos()
 	sb.cheats.set_time(10.0)
 	for wname: StringName in [&"clear", &"rain", &"storm"]:
 		sb.cheats.set_weather(wname)
 		await wait(2.0)
 		# уровень глаз: в центре, взгляд к морю/горизонту в двух направлениях
 		sb.cheats.set_fly(false)
-		sb.panel.go(&"hub")
+		sb.cheats.teleport(hub)
 		await wait(2.0)
 		for i in 2:
 			var dir := Vector3(-1, 0, -0.3).normalized() if i == 0 else Vector3(0.6, 0, 1).normalized()

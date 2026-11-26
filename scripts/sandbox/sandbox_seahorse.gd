@@ -1,6 +1,6 @@
 class_name SandboxSeahorse
 extends RefCounted
-## Полигон, зона «Пак моделей» — морской конёк (модель автора, 3 расцветки; скелет и клипы
+## Полигон (раздел «Море», у начала пирса) — морской конёк (модель автора, 3 расцветки; скелет и клипы
 ## процедурные, см. tools/seahorse/build_seahorse.py):
 ##  * на суше (за рядами моделей со скелетом): три конька на тумбах держатся хвостом за лист травы /
 ##    веточку коралла (поза grip, по очереди кормятся и косятся глазами), четвёртый — все клипы по кругу;
@@ -39,7 +39,7 @@ class Clinger extends Node3D:
 			lbl.text = "%s\nклип: %s" % [head, s._cur]
 
 
-static func build(zones: SandboxZones, root: Node3D, c: Vector2) -> void:
+static func build(root: Node3D, c: Vector2) -> void:
 	var have := IDS.filter(func(i: String) -> bool: return SeaSkel.has(i))
 	if have.is_empty():
 		return
@@ -95,8 +95,6 @@ static func build(zones: SandboxZones, root: Node3D, c: Vector2) -> void:
 			sc.lbl = P.label(root, Vector3(x, top + hb + 0.75, z), sc.head, 20, P.SIGN_COLOR, 26.0)
 	P.signpost(root, c.x - 9.5, z, "МОРСКОЙ КОНЁК",
 		"модель автора как есть, 3 расцветки\nскелет и клипы — процедурные:\nзависание, плавник, хвост держится,\nкормёжка, глаза, испуг")
-	zones._point(&"pack_seahorse", "Пак: морской конёк (держится хвостом за траву)",
-		Vector3(c.x, P.ground(c.x, z + 5.0) + 1.9, z + 5.0), Vector3(c.x, P.ground(c.x, z) + 1.3, z))
 
 
 static func _n(i: int) -> String:

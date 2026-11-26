@@ -12,7 +12,7 @@ var player: Player
 var fly := false
 var god := true
 var infinite := true
-var zones: SandboxZones
+var zones: Node                 # раскладка зон старого полигона (больше нет); оставлено для совместимости
 var world: World
 ## Ветер, заданный ползунком в меню (м/с); < 0 — как у погоды.
 var wind_override := -1.0
@@ -86,7 +86,7 @@ func set_infinite(on: bool, quiet: bool = false) -> void:
 	if on and player:
 		_take_snapshot()
 	if zones:
-		zones.infinite_tables = on
+		zones.set(&"infinite_tables", on)
 	if not quiet:
 		_toast("Бесконечные предметы: вкл" if on else "Бесконечные предметы: выкл")
 	changed.emit()

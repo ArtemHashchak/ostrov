@@ -54,7 +54,7 @@ const HELP := {
 	"clear": "clear [радиус] — убрать всё, что создано консолью (0/пусто — всё)",
 	"tame": "tame <вид> [радиус] — приручить ближайших (если вид приручается)",
 	"count": "count — сколько живых существ (всего и созданных консолью, по видам)",
-	"tp": "tp <x> <z> | tp <зона> — телепорт (зоны — как в меню полигона)",
+	"tp": "tp <x> <z> | tp <раздел> — телепорт (разделы — как в меню полигона: животные, птицы, море…)",
 	"time": "time [часы] — время суток (без аргумента — показать)",
 	"weather": "weather [ясно|облачно|дождь|гроза|туман] — погода",
 	"god": "god — бессмертие вкл/выкл",
@@ -128,11 +128,6 @@ func _sandbox() -> Node:
 	var pg := get_tree().get_first_node_in_group(&"polygon")
 	if pg:
 		return pg
-	if cs is Sandbox:
-		return cs
-	for c in get_tree().root.get_children():
-		if c is Sandbox:
-			return c
 	return null
 
 func enabled() -> bool:
@@ -298,11 +293,11 @@ func completions(line: String) -> PackedStringArray:
 				if c.begins_with(w2):
 					out.append(c)
 		"tp":
-			var zs := _zones()
-			if zs:
-				for id: Variant in zs.points:
-					if String(id).begins_with(w2):
-						out.append(String(id))
+			if _sandbox() is Polygon:
+				for s0: Dictionary in PolygonLayout.get_layout().sections:
+					var nm := String(s0.name).to_lower()
+					if nm.begins_with(w2):
+						out.append(nm)
 		"help":
 			for c: String in CMDS:
 				if c.begins_with(w2):
@@ -538,10 +533,6 @@ func _c_count() -> String:
 	return "Живых животных в мире: %d. Создано консолью: %d%s" % [
 		fa.living_count() if fa else 0, cs.live_count(), (" — " + ", ".join(parts)) if not parts.is_empty() else ""]
 
-func _zones() -> SandboxZones:
-	var sb := _sandbox()
-	return sb.get(&"zones") as SandboxZones if sb else null
-
 func _c_tp(args: PackedStringArray) -> String:
 	if args.size() >= 2 and args[0].is_valid_float() and args[1].is_valid_float():
 		var x := float(args[0])
@@ -566,18 +557,7 @@ func _c_tp(args: PackedStringArray) -> String:
 				pg.goto_section(s0.id)
 				return "Телепорт: " + String(s0.name)
 		return "!Нет раздела «%s». tp — список." % q0
-	var zs := _zones()
-	if zs == null:
-		return "!tp <x> <z> (зоны — только на полигоне)"
-	if args.is_empty():
-		return "Зоны: " + ", ".join(PackedStringArray(zs.points.keys().map(func(k: Variant) -> String: return String(k))))
-	var q := " ".join(args).to_lower()
-	for id: Variant in zs.points:
-		var pt: Dictionary = zs.points[id]
-		if String(id).to_lower().begins_with(q) or String(pt.get("name", "")).to_lower().begins_with(q):
-			_teleport(pt.pos, pt.get("look"))
-			return "Телепорт: " + String(pt.get("name", id))
-	return "!Нет зоны «%s». tp — список." % q
+	return "!tp <x> <z> (разделы — только в музее полигона)"
 
 func _teleport(pos: Vector3, look: Variant = null) -> void:
 	var sb := _sandbox()

@@ -72,12 +72,13 @@ static func compute(exhibits: Array) -> Dictionary:
 		z = cz + BAND_GAP
 		sections.append(sec)
 	# море: берег, пирс с аквариумами по обе стороны, вольеры-сетки за концом пирса
-	var zc := z + 6.0
+	# 48 м суши перед берегом: витрины морских моделей со скелетом и морского конька
+	var zc := z + 48.0
 	var sea_list: Array = by_sec[&"sea"]
 	var per_side := ceili(sea_list.size() / 2.0)
 	var pier_len := maxf(30.0, per_side * PIER_TANK_STEP + 12.0)
 	var sea := {"id": &"sea", "name": "Море", "z0": z, "stands": [], "plots": [], "tables": [], "count": sea_list.size(),
-		"title": Vector2(-12.0, zc - 8.0), "pier_start": Vector2(0.0, zc - 3.0), "pier_len": pier_len}
+		"title": Vector2(-12.0, z + 4.0), "pier_start": Vector2(0.0, zc - 3.0), "pier_len": pier_len}
 	for i in sea_list.size():
 		var side := -1.0 if i % 2 == 0 else 1.0
 		var k := i / 2

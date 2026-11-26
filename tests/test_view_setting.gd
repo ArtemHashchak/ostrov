@@ -3,10 +3,11 @@ extends TestCase
 ## применение на лету, дальности рельефа/деревьев/предметов и туман по границе.
 ## Снимки с уровня глаз и с 40 м: tests/shots/test_view_setting_*.png
 
-var sb: Sandbox
+var sb: PolygonIslandStage
 
 func _init() -> void:
-	scene_path = "res://scenes/sandbox/sandbox.tscn"
+	PolygonIslandStage.island_id = "archipelago_match"
+	scene_path = "res://scenes/polygon/polygon_island.tscn"
 	timeout_sec = 3500.0
 
 func _stats() -> String:
@@ -30,7 +31,7 @@ func _max_end(group: StringName) -> float:
 
 func run() -> void:
 	Engine.max_physics_steps_per_frame = 30
-	sb = scene as Sandbox
+	sb = scene as PolygonIslandStage
 	var t0 := Time.get_ticks_msec()
 	while not sb.is_built and Time.get_ticks_msec() - t0 < 1200000:
 		await wait(0.5)
@@ -43,8 +44,7 @@ func run() -> void:
 	Settings.view_distance = 0.0
 	Settings.apply_view()
 	check(is_equal_approx(ViewDistance.meters(), ViewDistance.PRESET_DEFAULT[Settings.graphics_quality]), "авто = значение пресета")
-	var z := sb.zones
-	var hub: Vector3 = z.points[&"hub"].pos
+	var hub: Vector3 = sb.spawn_pos()
 	sb.cheats.set_time(10.0)
 	sb.cheats.set_weather(&"clear")
 	await wait(2.0)
@@ -68,7 +68,7 @@ func run() -> void:
 			check(env.fog_mode == Environment.FOG_MODE_EXPONENTIAL, "max: только погодный туман")
 		# уровень глаз — на море/горизонт
 		sb.cheats.set_fly(false)
-		sb.panel.go(&"hub")
+		sb.cheats.teleport(hub)
 		await wait(2.0)
 		var p := sb.player.global_position
 		sb.cheats.teleport(p, p + Vector3(-1, 0, -0.3).normalized() * 100.0)

@@ -4,10 +4,10 @@ extends TestCase
 ## (партиями, счёт сходится), морские виды — настоящие особи в воде, kill/clear, лимиты,
 ## автодополнение, «Каталог существ» полигона. Пишет время кадра со 100 крабами.
 
-var sb: Sandbox
+var sb: Polygon
 
 func _init() -> void:
-	scene_path = "res://scenes/sandbox/sandbox.tscn"
+	scene_path = "res://scenes/polygon/polygon.tscn"
 	timeout_sec = 900.0
 
 func _frame_ms(n: int) -> float:
@@ -19,7 +19,7 @@ func _frame_ms(n: int) -> float:
 
 func run() -> void:
 	Engine.max_physics_steps_per_frame = 30
-	sb = scene as Sandbox
+	sb = scene as Polygon
 	var t0 := Time.get_ticks_msec()
 	while not sb.is_built and Time.get_ticks_msec() - t0 < 600000:
 		await wait(0.5)
@@ -54,7 +54,8 @@ func run() -> void:
 
 	# ---- 100 крабов у прицела
 	var p := sb.player
-	var beach: Vector3 = sb.zones.points[&"beach"].pos if sb.zones.points.has(&"beach") else p.global_position
+	var ps0: Vector2 = PolygonLayout.section(&"sea").pier_start
+	var beach := Vector3(ps0.x + 8.0, SandboxProps.ground(ps0.x + 8.0, ps0.y - 5.0) + 0.3, ps0.y - 5.0)
 	sb.cheats.teleport(beach)
 	con.call(&"execute", "time 13")
 	p.look(Vector2(0.0, 0.5))      # взгляд под ноги — крабы в кадре
@@ -100,7 +101,7 @@ func run() -> void:
 	for d in CreatureSpawner.all_species("sea"):
 		if d.src in ["roster", "pack"] and sea_ids.size() < 6:
 			sea_ids.append(String(d.id))
-	var pier: Vector3 = sb.zones.points[&"pier"].pos if sb.zones.points.has(&"pier") else beach
+	var pier := Vector3(ps0.x, 1.5, ps0.y + 8.0)
 	var wy := cs._water()
 	var made := 0
 	var in_water := 0

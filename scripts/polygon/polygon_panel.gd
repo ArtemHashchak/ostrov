@@ -11,6 +11,9 @@ var tabs: TabContainer
 var _anim_box: VBoxContainer
 var _anim_target: Label
 var _catalog: SandboxCatalog
+var catalog: SandboxCatalog:
+	get:
+		return _catalog
 var _status: Label
 var _tide: HSlider
 
@@ -345,6 +348,19 @@ func open() -> void:
 		var w: Object = _world()
 		if w and w.get(&"tide_offset") != null:
 			_tide.set_value_no_signal(float(w.get(&"tide_offset")))
+
+## Совместимость со старым меню (консоль, тесты).
+func open_panel() -> void:
+	open()
+
+func close_panel() -> void:
+	close()
+	if _catalog:
+		_catalog.visible = false
+
+func open_catalog() -> void:
+	if _catalog:
+		_catalog.open()
 
 func close() -> void:
 	visible = false

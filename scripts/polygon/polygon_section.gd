@@ -529,6 +529,10 @@ func _sea() -> void:
 	for st: Dictionary in sec.stands:
 		var p: Vector2 = st.pos
 		_tank(p)
+	# морской конёк на тумбах (держится хвостом за траву, все клипы) — у начала пирса на берегу
+	SandboxSeahorse.build(self, Vector2(ps.x + 40.0, float(sec.coast) - 8.0))
+	# морские модели со скелетом: витрины, каждая по кругу показывает все клипы автора
+	SandboxSeaSkel.build(self, Vector2(ps.x - 40.0, float(sec.coast) + 8.0))
 	# мост из связок брёвен от берега (секции, ворота)
 	var bm := BuildModule.instance()
 	if bm:
