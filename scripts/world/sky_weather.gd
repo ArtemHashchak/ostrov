@@ -82,6 +82,8 @@ var _cloud_off := Vector2.ZERO
 var _wfx_t := 0.0
 var screen_fx: ScreenFx
 var _rain_recent := 0.0
+var rock_spray: RockSpray
+var storm_debris: StormDebris
 var _push := {}          # id -> Vector3 (сглаженная позиция для раздвигания растений)
 var _scenario: StringName = &""
 var _stage := -1
@@ -419,6 +421,17 @@ func update(dt: float, cam: Camera3D, water_surface_at_cam: float) -> void:
 			_underwater_fog(cam.global_position.y, water_surface_at_cam)
 		_update_screen_fx(dt, cam)
 		_update_plant_push(dt, cam)
+		if rock_spray == null:
+			rock_spray = RockSpray.new()
+			rock_spray.name = "RockSpray"
+			add_child(rock_spray)
+		if not _underwater:
+			rock_spray.update_spray(dt, get_parent(), cam, float(_cur.get("storm", 0.0)))
+		if storm_debris == null:
+			storm_debris = StormDebris.new()
+			storm_debris.name = "StormDebrisRoot"
+			add_child(storm_debris)
+		storm_debris.update_debris(dt, get_parent(), cam, float(_cur.get("storm", 0.0)))
 		WetBody.update(get_tree(), dt, float(_cur.get("rain", 0.0)), daylight() * clampf(float(_cur.get("sun", 1.0)), 0.0, 1.0), _wind_speed, cam)
 		var cp := cam.global_position
 		var w := get_parent()

@@ -100,6 +100,40 @@ func run() -> void:
 	check(WetBody.of(a) > 0.5, "под дождём мокнет (%.2f)" % WetBody.of(a))
 	a.queue_free()
 
+	# ---- брызги о скалы: на скалистом берегу находятся точки удара волны
+	var rs := RockSpray.new()
+	scene.add_child(rs)
+	var found := 0
+	for I in w.islands():
+		var c: Vector2 = I.center
+		var R: float = I.radius
+		for k in 16:
+			var ang := TAU * k / 16.0
+			var q := c + Vector2(cos(ang), sin(ang)) * R
+			var cam := Camera3D.new()
+			scene.add_child(cam)
+			cam.global_position = Vector3(q.x, 3.0, q.y)
+			rs._scan_t = 99.0
+			rs.update_spray(0.016, w, cam, 1.0)
+			cam.queue_free()
+			found = maxi(found, rs.points())
+			if found > 0:
+				break
+		if found > 0:
+			break
+	print("[test] точек брызг у скал: %d" % found)
+	check(found > 0, "на скалистом берегу есть точки брызг (%d)" % found)
+	rs.queue_free()
+
+	# ---- валежник после шторма
+	var sd := StormDebris.new()
+	scene.add_child(sd)
+	var I0: Dictionary = w.islands()[0]
+	var c0: Vector2 = I0.center
+	sd.scatter_now(w, Vector3(c0.x, 0, c0.y))
+	check(sd.count() > 10, "после шторма на суше валежник (%d)" % sd.count())
+	sd.queue_free()
+
 	# ---- луна
 	var mi := sky.moon_illumination()
 	check(mi >= 0.0 and mi <= 1.0, "фаза луны 0..1 (%.2f)" % mi)
