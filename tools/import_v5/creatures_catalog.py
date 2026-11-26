@@ -62,15 +62,33 @@ items = [e("item_flashlight", "Фонарик", "item", U + "items/item_flashlig
          e("item_lighter", "Зажигалка", "item", U + "items/item_lighter.glb", (0.04, 0.05, 0.015), [], "Предметы/Зажигалка (как Zippo)", item="lighter", tags=["v5"]),
          e("food_meat_skewer", "Жареное мясо на шпажке", "food", U + "items/item_meat_skewer.glb", (0.03, 0.15, 0.02), [], "Еда/Мясо на шпажке", item="meat_cooked", tags=["v5"]),
          e("item_dried_fish", "Сушёная рыба", "food", U + "items/item_dried_fish.glb", (0.3, 0.5, 0.1), [], "Прочее/Сушёная рыба (готовая модель)", item="smoked_fish"),
+         e("ammo_box_762", "Патроны 7,62×39 (коробка)", "item", U + "items/ammo/ammo_box_762.glb", (0.07, 0.1, 0.09), [], "Оружие/Патроны и реквизит (Unreal, готовая модель)", item="rifle_ammo", tags=["v5"]),
+         e("ammo_box_9mm", "Патроны 9 мм (коробка)", "item", U + "items/ammo/ammo_box_9mm.glb", (0.07, 0.12, 0.03), [], "Оружие/Патроны и реквизит (Unreal, готовая модель)", item="ammo_9mm", tags=["v5"]),
+         e("ammo_box_12g", "Патроны 12 калибра (коробка)", "item", U + "items/ammo/ammo_box_12g.glb", (0.11, 0.13, 0.17), [], "Оружие/Патроны и реквизит (Unreal, готовая модель)", item="shotgun_shell", tags=["v5"]),
+         e("round_762x39", "Патрон 7,62×39", "item", U + "items/ammo/round_762x39.glb", (0.011, 0.011, 0.058), [], "Оружие/Патроны и реквизит (Unreal, готовая модель)", tags=["v5", "round"]),
+         e("case_762x39", "Гильза 7,62×39", "item", U + "items/ammo/round_762x39s.glb", (0.011, 0.011, 0.04), [], "Оружие/Патроны и реквизит (Unreal, готовая модель)", tags=["v5", "casing"]),
+         e("round_9mm", "Патрон 9 мм", "item", U + "items/ammo/round_9mm.glb", (0.01, 0.01, 0.029), [], "Оружие/Патроны и реквизит (Unreal, готовая модель)", tags=["v5", "round"]),
+         e("case_9mm", "Гильза 9 мм", "item", U + "items/ammo/round_9mms.glb", (0.01, 0.01, 0.019), [], "Оружие/Патроны и реквизит (Unreal, готовая модель)", tags=["v5", "casing"]),
+         e("round_12x70", "Патрон 12/70", "item", U + "items/ammo/round_12x70.glb", (0.026, 0.026, 0.069), [], "Оружие/Патроны и реквизит (Unreal, готовая модель)", tags=["v5", "round"]),
+         e("case_12x70", "Гильза 12/70", "item", U + "items/ammo/round_12x70s.glb", (0.026, 0.026, 0.076), [], "Оружие/Патроны и реквизит (Unreal, готовая модель)", tags=["v5", "casing"]),
+         e("item_turtle_egg", "Черепашье яйцо", "food", U + "items/item_turtle_egg.glb", (0.05, 0.05, 0.05), ["beach"], "Еда/Яйцо (процедурное)", item="turtle_egg", tags=["v5"]),
+         e("item_egg", "Птичье яйцо", "food", U + "items/item_egg.glb", (0.04, 0.057, 0.04), ["jungle", "rocks"], "Еда/Яйцо (процедурное)", tags=["v5"]),
+         e("item_tourniquet", "Жгут-турникет", "item", U + "items/item_tourniquet.glb", (0.04, 0.16, 0.03), [], "Предметы/Медицина/Турникет", tags=["v5", "medical"], note="текстур в архиве автора нет (там текстуры банана) — простые материалы"),
+         e("item_wooden_crate", "Деревянный ящик", "item", U + "items/item_wooden_crate.glb", (1.0, 0.41, 0.41), ["beach"], "Предметы/Ящик деревянный", collision="solid", tags=["v5", "container"]),
+         e("item_sticks", "Палки (9 штук)", "item", U + "items/item_sticks.glb", (1.2, 0.07, 0.5), ["jungle", "lowland_forest", "forest_edge"], "Предметы/Палки (ресурс)", item="stick", tags=["v5", "resource"]),
+         e("item_stick", "Палка", "item", U + "items/item_stick.glb", (0.07, 0.46, 0.03), ["jungle", "lowland_forest"], "Предметы/Палки (ресурс)", item="stick", tags=["v5", "resource"]),
          e("item_shell_junonia", "Ракушка", "item", U + "items/item_shell_junonia.glb", (0.1, 0.05, 0.05), ["beach"], "SEA/Ракушки/Юнония (готовая модель)", item="seashell")]
 weapons = [e("weapon_ak47", "АК-47", "weapon", U + "weapons/ak47/weapon_ak47.glb", (0.05, 0.25, 0.88), [], "Оружие/Автомат АК-47", item="rifle",
              parts=["BoltCarrier", "Trigger", "Selector", "Magazine"], sockets=["muzzle", "ejection_port", "ads_anchor", "Mag", "Forend"], tags=["v5", "contract_3"]),
            e("weapon_machete", "Мачете", "weapon", U + "weapons/melee/weapon_machete.glb", (0.02, 0.67, 0.09), [], "Оружие/Мачете", item="machete", tags=["v5"]),
            e("weapon_axe", "Топор", "weapon", U + "weapons/melee/weapon_axe.glb", (0.07, 0.7, 0.24), [], "Оружие/Топор", item="axe_modern", tags=["v5"]),
            e("weapon_knife", "Нож", "weapon", U + "weapons/melee/weapon_knife.glb", (0.07, 0.3, 0.11), [], "Оружие/Нож", item="knife_combat", tags=["v5"])]
+weapons.append(e("weapon_beretta_pmx", "Пистолет-пулемёт Beretta PMX", "weapon", U + "weapons/pmx/weapon_beretta_pmx.glb", (0.07, 0.29, 0.64), [], "Оружие/Пистолет Beretta",
+                  parts=["Receiver", "Magazine"], note="это пистолет-пулемёт (SMG), не пистолет 9 мм — предмета пока нет", tags=["v5", "smg"]))
 characters = [e("character_male", "Участник шоу (мужчина)", "character", U + "characters/character_male.glb", (0.6, 1.79, 0.36), [], "Персонажи/Мужчина (модель с анимациями)",
                 clips=["idle", "walk", "run", "jump", "death"], rig="mixamo", tags=["v5", "bots", "player_body"])]
-vehicles = []
+vehicles = [e("vehicle_wooden_boat", "Деревянная лодка", "vehicle", U + "vehicles/vehicle_wooden_boat.glb", (3.9, 2.9, 6.6), ["beach", "lagoon"], "Транспорт/Лодка деревянная",
+                collision="solid", tags=["v5", "boat", "sail"], note="free model, game piggs creators")]
 OUT = "assets/catalog"
 os.makedirs(OUT, exist_ok=True)
 for fn, arr in [("creatures", creatures), ("sea", sea), ("items", items), ("weapons", weapons), ("characters", characters), ("vehicles", vehicles)]:

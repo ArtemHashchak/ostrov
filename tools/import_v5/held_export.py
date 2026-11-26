@@ -43,12 +43,25 @@ fr = (fr - al * fr.dot(al)).normalized(); x = fr.cross(al)
 R = Matrix((x, fr, al)).to_4x4()   # строки — новые оси в старых координатах
 s = float(job.get("scale", 1.0))
 g = Vector(job.get("grip", (0, 0, 0)))
+if job.get("grip_auto"):   # точка хвата — центр габарита по поперечным осям, вдоль оси «along» — доля от низа
+    vs_all = [m.matrix_world @ v.co for m in meshes for v in m.data.vertices]
+    lo = Vector([min(v[i] for v in vs_all) for i in range(3)]); hi = Vector([max(v[i] for v in vs_all) for i in range(3)])
+    c = (lo + hi) * 0.5; ax = Vector(job["along"]).normalized()
+    k = float(job["grip_auto"]); span = (hi - lo)
+    along_len = abs(span.dot(ax)); g = c - ax * along_len * (0.5 - k)
 M = Matrix.Scale(s, 4) @ R @ Matrix.Translation(-g)
 for o in meshes:
     o.data.transform(M); o.data.update()
-if len(meshes) > 1:
+if job.get("separate"):
+    # детали остаются отдельными узлами (магазин и т. п.); переименование: {"старое": "новое"}
+    for old, new in job.get("rename", {}).items():
+        if old in bpy.data.objects: bpy.data.objects[old].name = new
+    o = meshes[0]
+elif len(meshes) > 1:
     bpy.ops.object.join()
-o = bpy.context.view_layer.objects.active; o.name = job.get("name", "Model")
+    o = bpy.context.view_layer.objects.active; o.name = job.get("name", "Model")
+else:
+    o = meshes[0]; o.name = job.get("name", "Model")
 tm = int(job.get("tex_max", 1024))
 for im in bpy.data.images:
     if im.size[0] > tm or im.size[1] > tm:
@@ -72,12 +85,16 @@ for mname, spec in job.get("materials", {}).items():
         if "base" in spec: nt.links.new(tex_node(nt, os.path.join(d, spec["base"])).outputs[0], b.inputs["Base Color"])
         if "rough" in spec: nt.links.new(tex_node(nt, os.path.join(d, spec["rough"]), True).outputs[0], b.inputs["Roughness"])
         if "metal" in spec: nt.links.new(tex_node(nt, os.path.join(d, spec["metal"]), True).outputs[0], b.inputs["Metallic"])
+        if "orm" in spec:   # упакованная карта UE: R — AO, G — шероховатость, B — металл
+            t = tex_node(nt, os.path.join(d, spec["orm"]), True); sp = nt.nodes.new("ShaderNodeSeparateColor")
+            nt.links.new(t.outputs[0], sp.inputs[0])
+            nt.links.new(sp.outputs[1], b.inputs["Roughness"]); nt.links.new(sp.outputs[2], b.inputs["Metallic"])
         if "normal" in spec:
             nm = nt.nodes.new("ShaderNodeNormalMap")
             nt.links.new(tex_node(nt, os.path.join(d, spec["normal"]), True).outputs[0], nm.inputs["Color"])
             nt.links.new(nm.outputs[0], b.inputs["Normal"])
 os.makedirs(os.path.dirname(job["out"]), exist_ok=True)
 bpy.ops.export_scene.gltf(filepath=job["out"], export_format='GLB', export_animations=False, export_yup=True)
-vs = [v.co for v in o.data.vertices]
+vs = [v.co for m in meshes for v in m.data.vertices]
 print("BOUNDS", [round(min(v[i] for v in vs), 3) for i in range(3)], [round(max(v[i] for v in vs), 3) for i in range(3)])
 print("EXPORTED", job["out"], os.path.getsize(job["out"]))

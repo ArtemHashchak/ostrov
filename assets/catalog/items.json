@@ -125,6 +125,382 @@
    "item": "smoked_fish"
   },
   {
+   "id": "ammo_box_762",
+   "name": "Патроны 7,62×39 (коробка)",
+   "category": "item",
+   "scene": "res://assets/user_pack/items/ammo/ammo_box_762.glb",
+   "lod": [],
+   "zones": [],
+   "size_m": [
+    0.07,
+    0.1,
+    0.09
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Оружие/Патроны и реквизит (Unreal, готовая модель)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5"
+   ],
+   "item": "rifle_ammo"
+  },
+  {
+   "id": "ammo_box_9mm",
+   "name": "Патроны 9 мм (коробка)",
+   "category": "item",
+   "scene": "res://assets/user_pack/items/ammo/ammo_box_9mm.glb",
+   "lod": [],
+   "zones": [],
+   "size_m": [
+    0.07,
+    0.12,
+    0.03
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Оружие/Патроны и реквизит (Unreal, готовая модель)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5"
+   ],
+   "item": "ammo_9mm"
+  },
+  {
+   "id": "ammo_box_12g",
+   "name": "Патроны 12 калибра (коробка)",
+   "category": "item",
+   "scene": "res://assets/user_pack/items/ammo/ammo_box_12g.glb",
+   "lod": [],
+   "zones": [],
+   "size_m": [
+    0.11,
+    0.13,
+    0.17
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Оружие/Патроны и реквизит (Unreal, готовая модель)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5"
+   ],
+   "item": "shotgun_shell"
+  },
+  {
+   "id": "round_762x39",
+   "name": "Патрон 7,62×39",
+   "category": "item",
+   "scene": "res://assets/user_pack/items/ammo/round_762x39.glb",
+   "lod": [],
+   "zones": [],
+   "size_m": [
+    0.011,
+    0.011,
+    0.058
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Оружие/Патроны и реквизит (Unreal, готовая модель)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5",
+    "round"
+   ]
+  },
+  {
+   "id": "case_762x39",
+   "name": "Гильза 7,62×39",
+   "category": "item",
+   "scene": "res://assets/user_pack/items/ammo/round_762x39s.glb",
+   "lod": [],
+   "zones": [],
+   "size_m": [
+    0.011,
+    0.011,
+    0.04
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Оружие/Патроны и реквизит (Unreal, готовая модель)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5",
+    "casing"
+   ]
+  },
+  {
+   "id": "round_9mm",
+   "name": "Патрон 9 мм",
+   "category": "item",
+   "scene": "res://assets/user_pack/items/ammo/round_9mm.glb",
+   "lod": [],
+   "zones": [],
+   "size_m": [
+    0.01,
+    0.01,
+    0.029
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Оружие/Патроны и реквизит (Unreal, готовая модель)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5",
+    "round"
+   ]
+  },
+  {
+   "id": "case_9mm",
+   "name": "Гильза 9 мм",
+   "category": "item",
+   "scene": "res://assets/user_pack/items/ammo/round_9mms.glb",
+   "lod": [],
+   "zones": [],
+   "size_m": [
+    0.01,
+    0.01,
+    0.019
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Оружие/Патроны и реквизит (Unreal, готовая модель)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5",
+    "casing"
+   ]
+  },
+  {
+   "id": "round_12x70",
+   "name": "Патрон 12/70",
+   "category": "item",
+   "scene": "res://assets/user_pack/items/ammo/round_12x70.glb",
+   "lod": [],
+   "zones": [],
+   "size_m": [
+    0.026,
+    0.026,
+    0.069
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Оружие/Патроны и реквизит (Unreal, готовая модель)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5",
+    "round"
+   ]
+  },
+  {
+   "id": "case_12x70",
+   "name": "Гильза 12/70",
+   "category": "item",
+   "scene": "res://assets/user_pack/items/ammo/round_12x70s.glb",
+   "lod": [],
+   "zones": [],
+   "size_m": [
+    0.026,
+    0.026,
+    0.076
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Оружие/Патроны и реквизит (Unreal, готовая модель)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5",
+    "casing"
+   ]
+  },
+  {
+   "id": "item_turtle_egg",
+   "name": "Черепашье яйцо",
+   "category": "food",
+   "scene": "res://assets/user_pack/items/item_turtle_egg.glb",
+   "lod": [],
+   "zones": [
+    "beach"
+   ],
+   "size_m": [
+    0.05,
+    0.05,
+    0.05
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Еда/Яйцо (процедурное)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5"
+   ],
+   "item": "turtle_egg"
+  },
+  {
+   "id": "item_egg",
+   "name": "Птичье яйцо",
+   "category": "food",
+   "scene": "res://assets/user_pack/items/item_egg.glb",
+   "lod": [],
+   "zones": [
+    "jungle",
+    "rocks"
+   ],
+   "size_m": [
+    0.04,
+    0.057,
+    0.04
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Еда/Яйцо (процедурное)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5"
+   ]
+  },
+  {
+   "id": "item_tourniquet",
+   "name": "Жгут-турникет",
+   "category": "item",
+   "scene": "res://assets/user_pack/items/item_tourniquet.glb",
+   "lod": [],
+   "zones": [],
+   "size_m": [
+    0.04,
+    0.16,
+    0.03
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Предметы/Медицина/Турникет",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5",
+    "medical"
+   ],
+   "note": "текстур в архиве автора нет (там текстуры банана) — простые материалы"
+  },
+  {
+   "id": "item_wooden_crate",
+   "name": "Деревянный ящик",
+   "category": "item",
+   "scene": "res://assets/user_pack/items/item_wooden_crate.glb",
+   "lod": [],
+   "zones": [
+    "beach"
+   ],
+   "size_m": [
+    1.0,
+    0.41,
+    0.41
+   ],
+   "collision": "solid",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Предметы/Ящик деревянный",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5",
+    "container"
+   ]
+  },
+  {
+   "id": "item_sticks",
+   "name": "Палки (9 штук)",
+   "category": "item",
+   "scene": "res://assets/user_pack/items/item_sticks.glb",
+   "lod": [],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "forest_edge"
+   ],
+   "size_m": [
+    1.2,
+    0.07,
+    0.5
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Предметы/Палки (ресурс)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5",
+    "resource"
+   ],
+   "item": "stick"
+  },
+  {
+   "id": "item_stick",
+   "name": "Палка",
+   "category": "item",
+   "scene": "res://assets/user_pack/items/item_stick.glb",
+   "lod": [],
+   "zones": [
+    "jungle",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.07,
+    0.46,
+    0.03
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Предметы/Палки (ресурс)",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5",
+    "resource"
+   ],
+   "item": "stick"
+  },
+  {
    "id": "item_shell_junonia",
    "name": "Ракушка",
    "category": "item",

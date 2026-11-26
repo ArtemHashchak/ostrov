@@ -1,7 +1,7 @@
 class_name UserHeld
 extends RefCounted
 ## Модели пользователя для предметов в руке и на земле (v5, агент B): АК-47, мачете, топор, нож,
-## фонарик, бутылка воды, зажигалка, жареное мясо на шпажке. Подменяют процедурные модели тех же
+## фонарик, бутылка воды, зажигалка, жареное мясо на шпажке, коробки патронов 7,62 / 9 мм / 12 калибра. Подменяют процедурные модели тех же
 ## предметов (id предметов не меняются): SupplyModels._build и HeldModels.build сначала спрашивают
 ## UserHeld.build(id). Файлы — assets/user_pack/{weapons,items}; импорт — tools/import_v5/*.
 ## Правило осей (HeldModels): начало — точка хвата, +Y — вдоль рукояти, −Z — вперёд.
@@ -20,6 +20,17 @@ const MODELS := {
 	&"bottle_empty": {"file": "items/item_water_bottle.glb", "pos": Vector3(0, 0.02, 0)},
 	&"lighter": {"file": "items/item_lighter.glb", "scale": 1.3},
 	&"meat_cooked": {"file": "items/item_meat_skewer.glb", "pos": Vector3(-0.055, -0.02, 0.0), "scale": 1.2},
+	&"rifle_ammo": {"file": "items/ammo/ammo_box_762.glb", "scale": 1.3},
+	&"ammo_9mm": {"file": "items/ammo/ammo_box_9mm.glb", "scale": 1.3},
+	&"shotgun_shell": {"file": "items/ammo/ammo_box_12g.glb", "scale": 1.1},
+	&"turtle_egg": {"file": "items/item_turtle_egg.glb", "pos": Vector3(0, 0.01, -0.02)},
+	&"stick": {"file": "items/item_stick.glb"},
+}
+## Патроны и гильзы (для выброса гильз и россыпи — модуль COMBAT, агент F): калибр → {round, case}.
+const ROUNDS := {
+	&"7.62x39": {"round": "items/ammo/round_762x39.glb", "case": "items/ammo/round_762x39s.glb"},
+	&"9mm": {"round": "items/ammo/round_9mm.glb", "case": "items/ammo/round_9mms.glb"},
+	&"12x70": {"round": "items/ammo/round_12x70.glb", "case": "items/ammo/round_12x70s.glb"},
 }
 
 ## Выключатель (тесты «до/после», сравнение с процедурными моделями).

@@ -112,6 +112,35 @@
     "v5"
    ],
    "item": "knife_combat"
+  },
+  {
+   "id": "weapon_beretta_pmx",
+   "name": "Пистолет-пулемёт Beretta PMX",
+   "category": "weapon",
+   "scene": "res://assets/user_pack/weapons/pmx/weapon_beretta_pmx.glb",
+   "lod": [],
+   "zones": [],
+   "size_m": [
+    0.07,
+    0.29,
+    0.64
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Оружие/Пистолет Beretta",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5",
+    "smg"
+   ],
+   "parts": [
+    "Receiver",
+    "Magazine"
+   ],
+   "note": "это пистолет-пулемёт (SMG), не пистолет 9 мм — предмета пока нет"
   }
  ]
 }

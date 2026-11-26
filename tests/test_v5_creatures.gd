@@ -6,7 +6,7 @@ extends TestCase
 ## новые существа призываются консолью (CreatureSpawner) и получают хитбокс; морские особи (SeaCritter:
 ## тунец со скелетом, пиранья/кит из пака) — хитбокс, луч пули попадает, урон убивает, добыча падает.
 
-const MY_FILES := ["creatures", "sea", "items", "weapons", "characters"]
+const MY_FILES := ["creatures", "sea", "items", "weapons", "characters", "vehicles"]
 
 func run() -> void:
 	await wait_frames(5)

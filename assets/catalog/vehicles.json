@@ -2,5 +2,35 @@
  "version": 1,
  "owner": "B · Существа и предметы",
  "generated_by": "tools/import_v5/creatures_catalog.py",
- "entries": []
+ "entries": [
+  {
+   "id": "vehicle_wooden_boat",
+   "name": "Деревянная лодка",
+   "category": "vehicle",
+   "scene": "res://assets/user_pack/vehicles/vehicle_wooden_boat.glb",
+   "lod": [],
+   "zones": [
+    "beach",
+    "lagoon"
+   ],
+   "size_m": [
+    3.9,
+    2.9,
+    6.6
+   ],
+   "collision": "solid",
+   "hitbox": "box",
+   "density": 1.0,
+   "cluster": 0.0,
+   "source": "KODAK/Остров/MODELS/Транспорт/Лодка деревянная",
+   "license": "модели пользователя (KODAK)",
+   "climate_ok": true,
+   "tags": [
+    "v5",
+    "boat",
+    "sail"
+   ],
+   "note": "free model, game piggs creators"
+  }
+ ]
 }
