@@ -1,0 +1,1317 @@
+{
+ "entries": [
+  {
+   "id": "flora_liana_span_01",
+   "name": "Лианы: сцена (2 каната, петли, занавесы)",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/lianas/liana_span_01_lod1.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/lianas/liana_span_01_lod2.gltf"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    10.8,
+    7.18,
+    1.87
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 0.3,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Лианы",
+   "license": "модели пользователя (генератор сессии моделей)",
+   "climate_ok": true,
+   "tags": [
+    "liana",
+    "liana_span"
+   ],
+   "attach": "span",
+   "note": "провис между двумя деревьями: концы каната в точках крепления по X (0 и ширина), высота крепления ~ верх рамки"
+  },
+  {
+   "id": "flora_liana_span_braid_02",
+   "name": "Лиана-жгут с овальными листьями",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/lianas/liana_span_braid_02_lod1.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/lianas/liana_span_braid_02_lod2.gltf"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    7.15,
+    3.4,
+    0.89
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 0.3,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Лианы",
+   "license": "модели пользователя (генератор сессии моделей)",
+   "climate_ok": true,
+   "tags": [
+    "liana",
+    "liana_span"
+   ],
+   "attach": "span",
+   "note": "провис между двумя деревьями: концы каната в точках крепления по X (0 и ширина), высота крепления ~ верх рамки"
+  },
+  {
+   "id": "flora_liana_span_thorn_03",
+   "name": "Лиана колючая (жгут)",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/lianas/liana_span_thorn_03_lod1.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/lianas/liana_span_thorn_03_lod2.gltf"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    6.03,
+    2.06,
+    0.6
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 0.3,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Лианы",
+   "license": "модели пользователя (генератор сессии моделей)",
+   "climate_ok": true,
+   "tags": [
+    "liana",
+    "liana_span"
+   ],
+   "attach": "span",
+   "note": "провис между двумя деревьями: концы каната в точках крепления по X (0 и ширина), высота крепления ~ верх рамки"
+  },
+  {
+   "id": "flora_liana_span_leafy_04",
+   "name": "Лиана длинная, листья-сердечки",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/lianas/liana_span_leafy_04_lod1.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/lianas/liana_span_leafy_04_lod2.gltf"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    12.06,
+    4.76,
+    0.95
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 0.3,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Лианы",
+   "license": "модели пользователя (генератор сессии моделей)",
+   "climate_ok": true,
+   "tags": [
+    "liana",
+    "liana_span"
+   ],
+   "attach": "span",
+   "note": "провис между двумя деревьями: концы каната в точках крепления по X (0 и ширина), высота крепления ~ верх рамки"
+  },
+  {
+   "id": "flora_liana_hang_curtain_05",
+   "name": "Занавес из тонких лиан",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/lianas/liana_hang_curtain_05_lod1.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/lianas/liana_hang_curtain_05_lod2.gltf"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    1.75,
+    5.58,
+    0.7
+   ],
+   "collision": "soft",
+   "hitbox": "box",
+   "density": 0.3,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Лианы",
+   "license": "модели пользователя (генератор сессии моделей)",
+   "climate_ok": true,
+   "tags": [
+    "liana",
+    "liana_hang"
+   ],
+   "attach": "hang",
+   "note": "свисает с ветки: верх модели — точка крепления",
+   "shape": {
+    "type": "box",
+    "size": [
+     1.4000000000000001,
+     4.464,
+     0.7
+    ],
+    "offset": [
+     0,
+     2.79,
+     0
+    ]
+   },
+   "slow": 0.8
+  },
+  {
+   "id": "flora_liana_hang_ivy_06",
+   "name": "Плеть с плющевыми листьями",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/lianas/liana_hang_ivy_06_lod1.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/lianas/liana_hang_ivy_06_lod2.gltf"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    1.21,
+    5.6,
+    0.53
+   ],
+   "collision": "soft",
+   "hitbox": "box",
+   "density": 0.3,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Лианы",
+   "license": "модели пользователя (генератор сессии моделей)",
+   "climate_ok": true,
+   "tags": [
+    "liana",
+    "liana_hang"
+   ],
+   "attach": "hang",
+   "note": "свисает с ветки: верх модели — точка крепления",
+   "shape": {
+    "type": "box",
+    "size": [
+     0.968,
+     4.4799999999999995,
+     0.53
+    ],
+    "offset": [
+     0,
+     2.8,
+     0
+    ]
+   },
+   "slow": 0.8
+  },
+  {
+   "id": "flora_liana_climb_07",
+   "name": "Лиана вьющаяся по стволу",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/lianas/liana_climb_07_lod1.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/lianas/liana_climb_07_lod2.gltf"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    1.01,
+    7.02,
+    1.27
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 0.3,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Лианы",
+   "license": "модели пользователя (генератор сессии моделей)",
+   "climate_ok": true,
+   "tags": [
+    "liana",
+    "liana_climb"
+   ],
+   "attach": "climb",
+   "note": "обвивает ствол: ставить в ось ствола, низ на землю"
+  },
+  {
+   "id": "flora_liana_climb_thorn_08",
+   "name": "Лиана колючая вьющаяся",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/lianas/liana_climb_thorn_08_lod1.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/lianas/liana_climb_thorn_08_lod2.gltf"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    0.81,
+    5.03,
+    0.81
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 0.3,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Лианы",
+   "license": "модели пользователя (генератор сессии моделей)",
+   "climate_ok": true,
+   "tags": [
+    "liana",
+    "liana_climb"
+   ],
+   "attach": "climb",
+   "note": "обвивает ствол: ставить в ось ствола, низ на землю"
+  },
+  {
+   "id": "flora_liana_kit_09",
+   "name": "Кит плетей (12 полос по 3 м)",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/lianas/liana_kit_09_lod1.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/lianas/liana_kit_09_lod2.gltf"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove"
+   ],
+   "size_m": [
+    3.15,
+    6.37,
+    0.55
+   ],
+   "collision": "none",
+   "hitbox": "box",
+   "density": 0.3,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Лианы",
+   "license": "модели пользователя (генератор сессии моделей)",
+   "climate_ok": true,
+   "tags": [
+    "liana",
+    "liana_kit"
+   ],
+   "attach": "kit",
+   "note": "набор отдельных плетей для декора"
+  },
+  {
+   "id": "flora_strelitzia",
+   "name": "Стрелиция (райская птица)",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/strelitzia/strelitzia.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/strelitzia/strelitzia_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "jungle",
+    "palm_belt",
+    "lowland_forest"
+   ],
+   "size_m": [
+    2.32,
+    1.8,
+    2.23
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.6,
+    "height": 1.6
+   },
+   "density": 0.4,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Стрелиция (готовая модель)",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "understory",
+    "big_leaf",
+    "flowers"
+   ],
+   "tris": [
+    30000,
+    6000
+   ]
+  },
+  {
+   "id": "flora_matteuccia_a",
+   "name": "Папоротник страусник A",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/matteuccia/matteuccia_struthiopteris_a001.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/matteuccia/matteuccia_struthiopteris_a001_lod1.gltf"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove",
+    "forest_edge"
+   ],
+   "size_m": [
+    2.75,
+    1.02,
+    2.69
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.81,
+    "height": 1.02
+   },
+   "density": 0.8,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротник страусник (Matteuccia, готовая модель)",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": false,
+   "tags": [
+    "fern",
+    "ground_cover"
+   ],
+   "tris": [
+    24000,
+    5000
+   ]
+  },
+  {
+   "id": "flora_matteuccia_b",
+   "name": "Папоротник страусник B",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/matteuccia/matteuccia_struthiopteris_b001.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/matteuccia/matteuccia_struthiopteris_b001_lod1.gltf"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove",
+    "forest_edge"
+   ],
+   "size_m": [
+    2.39,
+    0.97,
+    2.38
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.71,
+    "height": 0.97
+   },
+   "density": 0.8,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротник страусник (Matteuccia, готовая модель)",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": false,
+   "tags": [
+    "fern",
+    "ground_cover"
+   ],
+   "tris": [
+    24000,
+    5000
+   ]
+  },
+  {
+   "id": "flora_matteuccia_c",
+   "name": "Папоротник страусник C",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/matteuccia/matteuccia_struthiopteris_c001.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/matteuccia/matteuccia_struthiopteris_c001_lod1.gltf"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "mangrove",
+    "forest_edge"
+   ],
+   "size_m": [
+    1.83,
+    0.88,
+    1.81
+   ],
+   "collision": "soft",
+   "hitbox": "capsule",
+   "shape": {
+    "type": "capsule",
+    "radius": 0.54,
+    "height": 0.88
+   },
+   "density": 0.8,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Папоротник страусник (Matteuccia, готовая модель)",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": false,
+   "tags": [
+    "fern",
+    "ground_cover"
+   ],
+   "tris": [
+    24000,
+    5000
+   ]
+  },
+  {
+   "id": "flora_grass_clump_razw",
+   "name": "Трава (кустик, готовая модель)",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grass_clump/grass_clump.gltf",
+   "lod": [],
+   "zones": [
+    "dunes",
+    "forest_edge",
+    "palm_belt",
+    "rocks"
+   ],
+   "size_m": [
+    0.35,
+    0.45,
+    0.34
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.6,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель)",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "grass",
+    "ground_cover"
+   ],
+   "tris": [
+    144
+   ]
+  },
+  {
+   "id": "flora_liana_wall",
+   "name": "Стена из лиан (без цветов)",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/liana_wall/liana_wall.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/liana_wall/liana_wall_lod1.gltf"
+   ],
+   "zones": [
+    "jungle",
+    "rocks",
+    "lowland_forest"
+   ],
+   "size_m": [
+    5.19,
+    3.38,
+    0.32
+   ],
+   "collision": "soft",
+   "hitbox": "box",
+   "shape": {
+    "type": "box",
+    "size": [
+     5.19,
+     3.38,
+     0.5
+    ],
+    "offset": [
+     0,
+     1.69,
+     0
+    ]
+   },
+   "slow": 0.6,
+   "density": 0.1,
+   "cluster": 0.3,
+   "source": "KODAK/Остров/MODELS/Plants/Стена из лиан (готовая модель) — Claude используй только модель без цветов в качесвте семпла",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": false,
+   "tags": [
+    "liana",
+    "wall",
+    "hero"
+   ],
+   "attach": "wall",
+   "note": "вертикальная занавесь 5,2×3,4 м: ставить к скале/стволам/руинам; тяжёлая (66k/27k треуг.) — редко",
+   "tris": [
+    65721,
+    27224
+   ]
+  },
+  {
+   "id": "flora_gs_clover_flower_001",
+   "name": "Набор трав: clover flower 001",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/clover_flower_001.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/clover_flower_001_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.2,
+    0.1,
+    0.22
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": false,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_clovers_01",
+   "name": "Набор трав: clovers 01",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/clovers_01.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/clovers_01_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.38,
+    0.08,
+    0.43
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": false,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_clovers_03",
+   "name": "Набор трав: clovers 03",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/clovers_03.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/clovers_03_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.44,
+    0.17,
+    0.76
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": false,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_clump_001",
+   "name": "Набор трав: clump 001",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/clump_001.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/clump_001_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "dunes"
+   ],
+   "size_m": [
+    0.25,
+    0.22,
+    0.28
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_daisies",
+   "name": "Набор трав: daisies",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/daisies.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/daisies_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt"
+   ],
+   "size_m": [
+    0.49,
+    0.09,
+    0.6
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": false,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_dandelion_01",
+   "name": "Набор трав: dandelion 01",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/dandelion_01.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/dandelion_01_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt"
+   ],
+   "size_m": [
+    0.29,
+    0.27,
+    0.28
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": false,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_grass1",
+   "name": "Набор трав: grass1",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/grass1.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/grass1_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.51,
+    0.2,
+    0.49
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_grass2",
+   "name": "Набор трав: grass2",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/grass2.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/grass2_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.38,
+    0.14,
+    0.36
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_grass3",
+   "name": "Набор трав: grass3",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/grass3.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/grass3_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.88,
+    0.3,
+    0.75
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_grass4",
+   "name": "Набор трав: grass4",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/grass4.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/grass4_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.85,
+    0.45,
+    0.76
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_grass_5",
+   "name": "Набор трав: grass 5",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/grass_5.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/grass_5_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.59,
+    0.16,
+    0.62
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_grass_7",
+   "name": "Набор трав: grass 7",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/grass_7.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/grass_7_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.41,
+    0.17,
+    0.35
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_grass_dry_01",
+   "name": "Набор трав: grass dry 01",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/grass_dry_01.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/grass_dry_01_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.82,
+    0.38,
+    0.65
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_grass_tiny_1",
+   "name": "Набор трав: grass tiny 1",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/grass_tiny_1.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/grass_tiny_1_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.36,
+    0.07,
+    0.38
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_grass_wild_clump_dry_01",
+   "name": "Набор трав: grass wild clump dry 01",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/grass_wild_clump_dry_01.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/grass_wild_clump_dry_01_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.8,
+    0.82,
+    0.68
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_leaves_01",
+   "name": "Набор трав: leaves 01",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/leaves_01.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/leaves_01_lod1.gltf"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "forest_edge"
+   ],
+   "size_m": [
+    0.38,
+    0.05,
+    0.4
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "debris"
+   ]
+  },
+  {
+   "id": "flora_gs_medium_001",
+   "name": "Набор трав: medium 001",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/medium_001.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/medium_001_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "palm_belt",
+    "dunes"
+   ],
+   "size_m": [
+    0.46,
+    0.16,
+    0.48
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_nettle_02",
+   "name": "Набор трав: nettle 02",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/nettle_02.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/nettle_02_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "lowland_forest"
+   ],
+   "size_m": [
+    0.26,
+    0.25,
+    0.27
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": false,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_wasteland_branches_01_001",
+   "name": "Набор трав: wasteland branches 01 001",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/wasteland_branches_01_001.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/wasteland_branches_01_001_lod1.gltf"
+   ],
+   "zones": [
+    "jungle",
+    "lowland_forest",
+    "forest_edge"
+   ],
+   "size_m": [
+    0.28,
+    0.04,
+    0.4
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "debris"
+   ]
+  },
+  {
+   "id": "flora_gs_wasteland_grass_medium_001",
+   "name": "Набор трав: wasteland grass medium 001",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/wasteland_grass_medium_001.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/wasteland_grass_medium_001_lod1.gltf"
+   ],
+   "zones": [
+    "dunes",
+    "rocks",
+    "forest_edge"
+   ],
+   "size_m": [
+    0.51,
+    0.09,
+    0.47
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_wasteland_gravel_01_001",
+   "name": "Набор трав: wasteland gravel 01 001",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/wasteland_gravel_01_001.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/wasteland_gravel_01_001_lod1.gltf"
+   ],
+   "zones": [
+    "rocks",
+    "beach"
+   ],
+   "size_m": [
+    0.3,
+    0.04,
+    0.36
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "debris"
+   ]
+  },
+  {
+   "id": "flora_gs_wasteland_gravel_02_001",
+   "name": "Набор трав: wasteland gravel 02 001",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/wasteland_gravel_02_001.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/wasteland_gravel_02_001_lod1.gltf"
+   ],
+   "zones": [
+    "rocks",
+    "beach"
+   ],
+   "size_m": [
+    0.44,
+    0.04,
+    0.45
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "debris"
+   ]
+  },
+  {
+   "id": "flora_gs_weed_01_001",
+   "name": "Набор трав: weed 01 001",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/weed_01_001.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/weed_01_001_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "dunes",
+    "palm_belt"
+   ],
+   "size_m": [
+    0.22,
+    0.1,
+    0.29
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_weed_02_001",
+   "name": "Набор трав: weed 02 001",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/weed_02_001.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/weed_02_001_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "dunes",
+    "palm_belt"
+   ],
+   "size_m": [
+    0.36,
+    0.12,
+    0.36
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  },
+  {
+   "id": "flora_gs_weed_02_002",
+   "name": "Набор трав: weed 02 002",
+   "category": "plant",
+   "scene": "res://assets/user_pack/flora_v5/grassset/weed_02_002.gltf",
+   "lod": [
+    "res://assets/user_pack/flora_v5/grassset/weed_02_002_lod1.gltf"
+   ],
+   "zones": [
+    "forest_edge",
+    "dunes",
+    "palm_belt"
+   ],
+   "size_m": [
+    0.28,
+    0.17,
+    0.27
+   ],
+   "collision": "none",
+   "hitbox": "capsule",
+   "density": 3.0,
+   "cluster": 0.7,
+   "source": "KODAK/Остров/MODELS/Plants/Трава (готовая модель 2, огромный PLY 4.9 ГБ)/Grass.blend",
+   "license": "готовая модель (скачано пользователем)",
+   "climate_ok": true,
+   "tags": [
+    "ground_cover",
+    "grass"
+   ]
+  }
+ ]
+}
