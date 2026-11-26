@@ -60,7 +60,8 @@ func run() -> void:
 		var stands: Array = s.stands
 		if not stands.is_empty():
 			var sp: Vector2 = stands[mini(2, stands.size() - 1)].pos
-			await _look(pg, Vector3(sp.x - 2.0, gh + 1.7, sp.y - 6.5), Vector3(sp.x + 4.0, gh + 0.6, sp.y), nm + "_stands")
+			# с востока от стенда (с запада стоит табличка раздела)
+			await _look(pg, Vector3(sp.x + 5.5, gh + 1.9, sp.y - 5.0), Vector3(sp.x - 1.0, gh + 0.7, sp.y), nm + "_stands")
 		var tables: Array = s.get("tables", [])
 		if not tables.is_empty():
 			var tp: Vector2 = tables[0].pos
@@ -71,6 +72,23 @@ func run() -> void:
 			var pp2: Vector2 = pl.pos
 			var sz := float(pl.size)
 			await _look(pg, Vector3(pp2.x - sz * 0.7, gh + sz * 0.45, pp2.y - sz * 0.7), Vector3(pp2.x, gh + 0.5, pp2.y), nm + "_live", 5.0)
+			# крупно: ближайшее живое существо в вольере (мелкие издалека не видны)
+			if id in [&"animals", &"birds", &"small"]:
+				var best: Node3D = null
+				var bd := 1e9
+				for n in pg.sections[id].get_tree().get_nodes_in_group(&"replay_actor"):
+					var n3 := n as Node3D
+					if n3 == null or not n3.has_meta(&"polygon_live"):
+						continue
+					var d := Vector2(n3.global_position.x - pp2.x, n3.global_position.z - pp2.y).length()
+					if d < bd:
+						bd = d
+						best = n3
+				if best and bd < sz:
+					var ab := PolygonSection.world_aabb(best)
+					var k := clampf(maxf(ab.size.x, maxf(ab.size.y, ab.size.z)) * 3.0, 1.2, 8.0)
+					var c := ab.get_center() if ab.size != Vector3.ZERO else best.global_position
+					await _look(pg, c + Vector3(-k * 0.7, k * 0.45, -k * 0.7), c, nm + "_live_close", 2.0)
 		if s.has("range"):
 			var rg: Vector2 = s.range
 			await _look(pg, Vector3(rg.x, gh + 1.7, rg.y), Vector3(rg.x, gh + 1.0, rg.y + 60.0), nm + "_range")
