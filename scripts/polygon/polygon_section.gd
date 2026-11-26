@@ -252,11 +252,18 @@ func _spawner_node(e: Dictionary, pos: Vector3, frozen: bool) -> Node3D:
 		(n as Node3D).global_position.y = maxf((n as Node3D).global_position.y, pos.y)
 	if frozen:
 		n.set_meta(&"polygon_stand", true)
+		# поза стенда: на верху постамента (иначе за кадры до заморозки существо
+		# проваливается сквозь постамент и прячется в нём)
+		if n is Node3D:
+			n.set_meta(&"polygon_stand_pos", pos)
+			(n as Node3D).global_position = pos
 		_freeze.append(n)
 	return n as Node3D
 
 func _freeze_node(n: Node) -> void:
 	n.process_mode = Node.PROCESS_MODE_DISABLED
+	if n is Node3D and n.has_meta(&"polygon_stand_pos") and (n as Node3D).is_inside_tree():
+		(n as Node3D).global_position = n.get_meta(&"polygon_stand_pos")
 	if n is CharacterBody3D:
 		(n as CharacterBody3D).velocity = Vector3.ZERO
 	if n is RigidBody3D:

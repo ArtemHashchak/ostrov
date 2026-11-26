@@ -24,6 +24,8 @@ func run() -> void:
 		await wait(0.5)
 	var only := OS.get_environment("POLY_SECTIONS")
 	pg.cheats.set_time(10.5)
+	if pg.world and pg.world.has_method(&"set_time_paused"):
+		pg.world.call(&"set_time_paused", true)
 	pg.cheats.set_weather(&"clear")
 	var gh := PolygonLayout.GROUND_H
 	var lay := PolygonLayout.get_layout()

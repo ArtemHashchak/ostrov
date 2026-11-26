@@ -366,6 +366,8 @@ func _perf_physics(dt: float) -> void:
 			a.visible = a.visible and vis
 		else:
 			a.visible = vis
+		if a.process_mode == Node.PROCESS_MODE_DISABLED and a.has_meta(&"polygon_stand"):
+			continue   # стенд полигона: поза заморожена, мозг не тикает
 		var step := 1
 		if d < 35.0:
 			a.lod = 0
