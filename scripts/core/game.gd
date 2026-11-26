@@ -240,8 +240,10 @@ func team_color(team: int) -> Color:
 
 # ---------------------------------------------------------------- выбывание и победа
 
-static func is_alive(ch: Node) -> bool:
-	if ch == null or not is_instance_valid(ch) or not ch.is_inside_tree():
+## ch без типа: в составе команды может остаться уже освобождённый узел (бот удалён
+## в конце сцены) — типизированный параметр на нём даёт ошибку скрипта.
+static func is_alive(ch) -> bool:
+	if ch == null or not is_instance_valid(ch) or not (ch is Node) or not ch.is_inside_tree():
 		return false
 	if ch.has_method(&"is_dead"):
 		return not bool(ch.call(&"is_dead"))

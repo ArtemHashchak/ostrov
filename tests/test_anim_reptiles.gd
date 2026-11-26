@@ -98,6 +98,7 @@ func _spine_bent(an: Animal) -> float:
 	return mx
 
 func run() -> void:
+	UserClipRig.use_pack = false   # тест процедурных рептилий (змеи/вараны пака — test_user_land2)
 	root = Node3D.new()
 	add_child(root)
 	var env := WorldEnvironment.new()

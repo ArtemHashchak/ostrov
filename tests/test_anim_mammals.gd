@@ -48,6 +48,7 @@ func _hip_angles(a: Animal) -> Array:
 	return out
 
 func run() -> void:
+	UserClipRig.use_pack = false   # тест процедурных зверей/птиц (попугаи пака — test_user_land2)
 	root = Node3D.new()
 	add_child(root)
 	var ws := GDScript.new()

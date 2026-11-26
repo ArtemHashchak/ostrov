@@ -68,7 +68,10 @@ func run() -> void:
 		ms_stream, ms_stream / maxf(life.cells_built, 1), life.fish_count, life.schools.size(), life.decor_count, life.crawler_count, life.heads_count])
 	check(ms_stream / maxf(life.cells_built, 1) < 60.0, "клетка строится быстро: %.1f мс" % (ms_stream / maxf(life.cells_built, 1)))
 	check(life.fish_count >= 1500, "рыб вокруг: %d в %d группах" % [life.fish_count, life.schools.size()])
-	check(life.decor_count >= 3000, "растительности и декора вокруг: %d" % life.decor_count)
+	# мир v5: кораллы и коралловый декор — только на рифах (барьерный/окаймляющие), между ними песок
+	# и травы — вокруг лучшей точки декора меньше, чем на прежнем архипелаге, где риф шёл сплошь
+	var decor_min := 2000 if (get_tree().get_first_node_in_group(&"world") as World).gen_version >= 5 else 3000
+	check(life.decor_count >= decor_min, "растительности и декора вокруг: %d (≥%d)" % [life.decor_count, decor_min])
 	check(life.crawler_count >= 40, "крабов и лангустов вокруг: %d" % life.crawler_count)
 	var kinds := {}
 	for s in life.schools:

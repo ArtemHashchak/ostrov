@@ -168,13 +168,28 @@ static func scene(file: String, d: Dictionary) -> PackedScene:
 		for mi: MeshInstance3D in probe.find_children("*", "MeshInstance3D", true, false):
 			if mi.mesh == null:
 				continue
-			var a := _xform_to(probe, mi) * mi.get_aabb()
+			var a := _mesh_xform(probe, mi) * mi.get_aabb()
 			ab = a if first else ab.merge(a)
 			first = false
 		_bounds[file] = ab
 		probe.free()
 	_scenes[file] = ps
 	return ps
+
+## Куда на самом деле попадает меш в позе покоя. У скинованного меша движок берёт не
+## трансформ узла, а кость × bind: при масштабе Armature (тунец — 2.5) габарит узлов
+## получался в 2.5 раза больше нарисованного (29.2 м вместо 11.7), центровка съезжала.
+static func _mesh_xform(root: Node, mi: MeshInstance3D) -> Transform3D:
+	var sk := mi.get_node_or_null(mi.skeleton) as Skeleton3D if mi.skin != null and not mi.skeleton.is_empty() else null
+	if sk == null or mi.skin.get_bind_count() == 0:
+		return _xform_to(root, mi)
+	var bi := mi.skin.get_bind_bone(0)
+	var bn := mi.skin.get_bind_name(0)
+	if bn != &"":
+		bi = sk.find_bone(bn)
+	if bi < 0:
+		return _xform_to(root, mi)
+	return _xform_to(root, sk) * sk.get_bone_global_rest(bi) * mi.skin.get_bind_pose(0)
 
 static func _xform_to(root: Node, n: Node3D) -> Transform3D:
 	var t := Transform3D.IDENTITY
