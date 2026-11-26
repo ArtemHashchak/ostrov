@@ -101,6 +101,22 @@ var _fall_speed: float = 0.0
 var _hint: String = ""
 var _gravity: float = 19.6
 
+## ПЕРЕЛЕЗАНИЕ (V5): препятствие высотой от ~0,5 м до уровня груди (VAULT_MAX) — прыжок у
+## препятствия = упереться руками, подтянуться и перелезть (камера идёт по дуге, без анимации).
+## Выше груди — нельзя (только обычный прыжок).
+const VAULT_MIN := 0.5
+const VAULT_MAX := 1.4
+const VAULT_REACH := 0.9
+const VAULT_TIME := 0.55
+var vaulting: bool = false
+var _vault_t: float = 0.0
+var _vault_pts: PackedVector3Array = PackedVector3Array()
+## Множитель скорости от окружения (V5): густые «мягкие» растения (кусты, алоказия,
+## папоротники — группа &"soft_plant", каталог collision=soft) и поверхность под ногами
+## (Surfaces). 1 — без помех.
+var env_speed_mul: float = 1.0
+var _brush: Area3D
+
 var head: Node3D
 var camera: Camera3D
 var hands: FPHands
@@ -247,6 +263,9 @@ func _perf_physics(delta: float) -> void:
 	if swimming:
 		_swim_process(delta, wl)
 		return
+	if vaulting:
+		_vault_process(delta)
+		return
 	_gamepad_look(delta)
 	var wish := Vector2.ZERO
 	var want_sprint := false
@@ -272,6 +291,8 @@ func _perf_physics(delta: float) -> void:
 	if depth > 0.4:
 		speed *= WADE_MUL
 	speed *= lerpf(1.0, TIRED_SPEED_MUL, tired_amount)
+	env_speed_mul = _env_speed()
+	speed *= env_speed_mul
 
 	if sprinting:
 		_use_stamina(STAMINA_RUN_COST * delta)
@@ -289,6 +310,9 @@ func _perf_physics(delta: float) -> void:
 	velocity.x = horiz.x
 	velocity.z = horiz.z
 
+	if want_jump and not crouching and not carrying_log and (is_on_floor() or _was_on_floor) \
+			and stamina >= STAMINA_JUMP_COST * 0.5 and _try_vault(basis_yaw * Vector3(wish.x, 0.0, wish.y) if wish.length() > 0.2 else -head.global_basis.z):
+		return
 	if is_on_floor():
 		if want_jump and stamina >= STAMINA_JUMP_COST * 0.5 and not crouching:
 			velocity.y = sqrt(2.0 * _gravity * JUMP_HEIGHT) * lerpf(1.0, 0.8, tired_amount)
@@ -308,6 +332,115 @@ func _perf_physics(delta: float) -> void:
 
 	_update_camera(delta, horiz.length())
 	_update_interact_hint()
+
+# --- перелезание и помехи движению (V5) ---
+
+## Препятствие перед игроком по направлению f (горизонтальному): высота верха над ногами
+## в [VAULT_MIN, VAULT_MAX], над верхом есть место — перелезть (тонкое — на ту сторону,
+## толстое — забраться наверх). true — перелезание началось.
+func _try_vault(f: Vector3) -> bool:
+	f.y = 0.0
+	if f.length() < 0.1:
+		return false
+	f = f.normalized()
+	var space := get_world_3d().direct_space_state
+	var feet := global_position
+	var ex := [get_rid()]
+	# 1) есть ли стенка впереди на уровне колен
+	var q := PhysicsRayQueryParameters3D.create(feet + Vector3.UP * 0.35, feet + Vector3.UP * 0.35 + f * (RADIUS + VAULT_REACH))
+	q.exclude = ex
+	var hit := space.intersect_ray(q)
+	if hit.is_empty():
+		return false
+	var face: Vector3 = hit.position
+	# 2) верх препятствия: луч вниз чуть за передней гранью
+	var probe := face + f * 0.12
+	q = PhysicsRayQueryParameters3D.create(Vector3(probe.x, feet.y + VAULT_MAX + 0.35, probe.z), Vector3(probe.x, feet.y + 0.2, probe.z))
+	q.exclude = ex
+	var top_hit := space.intersect_ray(q)
+	if top_hit.is_empty():
+		return false
+	var top_y: float = top_hit.position.y
+	var h := top_y - feet.y
+	if h < VAULT_MIN or h > VAULT_MAX:
+		return false
+	# над верхом свободно (луч от груди к точке над верхом и вверх на высоту приседа)
+	q = PhysicsRayQueryParameters3D.create(feet + Vector3.UP * (h + 0.25), Vector3(probe.x, top_y + 0.25, probe.z))
+	q.exclude = ex
+	if not space.intersect_ray(q).is_empty():
+		return false
+	q = PhysicsRayQueryParameters3D.create(Vector3(probe.x, top_y + 0.05, probe.z), Vector3(probe.x, top_y + CROUCH_HEIGHT, probe.z))
+	q.exclude = ex
+	if not space.intersect_ray(q).is_empty():
+		return false
+	# 3) толщина: дальше ли за гранью поверхность ниже (тонкая стенка/бревно) — тогда на ту сторону
+	var far := face + f * (0.55 + RADIUS)
+	q = PhysicsRayQueryParameters3D.create(Vector3(far.x, top_y + 0.3, far.z), Vector3(far.x, feet.y - 2.5, far.z))
+	q.exclude = ex
+	var far_hit := space.intersect_ray(q)
+	var land: Vector3
+	if not far_hit.is_empty() and float(far_hit.position.y) < top_y - 0.35:
+		land = Vector3(far.x, float(far_hit.position.y) + 0.02, far.z)
+	else:
+		land = Vector3(probe.x, top_y + 0.02, probe.z) + f * RADIUS
+	var lift := top_y + 0.12
+	_vault_pts = PackedVector3Array([feet, Vector3(feet.x, lift, feet.z) + f * 0.05,
+		Vector3(face.x, lift, face.z) + f * (RADIUS + 0.1), land])
+	_vault_t = 0.0
+	vaulting = true
+	velocity = Vector3.ZERO
+	_use_stamina(STAMINA_JUMP_COST * 0.8)
+	return true
+
+func _vault_process(delta: float) -> void:
+	_vault_t += delta / VAULT_TIME
+	var t := clampf(_vault_t, 0.0, 1.0)
+	# 0..0.45 — подтянуться вверх, 0.45..0.75 — перекинуться, 0.75..1 — на ту сторону
+	var pos: Vector3
+	if t < 0.45:
+		pos = _vault_pts[0].lerp(_vault_pts[1], smoothstep(0.0, 1.0, t / 0.45))
+	elif t < 0.75:
+		pos = _vault_pts[1].lerp(_vault_pts[2], smoothstep(0.0, 1.0, (t - 0.45) / 0.3))
+	else:
+		pos = _vault_pts[2].lerp(_vault_pts[3], smoothstep(0.0, 1.0, (t - 0.75) / 0.25))
+	global_position = pos
+	# камера: наклон вперёд при подтягивании и лёгкий крен
+	_land_dip = 0.06 * sin(t * PI)
+	_update_camera(delta, 0.0)
+	head.rotation.x = _pitch - 0.12 * sin(t * PI)
+	head.rotation.z = 0.05 * sin(t * PI)
+	if t >= 1.0:
+		vaulting = false
+		_fall_speed = 0.0
+		velocity = Vector3.ZERO
+
+## Множитель скорости от помех: мягкие растения рядом (группа soft_plant) и поверхность.
+func _env_speed() -> float:
+	var m := 1.0
+	if _brush == null:
+		_brush = Area3D.new()
+		_brush.name = "BrushSensor"
+		_brush.monitorable = false
+		_brush.collision_layer = 0
+		_brush.collision_mask = 0xFFFFFFFF
+		var cs := CollisionShape3D.new()
+		var sh := CylinderShape3D.new()
+		sh.radius = RADIUS + 0.15
+		sh.height = 1.2
+		cs.shape = sh
+		cs.position.y = 0.6
+		_brush.add_child(cs)
+		add_child(_brush)
+	for a in _brush.get_overlapping_areas():
+		if a.is_in_group(&"soft_plant"):
+			m = minf(m, float(a.get_meta(&"speed_mul", 0.6)))
+	for b in _brush.get_overlapping_bodies():
+		if b != self and b.is_in_group(&"soft_plant"):
+			m = minf(m, float(b.get_meta(&"speed_mul", 0.6)))
+	var surf := get_node_or_null(^"/root/Surfaces")
+	if surf and surf.has_method(&"speed_mul_at"):
+		m *= float(surf.call(&"speed_mul_at", global_position))
+	return m
 
 func _gamepad_look(delta: float) -> void:
 	if not input_enabled:

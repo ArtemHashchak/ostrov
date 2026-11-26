@@ -852,7 +852,17 @@ func _build_ui() -> void:
 func hit_marker(info: Dictionary) -> void:
 	if info.get("target") == null:
 		return
-	(_marker as HitMarker).show_hit(info.get("zone", &"") == &"head")
+	var t: Variant = info.get("target")
+	var killed := false
+	if t is Object and is_instance_valid(t):
+		var o := t as Object
+		if &"alive" in o:
+			killed = not bool(o.get(&"alive"))
+		elif &"hp" in o:
+			killed = float(o.get(&"hp")) <= 0.0
+		elif &"health" in o:
+			killed = float(o.get(&"health")) <= 0.0
+	(_marker as HitMarker).show_hit(info.get("zone", &"") == &"head", killed, info.get("zone", &"") == &"structure")
 
 func _update_ui(_delta: float) -> void:
 	if _ammo_label == null:
@@ -910,12 +920,18 @@ class SpreadCross:
 
 
 class HitMarker:
+	## Отметка попадания: чёткий «X» из 4 штрихов с тёмной обводкой у центра экрана.
+	## Обычное попадание — белый, короткий (0,16 с); в голову — жёлто-оранжевый, крупнее;
+	## убийство — красный, крупнее и дольше (0,4 с); по постройке — маленький серый.
+	## Появляется с «толчком» (шире → на место) и быстро гаснет.
 	extends Control
 	var _t := 0.0
-	var _head := false
-	func show_hit(head: bool) -> void:
-		_t = 0.25
-		_head = head
+	var _dur := 0.16
+	var _kind := 0 # 0 тело, 1 голова, 2 убийство, 3 постройка
+	func show_hit(head: bool, killed: bool = false, structure: bool = false) -> void:
+		_kind = 2 if killed else (1 if head else (3 if structure else 0))
+		_dur = [0.16, 0.22, 0.4, 0.12][_kind]
+		_t = _dur
 		queue_redraw()
 	func _process(delta: float) -> void:
 		if _t > 0.0:
@@ -924,7 +940,17 @@ class HitMarker:
 	func _draw() -> void:
 		if _t <= 0.0:
 			return
+		var k := clampf(_t / _dur, 0.0, 1.0)          # 1 → 0
+		var age := 1.0 - k
+		var pop := 1.0 + 0.35 * maxf(0.0, 1.0 - age * 6.0) # толчок первые ~15% времени
+		var a := clampf(k * 2.5, 0.0, 1.0)              # держится, потом гаснет
+		var col: Color = [Color(1, 1, 1), Color(1.0, 0.78, 0.25), Color(1.0, 0.22, 0.18), Color(0.75, 0.75, 0.75)][_kind]
+		col.a = a
+		var r0: float = [7.0, 8.0, 8.0, 6.0][_kind] * pop
+		var r1: float = [15.0, 18.0, 21.0, 11.0][_kind] * pop
+		var w: float = [2.0, 2.4, 3.0, 1.6][_kind]
 		var c := size * 0.5
-		var col := Color(1, 0.25, 0.2, _t * 4.0) if _head else Color(1, 1, 1, _t * 4.0)
-		for d in [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
-			draw_line(c + d * 6.0, c + d * 14.0, col, 2.0, true)
+		for d: Vector2 in [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
+			var dn := d.normalized()
+			draw_line(c + dn * (r0 - 1.0), c + dn * (r1 + 1.0), Color(0, 0, 0, 0.55 * a), w + 2.0, true)
+			draw_line(c + dn * r0, c + dn * r1, col, w, true)
