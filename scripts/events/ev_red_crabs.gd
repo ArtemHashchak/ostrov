@@ -41,6 +41,7 @@ var _scale := 1.0
 var _y_off := 0.0
 var _src_ang := 0.0
 var _spawned := 0
+var _rr := 0          # высота рельефа — по трети крабов за кадр
 
 func begin() -> void:
 	var w := world()
@@ -179,8 +180,9 @@ func _new_crab(w: Node, first: bool) -> Dictionary:
 	var dir := Vector2(cos(_src_ang), sin(_src_ang))
 	var side := Vector2(-dir.y, dir.x)
 	# старт — полоса в глубине острова, со стороны, противоположной морю назначения
-	var along := rng.randf_range(-0.55, 0.1) * r if first else rng.randf_range(-0.6, -0.45) * r
-	var across := rng.randf_range(-0.45, 0.45) * r
+	# плотная лента шириной ~0,4 радиуса: поток, а не россыпь
+	var along := rng.randf_range(-0.3, -0.02) * r if first else rng.randf_range(-0.34, -0.28) * r
+	var across := clampf(rng.randfn(0.0, 0.05), -0.14, 0.14) * r
 	var p := c + dir * along + side * across
 	var tries := 0
 	while not bool(w.call(&"is_land", p.x, p.y)) and tries < 12:
@@ -188,7 +190,8 @@ func _new_crab(w: Node, first: bool) -> Dictionary:
 		tries += 1
 	var sr: Array = cfg.get("speed", [0.25, 0.55])
 	return {"p": p, "d": (dir + side * rng.randf_range(-0.25, 0.25)).normalized(),
-		"s": rng.randf_range(float(sr[0]), float(sr[1])), "ph": rng.randf(), "alive": true, "stop": 0.0}
+		"s": rng.randf_range(float(sr[0]), float(sr[1])), "ph": rng.randf(), "alive": true, "stop": 0.0,
+		"h": float(w.call(&"height_at", p.x, p.y))}
 
 func step(dt: float) -> void:
 	var w := world()
@@ -212,6 +215,7 @@ func _update(w: Node, dt: float) -> void:
 	var cnt := 0
 	var dir := Vector2(cos(_src_ang), sin(_src_ang))
 	var refill := t < duration * 0.6
+	_rr += 1
 	for i in crabs.size():
 		var c: Dictionary = crabs[i]
 		if not c.alive:
@@ -232,7 +236,10 @@ func _update(w: Node, dt: float) -> void:
 		p += d * float(c.s) * dt * run
 		c.d = d
 		c.p = p
-		var h := float(w.call(&"height_at", p.x, p.y))
+		var h := float(c.h)
+		if (i + _rr) % 3 == 0:
+			h = float(w.call(&"height_at", p.x, p.y))
+			c.h = h
 		if h < wl - 0.05:
 			c.alive = false
 			reached += 1

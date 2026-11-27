@@ -52,7 +52,7 @@ func run() -> void:
 			mid = I
 	# 1) красные крабы
 	if only == "" or only.contains("crabs"):
-		var e := se.start(&"red_crabs", {"island_id": int(mid.id), "seed": 4, "count": 520})
+		var e := se.start(&"red_crabs", {"island_id": int(mid.id), "seed": 4})
 		if e:
 			SeasonEvents.time_scale = 6.0
 			await wait(2.0)
@@ -60,10 +60,26 @@ func run() -> void:
 			var ar := e.get(&"_area") as Area3D
 			var c := ar.global_position
 			var d := Vector2(cos(float(e.get(&"_src_ang"))), sin(float(e.get(&"_src_ang"))))
-			var eye := Vector2(c.x, c.z) + d * 7.0 + Vector2(-d.y, d.x) * 3.0
-			await _view(Vector3(eye.x, w.height_at(eye.x, eye.y) + 1.6, eye.y), c + Vector3(0, 0.1, 0), "red_crabs_close", 3.0)
-			var eye2 := Vector2(c.x, c.z) - d * 16.0 + Vector2(-d.y, d.x) * 10.0
-			await _view(Vector3(eye2.x, w.height_at(eye2.x, eye2.y) + 7.0, eye2.y), c, "red_crabs_stream", 2.0)
+			# крупно: камера у земли перед лентой крабов
+			var eye := Vector2(c.x, c.z) + d * 3.2 + Vector2(-d.y, d.x) * 1.2
+			await _view(Vector3(eye.x, w.height_at(eye.x, eye.y) + 0.9, eye.y), c + Vector3(0, 0.05, 0), "red_crabs_close", 3.0)
+			# средний план: камера над открытым местом сбоку от ленты, луч до цели без стволов
+			var best := Vector3.INF
+			var space := w.get_world_3d().direct_space_state
+			for k in 16:
+				var ang := TAU * k / 16.0
+				for dist: float in [6.0, 8.0, 10.0]:
+					var q2 := Vector2(c.x, c.z) + Vector2(cos(ang), sin(ang)) * dist
+					var e3p := Vector3(q2.x, w.height_at(q2.x, q2.y) + 4.2, q2.y)
+					var rq := PhysicsRayQueryParameters3D.create(e3p, c + Vector3(0, 0.2, 0))
+					if space.intersect_ray(rq).is_empty():
+						best = e3p
+						break
+				if best != Vector3.INF:
+					break
+			if best == Vector3.INF:
+				best = c + Vector3(0, 6.0, 8.0)
+			await _view(best, c, "red_crabs_stream", 2.0)
 			se.stop(&"red_crabs")
 	# 2) миграция мант
 	if only == "" or only.contains("migr"):

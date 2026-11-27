@@ -21,9 +21,9 @@
  },
  "red_crabs": {
   "duration_s": 420,
-  "count": 420,
+  "count": 1800,
   "speed": [0.25, 0.55],
-  "crab_len_m": 0.16,
+  "crab_len_m": 0.2,
   "slow_mul": 0.62,
   "harvest_per_hit": 3
  },
