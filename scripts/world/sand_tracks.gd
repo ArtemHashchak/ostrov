@@ -342,6 +342,8 @@ func _jump_pair(p: Vector2, dir: Vector2, type: int, strength: float) -> void:
 	for side in [0, 1]:
 		var k := 1.0 if side == 1 else -1.0
 		_add(p + r * 0.12 * k, d.rotated(0.08 * k), side, strength, 0.375, type, 0.0)
+	# отпечатки прыжка — сразу в этот же кадр (без ожидания такта перерисовки карты 1/8 с)
+	_redraw_t = 1.0 / REDRAW_HZ
 	if type == FOOT_HEEL:
 		land_spray.emit(Vector3(p.x, 0.0, p.y), strength)
 		_spray(p, d, strength)
@@ -354,7 +356,7 @@ func _spray(p: Vector2, dir: Vector2, strength: float) -> void:
 	var e := CPUParticles3D.new()
 	e.one_shot = true
 	e.explosiveness = 0.92
-	e.amount = int(18 + 18 * strength)
+	e.amount = int(28 + 28 * strength)
 	e.lifetime = 0.7
 	e.local_coords = false
 	e.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
@@ -364,13 +366,17 @@ func _spray(p: Vector2, dir: Vector2, strength: float) -> void:
 	e.initial_velocity_min = 0.6 * strength
 	e.initial_velocity_max = 1.9 * strength
 	e.gravity = Vector3(0, -9.8, 0)
-	e.scale_amount_min = 0.006
-	e.scale_amount_max = 0.016
+	# v5.1: размер песчинки задаётся самим мешем (2 см). Раньше квад был 1×1 м, а
+	# scale_amount с билбордом частиц не применялся — на песке на 0,7 с появлялся «квадрат».
+	e.scale_amount_min = 0.5
+	e.scale_amount_max = 1.4
 	var m := QuadMesh.new()
-	m.size = Vector2.ONE
+	m.size = Vector2(0.02, 0.02)
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.vertex_color_use_as_albedo = true
 	mat.albedo_color = Color(0.78, 0.7, 0.55)
 	m.material = mat
 	e.mesh = m
