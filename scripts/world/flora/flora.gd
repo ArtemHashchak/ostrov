@@ -384,6 +384,11 @@ func populate() -> void:
 	stats["cells"] = visited.size()
 	if _zoned:
 		_equalize_starters()
+		FloraV5World.populate(self)   # v5.2: новые растения пользователя по зонам + лианы на деревьях
+		var sw := ShoreSeaweed.new()   # v5.2: водоросли в приливной полосе сохнут на отливе
+		sw.name = "ShoreSeaweed"
+		sw.world = world
+		add_child(sw)
 	_build_trees()
 	_build_bushes()
 	_index_plant_colliders()
@@ -989,7 +994,11 @@ func _build_bushes() -> void:
 		var xs: Array = _bush[key]
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.mesh = FloraLib.bush_mesh(int(parts[0])) if parts[0].is_valid_int() else FloraPack.mesh(parts[0], 1)
+		var v5id := FloraV5World.id_of_key(parts[0]) if FloraV5World.is_key(parts[0]) else ""
+		if v5id != "":
+			mm.mesh = FloraV5World.mesh(v5id)
+		else:
+			mm.mesh = FloraLib.bush_mesh(int(parts[0])) if parts[0].is_valid_int() else FloraPack.mesh(parts[0], 1)
 		if mm.mesh == null:
 			continue
 		_bush_mm[key] = mm
@@ -999,7 +1008,9 @@ func _build_bushes() -> void:
 		var mmi := MultiMeshInstance3D.new()
 		mmi.name = "Bush_" + String(key).replace("|", "_")
 		mmi.multimesh = mm
-		_detail_range(mmi, BUSH_RANGE, BUSH_CHUNK)
+		_detail_range(mmi, FloraV5World.range_of(v5id) if v5id != "" else BUSH_RANGE, BUSH_CHUNK)
+		if v5id != "" and FloraV5World.group_of(v5id) == "fern":
+			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mmi)
 	stats["bush_mmi"] = _bush.size()
 
@@ -1026,9 +1037,15 @@ func _index_plant_colliders() -> void:
 	var n := 0
 	for key in _bush:
 		var pid := String(key).split("|")[0]
-		if not by_pack.has(pid):
+		var cid := ""
+		if FloraV5World.is_key(pid):
+			cid = FloraV5World.id_of_key(pid)
+			if String(AssetCatalog.get_entry(cid).get("collision", "none")) == "none":
+				continue
+		elif by_pack.has(pid):
+			cid = by_pack[pid]
+		else:
 			continue
-		var cid: String = by_pack[pid]
 		for xf: Transform3D in _bush[key]:
 			var k := Vector2i(int(floor(xf.origin.x / HCELL)), int(floor(xf.origin.z / HCELL)))
 			if not _pcol_index.has(k):
@@ -1100,7 +1117,7 @@ func clear_brush(center: Vector3, radius: float) -> int:
 	var c1 := Vector2i(int(floor((center.x + radius) / BUSH_CHUNK)), int(floor((center.z + radius) / BUSH_CHUNK)))
 	for key in _bush:
 		var parts := String(key).split("|")
-		if parts.size() < 3:
+		if parts.size() < 3 or parts[0].begins_with(FloraV5World.PREFIX_T):   # деревья/пальмы v5 мачете не рубит
 			continue
 		var cx := int(parts[1])
 		var cz := int(parts[2])
@@ -1347,6 +1364,8 @@ func _gen_decor(k: Vector2i) -> Array:
 	var sets: Dictionary = {}
 	var gstep := 1.7 / sqrt(density)
 	var pack := FloraPack.available()
+	var v5g := FloraV5World.available()
+	var v5r := rng.randi()
 	var n := int(ceil(CHUNK / gstep))
 	var ox := k.x * CHUNK
 	var oz := k.y * CHUNK
@@ -1390,17 +1409,25 @@ func _gen_decor(k: Vector2i) -> Array:
 						type = "grass"
 			if type == "":
 				continue
+			# v5.2: травы набора пользователя — часть травы (до 3 видов на чанк)
+			if v5g and type == "grass" and rng.randf() < (0.45 if b == &"beach" or b == &"rocky" else 0.3):
+				var gl := FloraV5World.grass_for(&"meadow" if b == &"swamp" else b, v5r)
+				if not gl.is_empty():
+					type = "v5g:" + String(gl[rng.randi_range(0, gl.size() - 1)])
+					s0 = 0.8; s1 = 1.3
 			if not sets.has(type):
 				sets[type] = []
 			var bs := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(s0, s1))
 			(sets[type] as Array).append(Transform3D(bs, Vector3(x, y - 0.04, z)))
-			stats["grass" if type == "grass" else "fern"] += 1
+			stats["grass" if type == "grass" or String(type).begins_with("v5g:") else "fern"] += 1
 	var out: Array = []
 	var ferns := ["fern_02_a", "fern_02_b", "fern_02_c", "fern_02_d"]
 	for type in sets:
 		var mesh: Mesh
 		if type == "grass":
 			mesh = FloraLib.grass_mesh()
+		elif String(type).begins_with("v5g:"):
+			mesh = FloraV5World.mesh(String(type).substr(4))
 		elif String(type).begins_with("pf:"):
 			mesh = FloraPack.mesh(String(type).substr(3), 1)   # папоротники/куркулиго пака
 		else:
@@ -1417,7 +1444,7 @@ func _gen_decor(k: Vector2i) -> Array:
 		var mmi := MultiMeshInstance3D.new()
 		mmi.name = "Decor_%s_%d_%d" % [type, k.x, k.y]
 		mmi.multimesh = mm
-		_detail_range(mmi, GRASS_RANGE if type == "grass" else FERN_RANGE)
+		_detail_range(mmi, GRASS_RANGE if type == "grass" or String(type).begins_with("v5g:") else FERN_RANGE)
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mmi)
 		out.append(mmi)

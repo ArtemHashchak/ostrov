@@ -193,8 +193,25 @@ func _gull_thefts(pl: Node3D) -> void:
 		var g := _free_gull(fl)
 		if g == null:
 			continue
-		g.set_meta(&"dive", {"target": tgt, "phase": &"in", "t": 0.0})
+		var sq := _is_fish_pickup(tgt)
+		g.set_meta(&"dive", {"target": tgt, "phase": &"in", "t": 0.0, "squabble": sq})
 		tgt.set_meta(&"gull_target", true)
+		# v5.2 (агент O): рыба на берегу — слетаются 2–3 чайки и дерутся за неё
+		if sq:
+			for extra in 2:
+				var g2 := _free_gull(fl)
+				if g2 == null:
+					break
+				g2.set_meta(&"dive", {"target": tgt, "phase": &"in", "t": randf_range(0.0, 1.2), "squabble": true})
+
+## Подобранная рыба (сырая/приготовленная) на земле — за неё чайки дерутся.
+func _is_fish_pickup(t: Node3D) -> bool:
+	if not (t is ItemPickup):
+		return false
+	for st: Dictionary in (t as ItemPickup).stacks:
+		if String(st.get("id", "")).contains("fish"):
+			return true
+	return false
 
 func _flock_busy(fl: Dictionary) -> bool:
 	for m in fl.get("members", []):

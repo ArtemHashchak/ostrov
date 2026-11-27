@@ -374,12 +374,35 @@ static func tick_gull_dive(a: Animal, dt: float) -> void:
 		d["phase"] = phase
 		d["t"] = 0.0
 	var goal: Vector3
+	var squab := false
 	if phase == &"in":
 		var t := tv as Node3D
 		goal = t.global_position + Vector3.UP * (1.7 if t.is_in_group(&"player") else 0.25)
+		# v5.2 (агент O): драка за рыбу — у добычи чайки 2–5 с кружат, подпрыгивают, клюют
+		# друг друга и кричат; потом хватает ближайшая, остальные гонятся за ней
+		if bool(d.get("squabble", false)):
+			var near := Vector2(a.global_position.x - t.global_position.x, a.global_position.z - t.global_position.z).length()
+			if near < 2.6:
+				var now := float(d.get("sq", 0.0)) + dt
+				d["sq"] = now
+				if not d.has("sq_len"):
+					d["sq_len"] = randf_range(2.5, 5.0)
+				t.set_meta(&"sq_until", true)
+				if now < float(d["sq_len"]):
+					squab = true
+					var ang := float(a.get_instance_id() % 997) * 0.37 + now * 1.6
+					var hop := absf(sin(now * 7.0 + float(a.get_instance_id() % 13)))
+					goal = t.global_position + Vector3(cos(ang), 0.0, sin(ang)) * 0.85 + Vector3.UP * (0.15 + hop * 0.6)
+					if randf() < dt * 0.9:
+						a._sound(a.cfg.get("sound", &"gull"), 4.0)
 	else:
-		var c: Vector3 = a.flock.get("pos", a.home) if not a.flock.is_empty() else a.home
-		goal = c + a.flock_offset + Vector3.UP * 6.0
+		var ch: Variant = d.get("chase")
+		if ch != null and is_instance_valid(ch) and float(d.t) < 5.0:
+			goal = (ch as Node3D).global_position + Vector3(sin(float(d.t) * 3.0), 0.4, cos(float(d.t) * 3.0)) * 1.2
+		else:
+			d.erase("chase")
+			var c: Vector3 = a.flock.get("pos", a.home) if not a.flock.is_empty() else a.home
+			goal = c + a.flock_offset + Vector3.UP * 6.0
 	var to := goal - a.global_position
 	var dist := to.length()
 	var sp := float(a.cfg["run"]) * (0.75 if phase == &"in" else 0.9)
@@ -393,11 +416,11 @@ static func tick_gull_dive(a: Animal, dt: float) -> void:
 	var g := Fauna.ground_y_at(a, a.global_position.x, a.global_position.z)
 	a.global_position.y = maxf(a.global_position.y, maxf(g, Fauna.water_y(a)) + 0.15)
 	a.alt = a.global_position.y - g
-	if phase == &"in" and dist < 0.7:
+	if phase == &"in" and dist < 0.7 and not squab:
 		_gull_grab(a, tv as Node3D)
 		d["phase"] = &"out"
 		d["t"] = 0.0
-	elif phase == &"out" and (dist < 2.0 or float(d.t) > 12.0):
+	elif phase == &"out" and ((dist < 2.0 and d.get("chase") == null) or float(d.t) > (6.0 if d.get("chase") != null else 12.0)):
 		a.remove_meta(&"dive")
 		return
 	a.set_meta(&"dive", d)
@@ -427,6 +450,19 @@ static func _gull_grab(a: Animal, t: Node3D) -> void:
 			got = id
 	if got == &"":
 		return
+	# остальные чайки, дравшиеся за ту же добычу, гонятся за победительницей
+	for m in (a.flock.get("members", []) if not a.flock.is_empty() else []):
+		if m != a and is_instance_valid(m) and (m as Node).has_meta(&"dive"):
+			var od: Dictionary = (m as Node).get_meta(&"dive")
+			if od.get("target") == t:
+				od["phase"] = &"out"
+				od["t"] = 0.0
+				od["chase"] = a
+				(m as Node).set_meta(&"dive", od)
+	var fe0: Node = a.fauna.get(&"ext") if a.fauna else null
+	if fe0 and t.has_meta(&"sq_until"):
+		var fst: Dictionary = fe0.get(&"stats")
+		fst["gull_fights"] = int(fst.get("gull_fights", 0)) + 1
 	a.stolen.append({"id": got, "n": 1})
 	a._sound(a.cfg.get("sound", &"gull"), 6.0)
 	var fe: Node = a.fauna.get(&"ext") if a.fauna else null
