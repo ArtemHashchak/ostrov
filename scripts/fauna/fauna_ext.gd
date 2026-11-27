@@ -159,9 +159,11 @@ func _wind_coconuts(pl: Node3D, dt: float) -> void:
 	var rate := 0.004 * pow(ws - 6.0, 1.3)   # на один кокос в секунду
 	for n in get_tree().get_nodes_in_group(&"choppable"):
 		var t := n as Node3D
-		if t == null or StringName(t.get(&"kind")) != &"palm" or bool(t.get(&"felled")):
+		# не у всех choppable есть поля kind/coconuts (деревья flora v5, пни) — get даёт null
+		if t == null or str(t.get(&"kind")) != "palm" or t.get(&"felled") == true:
 			continue
-		var c := int(t.get(&"coconuts"))
+		var cv = t.get(&"coconuts")
+		var c := int(cv) if cv != null else 0
 		if c <= 0 or t.global_position.distance_to(pl.global_position) > 60.0:
 			continue
 		if _rng.randf() < rate * c * dt:

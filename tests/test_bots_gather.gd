@@ -45,13 +45,30 @@ func run() -> void:
 	var t0 := Game.match_time
 	var shot_i := 0
 	var next_log := 0.0
+	var stall_t := 0.0       # сколько бот в фазе cut без новых ударов
+	var stall_max := 0.0
+	var last_hits := -1
 	while Game.match_time - t0 < 900.0:
+		var mt := Game.match_time
 		await wait(2.0)
 		_follow()
+		var hits := int(bot.brain.stats.hits)
+		if String(bot.brain.task.get("phase", "")) == "cut" and hits == last_hits:
+			stall_t += Game.match_time - mt
+			stall_max = maxf(stall_max, stall_t)
+		else:
+			stall_t = 0.0
+		last_hits = hits
 		if Game.match_time - t0 >= next_log:
 			next_log += 10.0
 			print("[bots] t=%d %s | %s | logs=%d felled=%d delivered=%d carry=%d hp=%d" % [int(Game.match_time - t0), bot.brain.status,
 				bot.brain.debug(), int(bot.brain.stats.logs), int(bot.brain.stats.felled), int(bot.brain.stats.delivered), bot.logs_carried, int(bot.health)])
+			# диагностика «пилит, но не подходит»: где ствол и точка удара относительно бота
+			var tr: Variant = bot.brain.task.get("trunk")
+			if tr is FallenTrunk and is_instance_valid(tr):
+				var sp: Vector3 = bot.brain.call(&"_segment_point", tr)
+				print("[bots]    trunk=%s seg=%s dy=%.2f left=%d" % [str((tr as FallenTrunk).global_position.snapped(Vector3.ONE * 0.1)),
+					str(sp.snapped(Vector3.ONE * 0.1)), sp.y - bot.global_position.y, (tr as FallenTrunk).logs_left()])
 		if shot_i == 0 and String(bot.brain.task.get("phase", "")) == "chop":
 			shot_i = 1
 			await snap("chop")
@@ -70,6 +87,7 @@ func run() -> void:
 	check(int(bot.brain.stats.felled) >= 1, "бот срубил дерево")
 	check(int(bot.brain.stats.logs) >= 2, "бот поднял брёвна (%d)" % int(bot.brain.stats.logs))
 	check(logs_in >= 4, "в постройке бота есть брёвна (%d)" % logs_in)
+	check(stall_max < 60.0, "бот не «пилит» недосягаемый ствол (простой в cut %.0f с)" % stall_max)
 	_follow()
 	await wait(0.5)
 	await snap("base")

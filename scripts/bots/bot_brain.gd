@@ -7,6 +7,8 @@ extends RefCounted
 
 const SWING_CD := 0.8
 const PICK_R := 2.0
+const SEG_REACH_H := 1.8     # выше над землёй сегмент ствола не достать топором
+const CUT_STALL_S := 25.0    # столько без удара по стволу — бросить его
 const TASK_TIMEOUT := {"logs": 150.0, "deliver": 90.0, "collect": 80.0, "fill": 60.0, "fight": 40.0,
 	"flee": 25.0, "drink": 80.0, "eat": 80.0, "herb": 60.0, "raid": 420.0, "defend": 30.0,
 	"cut_bridge": 90.0, "goto": 240.0, "wander": 20.0, "retreat": 40.0, "prep": 120.0, "supply": 150.0}
@@ -540,8 +542,21 @@ func _do_logs() -> void:
 				task.node = lg2
 				return
 			var sp := _segment_point(tr4)
-			if sp.y < bot.water_level() - 0.8:
+			if sp.y < bot.water_level() - 0.8 or sp.x == INF:
+				# под водой или все сегменты вне досягаемости (ствол лёг наклонно на склон/камни)
 				_black[tr4.get_instance_id()] = clock + 600.0
+				task.phase = "find"
+				return
+			# нет прогресса (не дойти / не достать) — бросить ствол, а не «пилить» до таймаута задачи
+			# ключ — ствол + счётчик ударов; меняется — таймер заново (и после отлучки за бревном)
+			var cut_key := "%d:%d" % [tr4.get_instance_id(), int(stats.get("hits", 0))]
+			if String(task.get("cut_hits", "")) != cut_key or clock - float(task.get("cut_seen", -1e9)) > 2.0:
+				task.cut_hits = cut_key
+				task.cut_t = clock
+			task.cut_seen = clock
+			if clock - float(task.get("cut_t", clock)) > CUT_STALL_S:
+				_black[tr4.get_instance_id()] = clock + 600.0
+				task.erase("cut_hits")
 				task.phase = "find"
 				return
 			if _go(sp, 1.3):
@@ -594,14 +609,19 @@ func _trunk_near(p: Vector3, r: float) -> FallenTrunk:
 			best = t
 	return best
 
-## Точка удара по стволу: середина ближайшего к боту сегмента (не у кроны).
+## Точка удара по стволу: середина ближайшего к боту сегмента (не у кроны), до которой
+## можно дотянуться с земли (ствол бывает лёг наклонно — верхушкой на склон/камни).
+## Ни одного досягаемого — Vector3(INF, …).
 func _segment_point(t: FallenTrunk) -> Vector3:
-	var best := t.global_position
+	var best := Vector3(INF, INF, INF)
 	var bd := INF
 	var crown := t.crown_global_position() if t.has_crown() else Vector3(INF, INF, INF)
+	var w: Node = bot.get_tree().get_first_node_in_group(&"world")
 	for s: Dictionary in t.segments:
 		var mid := t.global_transform * FloraLib.trunk_point(t.variant, (float(s.h0) + float(s.h1)) * 0.5)
 		if crown.x < INF and mid.distance_to(crown) < 2.2:
+			continue
+		if w and w.has_method(&"height_at") and mid.y - float(w.call(&"height_at", mid.x, mid.z)) > SEG_REACH_H:
 			continue
 		var d := mid.distance_to(bot.global_position)
 		if d < bd:
