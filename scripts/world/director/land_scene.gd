@@ -80,13 +80,14 @@ func animal(sp: StringName, pos: Vector3, growth: float = 1.0, walk: float = -1.
 	a.cfg = (Animal.SPECIES.get(sp, Animal.SPECIES[&"boar"]) as Dictionary).duplicate(true)
 	if walk > 0.0:
 		a.cfg["walk"] = walk
-	a.growth = growth
 	a.scripted = true
 	a.home = _gp(pos)
 	a.home_r = 30.0
 	var root := director.actors_root if director and director.actors_root else self
 	root.add_child(a)
 	a.global_position = _gp(pos)
+	if growth != 1.0:
+		a.set_growth(growth)   # масштаб модели (детёныш, мелкий краб в клюве)
 	a.add_to_group(&"director_actors")
 	actors.append(a)
 	return a
@@ -146,11 +147,30 @@ func vanish(a: Animal) -> void:
 		a.queue_free()
 
 ## Тушка без добычи (для сценок): мёртвое животное лежит на боку.
-func corpse(sp: StringName, pos: Vector3) -> Animal:
+func corpse(sp: StringName, pos: Vector3, wounds := 3) -> Animal:
 	var a := animal(sp, pos)
 	a.cfg["drops"] = []
+	a.rotation.y = _rng.randf() * TAU
+	_wound(a, wounds)
 	a.die(null)
+	# клипы смерти пака (варан и др.) не кладут тушу на бок — для сценки кладём сами: модель на бок, без перекоса в грунт
+	var m: Node3D = a.get(&"_model")
+	if m:
+		m.rotation.z = PI * 0.5
+		m.position.y += 0.22 * a.growth
 	return a
+
+## Раны на туше (Wounds/DamageMask агента I): укусы/порезы по боку и шее — тушу видно издалека как добычу.
+func _wound(a: Animal, n: int) -> void:
+	var wn := get_node_or_null(^"/root/Wounds")
+	if wn == null or n <= 0 or not wn.has_method(&"add_hit"):
+		return
+	var b := a.global_basis
+	for i in n:
+		var side := b.x * (1.0 if i % 2 == 0 else -1.0)
+		var along := b.z * _rng.randf_range(-0.35, 0.45)
+		var p := a.global_position + Vector3.UP * _rng.randf_range(0.35, 0.6) + side * 0.4 + along
+		wn.call(&"add_hit", a, p, side, &"", &"bite" if i != 1 else &"melee")
 
 ## Убить актёра «по сценке» (добыча остаётся, как у обычной смерти).
 func kill(a: Animal) -> void:
@@ -261,9 +281,10 @@ func _setup_gull_crab_drop() -> bool:
 	var R := _origin()
 	var w := director.find_water(R, 60.0) if director else Vector3.INF
 	var from := (w if w != Vector3.INF else R + Vector3(25, 0, 0))
+	from = R + _dir_to(R, from) * minf(16.0, Vector2(from.x - R.x, from.z - R.z).length() + 6.0)   # с кромки воды, недалеко
 	var start := Vector3(from.x, maxf(_g(from.x, from.z), _wl()) + 4.0, from.z)
 	var fl := flock_of(&"gull", start, 1)
-	var crab := animal(&"crab", start)
+	var crab := animal(&"crab", start, 0.3)   # краб-призрак: панцирь ~5–8 см, с ногами ~20 см (чайка ~1,3 м в размахе)
 	crab.set_meta(&"carried", true)
 	data = {"rock": R, "fl": fl, "crab": crab, "phase": 0, "vy": 0.0, "gull": fl.members[0]}
 	duration = 34.0
@@ -282,7 +303,7 @@ func _tick_gull_crab_drop(dt: float) -> void:
 			var goal := R + Vector3(0, 11.0, 0)
 			fl.pos = (fl.pos as Vector3).move_toward(goal, dt * 5.5)
 			if is_instance_valid(crab):
-				crab.global_position = gull.global_position + Vector3(0, -0.3, 0)
+				crab.global_position = gull.global_position + Vector3(0, -0.12, 0)
 				crab.heading = gull.heading
 				crab.rotation.y = gull.heading
 			if gull.global_position.distance_to(goal) < 2.5 or t > 10.0:
@@ -410,10 +431,10 @@ func _mound(col: Color) -> MeshInstance3D:
 
 func _setup_monitor_carcass() -> bool:
 	var C := _origin()
-	var body := corpse(&"boar", C)
+	var body := corpse(&"monitor", C)   # туша варана (модель автора с текстурой; у комодских варанов каннибализм — реальный сюжет)
 	var a := _rng.randf() * TAU
 	var mon := animal(&"monitor", C + Vector3(cos(a), 0, sin(a)) * 16.0, 1.0, 0.7)
-	var spot := C + Vector3(cos(a), 0, sin(a)) * 1.6
+	var spot := C + Vector3(cos(a), 0, sin(a)) * 2.3
 	go(mon, spot)
 	data = {"C": C, "body": body, "mon": mon, "eat_t": 0.0, "spot": spot}
 	duration = 70.0
