@@ -102,7 +102,6 @@ func run() -> void:
 			fwd.y = 0.0
 			fwd = fwd.normalized() if fwd.length() > 0.5 else -pod.global_basis.z
 			var side := Vector3(-fwd.z, 0, fwd.x)
-			await _view(p + side * 9.0 + Vector3(0, wl - p.y + 4.5, 0) - fwd * 4.0, p, "migration_above", 1.5)
 			# под водой: камера у ближайшей манты (≈6 м сбоку, чуть ниже), смотрит на неё и стаю за ней
 			var crit: Array = e2.get(&"_crit")
 			var wn := e2.get(&"_whale_node") as Node3D
