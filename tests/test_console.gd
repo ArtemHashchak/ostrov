@@ -39,6 +39,9 @@ func run() -> void:
 		cats[d.cat] = int(cats.get(d.cat, 0)) + 1
 	print("[test] видов: %d  %s" % [all.size(), cats])
 	for sp: StringName in Animal.SPECIES:
+		if sp in Animal.DISABLED:
+			check(CreatureSpawner.find(String(sp)).is_empty(), "отключённого вида %s нет в списке" % sp)
+			continue
 		check(not CreatureSpawner.find(String(sp)).is_empty(), "в списке вид фауны %s" % sp)
 	check(int(cats.get("sea", 0)) >= OceanRoster.all_species().size() / 2, "морских видов ≥ половины состава океана (%d)" % int(cats.get("sea", 0)))
 	check(int(cats.get("plants", 0)) >= Flora.VARIANTS.size() + 3, "растения есть (%d)" % int(cats.get("plants", 0)))

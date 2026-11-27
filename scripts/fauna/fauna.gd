@@ -275,8 +275,8 @@ func _populate_island(isl: Dictionary) -> void:
 	if (buckets.has(&"rocky") or buckets.has(&"jungle")) and _room(8):
 		var p: Variant = pick.call([&"rocky", &"jungle"])
 		spawn_flock(&"bat", p, _rng.randi_range(5, 9), 25.0)
-	# крокодилы — засада на мелководье/в болоте (не на домашних островах)
-	if danger >= 1.0:
+	# крокодилы — засада на мелководье/в болоте (не на домашних островах); v5.1: вид пока отключён
+	if danger >= 1.0 and not (&"croc" in Animal.DISABLED):
 		var pool: Array = shallow.duplicate()
 		for p in buckets.get(&"swamp", []):
 			if ground_y_at(self, p.x, p.z) < wl + 0.3:
@@ -289,7 +289,7 @@ func _room(n: int) -> bool:
 	return animals.size() + n <= max_animals
 
 func _try_spawn(sp: StringName, p: Vector3, home_r: float) -> Animal:
-	if not _room(1):
+	if sp in Animal.DISABLED or not _room(1):
 		return null
 	var g := ground_y_at(self, p.x, p.z)
 	return spawn(sp, Vector3(p.x, g, p.z), home_r)

@@ -5,6 +5,9 @@ extends Node3D
 ## Хитбокс — Area3D: его ловят луч удара игрока (on_hit) и луч взаимодействия (interact).
 ## Дроп — ItemPickup при смерти. Дикие не восстанавливаются: убитое животное не возрождается.
 
+## Виды, которые пока не используются (v5.1: крокодила пока нет — файлы и код остаются).
+const DISABLED: Array[StringName] = [&"croc"]
+
 const SPECIES := {
 	&"boar": {"name": "Кабан", "hp": 70.0, "walk": 1.3, "run": 6.2, "dmg": 9.0, "reach": 1.5, "cd": 1.2,
 		"temper": &"defensive", "aggro_r": 5.0, "flee_r": 0.0, "box": Vector3(0.6, 0.9, 1.5), "box_y": 0.7,

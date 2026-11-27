@@ -88,6 +88,8 @@ static func _collect() -> Array[Dictionary]:
 	var seen := {}
 	# --- фауна суши и птицы
 	for sp: StringName in Animal.SPECIES.keys():
+		if sp in Animal.DISABLED:
+			continue
 		var cfg: Dictionary = Animal.SPECIES[sp]
 		var d := {"id": String(sp), "name": String(cfg.get("name", sp)), "src": "fauna",
 			"cat": "birds" if bool(cfg.get("fly", false)) else "animals"}
