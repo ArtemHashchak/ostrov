@@ -38,7 +38,7 @@ const CATALOG := {
 	"tide_school": {"title": "Стая держится против приливного течения", "depth": [3.0, 20.0], "time": "any", "weather": "any", "view": "underwater"},
 	"seagrass_nursery": {"title": "Морской луг: мальки прячутся в траве", "depth": [0.6, 4.0], "time": "day", "weather": "any", "view": "underwater"},
 	"kelp_forest": {"title": "Лес келпа качается в прибое, рыбы снуют между стеблями", "depth": [3.0, 12.0], "time": "any", "weather": "any", "view": "underwater"},
-	"whale_breach": {"title": "Кит выпрыгивает вдали", "depth": [15.0, 2000.0], "time": "day", "weather": "calm", "view": "surface", "far": true},
+	"whale_breach": {"title": "Кит выпрыгивает вдали", "depth": [25.0, 2000.0], "time": "day", "weather": "calm", "view": "surface", "far": true},
 	"coral_spawning": {"title": "Ночной нерест кораллов: всплывают розовые пучки", "depth": [1.5, 10.0], "time": "night", "weather": "calm", "view": "underwater"},
 	"gulls_steal": {"title": "Чайки выхватывают рыбу у поверхности", "depth": [2.0, 40.0], "time": "day", "weather": "calm", "view": "surface"},
 	"sargassum_raft": {"title": "Плот саргассума: мальки и рыбы под ним", "depth": [3.0, 200.0], "time": "any", "weather": "calm", "view": "both"},

@@ -383,6 +383,8 @@ func _attack_point() -> Vector3:
 		return Vector3(tp.x, sea.water_y() + 0.2, tp.z)
 	return tp + Vector3(0.0, 0.25, 0.0)
 
+var _dry_t := 0.0
+
 func _steer(want: Vector3, want_speed: float, delta: float, depth_here: float) -> void:
 	var max_turn: float = cfg["turn"]
 	# обход мелководья: щупаем дно впереди
@@ -420,6 +422,16 @@ func _steer(want: Vector3, want_speed: float, delta: float, depth_here: float) -
 		p.x = global_position.x
 		p.z = global_position.z
 		yaw += PI * 0.5 * delta
+	# v5.1: уже на суше/в отрезанной низине (выбросило, заспавнило) — дольше секунды → в ближайшую глубину
+	if sea.depth_at(global_position.x, global_position.z) < 0.3:
+		_dry_t += delta
+		if _dry_t > 1.0 and sea.has_method(&"nearest_deep"):
+			var q: Variant = sea.call(&"nearest_deep", Vector2(global_position.x, global_position.z), 1.5 + length * 0.3, 200.0)
+			if q != null:
+				p = Vector3((q as Vector2).x, water - 1.2 - length * 0.1, (q as Vector2).y)
+			_dry_t = 0.0
+	else:
+		_dry_t = 0.0
 	var pitch := clampf((p.y - global_position.y) / maxf(speed * delta, 0.01), -0.6, 0.6) * 0.5
 	global_position = p
 	rotation = Vector3(pitch, yaw, -_turn_rate * 0.12)

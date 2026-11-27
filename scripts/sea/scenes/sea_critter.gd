@@ -283,7 +283,7 @@ func _pick_wander() -> void:
 	for i in 6:
 		var a := _rng.randf() * TAU
 		var p := wander_c + Vector3(cos(a), _rng.randf_range(-0.4, 0.4), sin(a)) * _rng.randf_range(wander_r * 0.3, wander_r)
-		if water_y() - floor_y(p.x, p.z) > 0.3:
+		if water_y() - floor_y(p.x, p.z) > 0.3 and (_bounds != 1 or SeaBounds.water_ok(sea, p.x, p.z, SeaBounds.need_depth(length))):
 			goal = p
 			return
 	goal = wander_c
@@ -401,7 +401,22 @@ func _tick_cling(dt: float) -> void:
 	global_position = global_position.lerp(want, clampf(dt * 10.0, 0.0, 1.0)) if global_position.distance_to(want) < 0.5 else want
 	_anim(dt)
 
+## Границы моря (SeaBounds) включены: -1 — ещё не решено (по месту появления: в бассейне
+## полигона/вольере, где нет моря, — выключены).
+var _bounds := -1
+
 func _clamp(p: Vector3) -> Vector3:
+	# v5.1: не на берег и не в отрезанную низину — всё тело в море нужной глубины (SeaBounds)
+	if _bounds < 0:
+		_bounds = 1 if sea and SeaBounds.water_ok(sea, global_position.x, global_position.z, 0.3) else 0
+	if _bounds == 1 and not SeaBounds.body_ok(sea, p, forward(), maxf(length, 0.1)):
+		var here := global_position
+		if SeaBounds.water_ok(sea, here.x, here.z, SeaBounds.need_depth(length) * 0.6):
+			p.x = here.x
+			p.z = here.z
+		yaw = wrapf(yaw + 0.35, -PI, PI)
+		if mode == M.WANDER:
+			_pick_wander()
 	var fl := floor_y(p.x, p.z)
 	var wy := water_y()
 	if bottom:

@@ -4,7 +4,7 @@
   "mesh": "res://assets/user_pack/sea/fish_piranha.res", "shader": "res://scripts/sea/user_pack/user_species.gdshader",
   "length": 0.3, "speed": 0.9, "roam": 6.0, "min_quality": 1, "forward": "-z", "params": {"use_tex": true, "use_vertex_color": false, "wiggle": 0.08}},
  {"id": "whale_humpback_user", "name": "Горбатый кит", "category": "large", "biome": ["deep"],
-  "depth": [8.0, 60.0], "school": [1, 2], "groups": 0.05, "anim": "fish",
+  "depth": [25.0, 2000.0], "school": [1, 2], "groups": 0.0, "rare": 2, "anim": "fish",
   "mesh": "res://assets/user_pack/sea/whale_humpback.res", "shader": "res://scripts/sea/user_pack/user_species.gdshader",
-  "length": 13.0, "speed": 1.6, "roam": 60.0, "min_quality": 1, "forward": "-z", "params": {"use_tex": true, "use_vertex_color": false, "wiggle": 0.03, "tail_speed": 2.0}}
+  "length": 13.0, "speed": 1.6, "roam": 45.0, "min_quality": 1, "forward": "-z", "params": {"use_tex": true, "use_vertex_color": false, "wiggle": 0.03, "tail_speed": 2.0}}
 ]

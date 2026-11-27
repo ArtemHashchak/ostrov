@@ -165,7 +165,7 @@ func _pick_goal() -> void:
 		var a := _rng.randf() * TAU
 		var g := home + Vector3(cos(a), 0.0, sin(a)) * _rng.randf_range(r * 0.3, r)
 		var dep := _depth(g.x, g.z)
-		if dep > (0.6 if kind == "octopus" else 1.2):
+		if dep > (0.6 if kind == "octopus" else 1.2) and (sea == null or pinned or SeaBounds.water_ok(sea, g.x, g.z, SeaBounds.need_depth(body_len))):
 			var fl := _floor(g.x, g.z)
 			if kind == "octopus":
 				g.y = fl
@@ -216,12 +216,17 @@ func _steer_to(dir: Vector3, want_speed: float, dt: float, turn_k: float, accel:
 
 ## Не выходить из воды и не зарываться в дно.
 func _clamp_water(p: Vector3, margin: float) -> Vector3:
-	var fl := _floor(p.x, p.z)
-	p.y = clampf(p.y, fl + margin, _water() - 0.25)
-	if _depth(p.x, p.z) < 0.5:
+	# v5.1: всё тело (морда, хвост, бока) — в море нужной глубины при отливе, иначе стоп и разворот
+	var bad := _depth(p.x, p.z) < 0.5
+	if not bad and sea and not pinned:
+		bad = not SeaBounds.body_ok(sea, p, forward(), body_len)
+	if bad:
 		p.x = position.x
 		p.z = position.z
 		yaw += PI * 0.6
+		_goal = home
+	var fl := _floor(p.x, p.z)
+	p.y = clampf(p.y, fl + margin, maxf(fl + margin, _water() - 0.25 - body_len * 0.12))
 	return p
 
 func _tick_fish(dt: float, src: Vector3, dsrc: float) -> void:

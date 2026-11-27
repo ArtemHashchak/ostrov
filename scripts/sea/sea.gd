@@ -124,8 +124,15 @@ func floor_at(x: float, z: float) -> float:
 		return float(world.call(&"height_at", x, z))
 	return -12.0
 
+## Глубина моря сейчас. Мир с картой зон: вне открытого моря (суша и отрезанные от моря
+## низины) — отрицательная: морская живность туда не заплывает (v5.1).
 func depth_at(x: float, z: float) -> float:
-	return water_y() - floor_at(x, z)
+	var d := water_y() - floor_at(x, z)
+	if world:
+		var zm: Variant = world.get(&"zones")
+		if zm is ZoneMap and not (zm as ZoneMap).is_sea(x, z):
+			return minf(d, -0.05)
+	return d
 
 func islands() -> Array[Dictionary]:
 	if world and world.has_method(&"islands"):
@@ -336,6 +343,21 @@ func _strait(a: Dictionary, b: Dictionary, gap: float) -> Dictionary:
 	return {"a": int(a.get("id", 0)), "b": int(b.get("id", 0)), "mid": (p0 + p1) * 0.5, "gap": maxf(gap, 10.0),
 		"p0": p0, "p1": p1}
 
+## Ближайшая точка моря глубже need (по спирали до max_r м); null — нет.
+func nearest_deep(from: Vector2, need: float, max_r: float) -> Variant:
+	if depth_at(from.x, from.y) >= need:
+		return from
+	var r := 4.0
+	while r <= max_r:
+		var n := maxi(8, int(TAU * r / 6.0))
+		for i in n:
+			var a := TAU * i / n
+			var q := from + Vector2(cos(a), sin(a)) * r
+			if depth_at(q.x, q.y) >= need:
+				return q
+		r += 6.0
+	return null
+
 func spawn_shark(sp: StringName, center: Vector2, ring: float, seed_i: int) -> Shark:
 	var s := Shark.new()
 	s.setup(sp, self, center, ring, seed_i)
@@ -347,6 +369,12 @@ func spawn_shark(sp: StringName, center: Vector2, ring: float, seed_i: int) -> S
 		ring += 6.0
 		p = Vector3(center.x + cos(a) * ring, 0.0, center.y + sin(a) * ring)
 		tries += 1
+	if depth_at(p.x, p.z) < 3.0:
+		# v5.1: кольцо целиком над сушей — ближайшая глубокая вода по спирали (иначе акула застревала на берегу)
+		var q: Variant = nearest_deep(Vector2(p.x, p.z), 3.0, 260.0)
+		if q != null:
+			p = Vector3((q as Vector2).x, 0.0, (q as Vector2).y)
+			ring = Vector2(p.x - center.x, p.z - center.y).length()
 	s.home_r = ring
 	p.y = water_y() - clampf(depth_at(p.x, p.z) * 0.45, 1.3, 4.5)
 	s.global_position = p

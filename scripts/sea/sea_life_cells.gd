@@ -156,6 +156,21 @@ func _populate(k: Vector2i, q: int) -> void:
 		var cz := (k.y + 0.5) * CELL
 		dens *= ZONE_DENSITY * liveliness(cx, cz)
 		probes = PROBES_ZONED
+	# редкие виды (кит): не больше «rare» групп на всю карту — только в своих ячейках открытого океана
+	for rd: Dictionary in SeaSpecies.all():
+		if int(rd.get("rare", 0)) <= 0 or int(rd.min_quality) > q:
+			continue
+		if not _rare_cells(rd).has(k):
+			continue
+		var rc := Vector3((k.x + 0.5) * CELL, 0.0, (k.y + 0.5) * CELL)
+		var rdep := SeaBounds.depth(sea, rc.x, rc.z)
+		var rL := float(rd.length)
+		var ry := clampf(wy - rdep * 0.45, wy - rdep + rL * 0.4 + 1.0, wy - rL * 0.3 - 2.0)
+		var rmi := _take(rd)
+		_setup_group(rmi, rd, Vector3(rc.x, ry, rc.z), rng, rdep)
+		list.append(rmi)
+		groups_active += 1
+		instances_active += rmi.multimesh.visible_instance_count
 	# пробные точки на ячейку: каждая — шанс на группу подходящего вида
 	# (в среднем Σgroups групп на водную ячейку подходящего биома)
 	for i in probes:
@@ -172,7 +187,7 @@ func _populate(k: Vector2i, q: int) -> void:
 		var cands: Array[Dictionary] = []
 		var wsum := 0.0
 		for d in SeaSpecies.all():
-			if int(d.min_quality) > q or not SeaSpecies.fits(d, biome, depth):
+			if int(d.min_quality) > q or int(d.get("rare", 0)) > 0 or not SeaSpecies.fits(d, biome, depth):
 				continue
 			cands.append(d)
 			wsum += float(d.groups)
@@ -189,8 +204,16 @@ func _populate(k: Vector2i, q: int) -> void:
 				pick = d
 				break
 		var floor_y := wy - depth
-		var top := wy - 0.6
-		var y := clampf(lerpf(floor_y + 0.8, top, rng.randf_range(0.15, 0.7)), floor_y + 0.5, top)
+		var L := float(pick.length)
+		# v5.1: вся петля маршрута группы (шейдер водит её по эллипсу roam) — в море нужной глубины
+		if zm != null or sea.has_method(&"depth_at"):
+			var sp_max := clampf(L * 2.0 * pow(float((pick.school as Array)[1]), 0.4), 0.3, 6.0)
+			var ro := float(pick.roam)
+			if not SeaBounds.ring_ok(sea, Vector3(x, 0, z), ro + sp_max + L * 0.6, ro * 0.75 + sp_max + L * 0.6,
+					SeaBounds.need_depth(L), 12):
+				continue
+		var top := wy - 0.6 - L * 0.25
+		var y := clampf(lerpf(floor_y + 0.8 + L * 0.2, top, rng.randf_range(0.15, 0.7)), floor_y + 0.5 + L * 0.2, top)
 		if String(pick.anim) == "eel":
 			y = floor_y + 0.25
 		var mi := _take(pick)
@@ -198,6 +221,50 @@ func _populate(k: Vector2i, q: int) -> void:
 		list.append(mi)
 		groups_active += 1
 		instances_active += mi.multimesh.visible_instance_count
+
+var _rare: Dictionary = {}     # id вида → {Vector2i: true} — ячейки, где он живёт
+
+## Ячейки редкого вида: «rare» штук на всю карту, в открытом океане, где вся петля маршрута
+## глубокая; детерминированно по виду (одни и те же ячейки весь матч).
+func _rare_cells(d: Dictionary) -> Dictionary:
+	var id := String(d.id)
+	if _rare.has(id):
+		return _rare[id]
+	var out := {}
+	var zm := _zm()
+	var L := float(d.length)
+	var ro := float(d.roam)
+	var need := maxf(SeaBounds.need_depth(L), float((d.depth as Array)[0]))
+	var cand: Array[Vector2i] = []
+	if zm != null:
+		var x0 := floori(zm.origin.x / CELL)
+		var z0 := floori(zm.origin.y / CELL)
+		var x1 := floori((zm.origin.x + zm.nx * ZoneMap.STEP) / CELL)
+		var z1 := floori((zm.origin.y + zm.nz * ZoneMap.STEP) / CELL)
+		for cz in range(z0 + 1, z1 - 1):
+			for cx in range(x0 + 1, x1 - 1):
+				var c := Vector3((cx + 0.5) * CELL, 0.0, (cz + 0.5) * CELL)
+				if not SeaBounds.deep_ocean(sea, c.x, c.z):
+					continue
+				var ok := true
+				for a in 8:
+					var an := TAU * a / 8.0
+					var px := c.x + cos(an) * (ro + L)
+					var pz := c.z + sin(an) * (ro + L)
+					if not SeaBounds.deep_ocean(sea, px, pz) or SeaBounds.depth(sea, px, pz) < need:
+						ok = false
+						break
+				if ok:
+					cand.append(Vector2i(cx, cz))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(id) ^ 0x7a11
+	var n := mini(int(d.get("rare", 1)), cand.size())
+	for i in n:
+		var j := rng.randi_range(0, cand.size() - 1)
+		out[cand[j]] = true
+		cand.remove_at(j)
+	_rare[id] = out
+	return out
 
 func _take(d: Dictionary) -> MultiMeshInstance3D:
 	var id := String(d.id)

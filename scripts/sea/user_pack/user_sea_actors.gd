@@ -17,6 +17,10 @@ const NEAR_ANIM := 30.0
 ## Сколько особей вида держать рядом — по пресету (низкое…ультра).
 const CAP_BY_Q: Array[float] = [0.4, 0.7, 1.0, 1.4]
 const CAP := {"octopus": 2, "squid": 4, "fish": 4}
+## Длина (м), с которой вид — «гигант» (кит): рядом с камерой не появляется.
+const GIANT_LEN := 6.0
+## Особей, убранных проверкой «на суше / на мели» (для тестов).
+var removed_dry := 0
 
 var sea: Object = null
 ## false — только закреплённые особи (полигон): без автоспавна вокруг камеры.
@@ -117,6 +121,7 @@ func _refresh(eye: Vector3) -> void:
 			if is_instance_valid(c):
 				c.queue_free()
 			critters.remove_at(i)
+	_validate()
 	if not auto_spawn or not _active(eye):
 		return
 	var q := clampi(Settings.graphics_quality, 0, 3)
@@ -129,6 +134,9 @@ func _refresh(eye: Vector3) -> void:
 	var cells := get_tree().get_first_node_in_group(&"sea_life_cells") as SeaLifeCells
 	for d: Dictionary in _species:
 		if q < int(d.get("min_quality", 0)):
+			continue
+		# гиганты (кит) рядом с камерой не появляются — только редкими группами в открытом океане (SeaLifeCells)
+		if float(d.get("length", 1.0)) >= GIANT_LEN:
 			continue
 		var kind := UserSeaActor._kind_of(d)
 		var cap := int(round(float(CAP[kind]) * CAP_BY_Q[q]))
@@ -162,6 +170,12 @@ func _find_spot(d: Dictionary, eye: Vector3, cells: SeaLifeCells) -> Variant:
 		var z := eye.z + sin(a) * r
 		var dep: float = sea.call(&"depth_at", x, z)
 		if dep < float(dr[0]) or dep > float(dr[1]) * 1.3:
+			continue
+		var L := float(d.get("length", 0.5))
+		# v5.1: только море (маска), глубина при отливе — на тело и вокруг (петля маршрута)
+		var need := maxf(SeaBounds.need_depth(L), float(dr[0]) * 0.5)
+		var rr := clampf(float(d.get("roam", 6.0)), 2.0, 14.0) * 0.6
+		if not SeaBounds.ring_ok(sea, Vector3(x, 0, z), rr, rr, need, 8):
 			continue
 		if cells and not biomes.is_empty() and not biomes.has(cells.biome_at(x, z, dep)):
 			continue
@@ -199,6 +213,12 @@ func _find_skel_spot(sp: Dictionary, eye: Vector3, cells: SeaLifeCells) -> Varia
 		var z := eye.z + sin(a) * r
 		var dep: float = sea.call(&"depth_at", x, z)
 		if dep < maxf(float(dr[0]), 0.6) or dep > float(dr[1]) * 1.3:
+			continue
+		var L2 := float(sp.get("length", 0.5))
+		if L2 >= GIANT_LEN:
+			return null                  # кит рядом с камерой — нет (редкие группы вдали)
+		var rr2 := clampf(L2 * 8.0, 2.0, 14.0) * 0.6
+		if not SeaBounds.ring_ok(sea, Vector3(x, 0, z), rr2, rr2, maxf(SeaBounds.need_depth(L2), float(dr[0]) * 0.5), 8):
 			continue
 		if cells and not (sp._biomes as Array).has(cells.biome_at(x, z, dep)):
 			continue
@@ -250,3 +270,31 @@ func spawn_at(d: Dictionary, pos: Vector3, yaw: float = 0.0) -> UserSeaActor:
 	a.add_hitbox()
 	actors.append(a)
 	return a
+
+## v5.1: проверка раз в секунду — особь вне моря (на суше, в отрезанной низине, на мели не по росту)
+## убирается; новые появятся на подходящем месте. Закреплённые (полигон, бассейны) не трогаем.
+func _validate() -> void:
+	if sea == null:
+		return
+	for i in range(actors.size() - 1, -1, -1):
+		var a := actors[i]
+		if not is_instance_valid(a) or a.pinned or a.dead:
+			continue
+		var p := a.global_position
+		if not SeaBounds.water_ok(sea, p.x, p.z, minf(SeaBounds.need_depth(a.body_len), 0.6)) \
+				or p.y > float(sea.call(&"water_y")) + 0.05:
+			a.queue_free()
+			actors.remove_at(i)
+			removed_dry += 1
+	for i in range(critters.size() - 1, -1, -1):
+		var c := critters[i]
+		if not is_instance_valid(c) or c.dead:
+			continue
+		var p2 := c.global_position
+		if c.mode == SeaCritter.M.BALLISTIC:
+			continue                     # прыжок над водой (дельфин) — законно
+		if not SeaBounds.water_ok(sea, p2.x, p2.z, minf(SeaBounds.need_depth(c.length), 0.6)) \
+				or p2.y > float(sea.call(&"water_y")) + 0.1:
+			c.queue_free()
+			critters.remove_at(i)
+			removed_dry += 1
