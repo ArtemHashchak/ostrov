@@ -2,7 +2,7 @@ class_name NatureDetails
 extends Node3D
 ## v5.2: мелочи живой природы вокруг камеры (план 23.11, п. 93–136). Тик из SkyWeather.update.
 ##  · летучие рыбы — днём над открытой водой у камеры изредка выпрыгивает и планирует стайка;
-##  · кокосы падают сами — с пальм в радиусе 45 м, в ветер чаще (ChoppableTree._drop_coconut);
+##  · (кокосы падают сами — поведение фауны агента K, fauna_ext.gd; здесь не дублируется);
 ##  · песок взмучивается — шаги персонажей и зверей на мелководье (0,15–1,3 м) поднимают облачко мути;
 ##  · следы улиток — на сыром песке на рассвете и после дождя появляются тонкие петляющие дорожки;
 ##  · туша → кости — павший крупный зверь со временем темнеет и оседает, на его месте остаются кости;
@@ -17,14 +17,13 @@ var _fish_pm: ParticleProcessMaterial
 var silt: GPUParticles3D
 var ants: GPUParticles3D
 var _fish_t := 8.0
-var _coco_t := 20.0
 var _snail_t := 10.0
 var _scan_t := 0.0
 var _walkers := {}        # id -> {t}
 var _corpses := {}        # animal id -> {node, t, base_y}
 var _food := {}           # pickup id -> {t, node}
 var _nest_done := {}      # nest id -> true
-var stats := {"fish_jumps": 0, "coconuts": 0, "silt": 0, "snail": 0, "bones": 0, "food_taken": 0, "shells": 0}
+var stats := {"fish_jumps": 0, "silt": 0, "snail": 0, "bones": 0, "food_taken": 0, "shells": 0}
 
 func _ready() -> void:
 	name = "NatureDetails"
@@ -110,7 +109,6 @@ func tick(dt: float, cam: Camera3D, sky: SkyWeather) -> void:
 	var cp := cam.global_position
 	var w := BuildEnv.world()
 	_tick_fish(dt, cp, sky, w)
-	_tick_coconuts(dt, cp, sky)
 	_tick_silt(dt)
 	_tick_snails(dt, cp, sky, w)
 	_scan_t -= dt
@@ -168,28 +166,6 @@ static func _fish_tex() -> Texture2D:
 				img.set_pixel(x, y, c)
 	_fish_tex_c = ImageTexture.create_from_image(img)
 	return _fish_tex_c
-
-# ---------------------------------------------------------------- кокосы падают сами
-## Только в тихую и умеренную погоду (< 6,5 м/с): в сильный ветер кокосы роняет поведение
-## фауны (fauna_ext.gd, агент K) — частоты не складываются.
-func _tick_coconuts(dt: float, cp: Vector3, sky: SkyWeather) -> void:
-	if sky.wind_speed() >= 6.5:
-		return
-	_coco_t -= dt
-	if _coco_t > 0.0:
-		return
-	_coco_t = randf_range(90.0, 200.0)
-	var cands: Array = []
-	for t in get_tree().get_nodes_in_group(&"choppable"):
-		var cn: Variant = t.get(&"coconuts")
-		if t is Node3D and cn is int and int(cn) > 0 and (t as Node3D).global_position.distance_to(cp) < 45.0:
-			cands.append(t)
-	if cands.is_empty():
-		return
-	var t: Node = cands[randi() % cands.size()]
-	if t.has_method(&"_drop_coconut"):
-		t.call(&"_drop_coconut", null)
-		stats.coconuts += 1
 
 # ---------------------------------------------------------------- муть на мелководье
 func _tick_silt(_dt: float) -> void:
