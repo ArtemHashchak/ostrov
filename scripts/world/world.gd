@@ -79,6 +79,17 @@ func _ready() -> void:
 	add_child(sky)
 	sky.setup(start_hour, seed_value)
 	sky.weather_changed.connect(func(w: StringName) -> void: weather_changed.emit(w))
+	if gen_version >= 5:
+		# v5.2: сценки живой природы на суше и подсказки через мир (агент L); в тестах — выключены
+		var live := not LandDirector.is_test_run()
+		var dir := LandDirector.new()
+		dir.world = self
+		dir.auto = live
+		add_child(dir)
+		var hints := WorldHints.new()
+		hints.world = self
+		hints.active = live
+		add_child(hints)
 	build_ms = Time.get_ticks_msec() - t0
 	build_stats = {"total_ms": build_ms, "layout_ms": t_arch - t0, "zones_ms": t_zone - t_arch, "trails": trails.stats,
 			"terrain_ms": t_terr - t_zone, "ocean_ms": t_ocean - t_terr, "terrain": terrain.stats, "islands": arch.islands.size(),

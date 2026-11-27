@@ -223,10 +223,10 @@ func _tab_debug() -> void:
 		l.text = "Режиссёр сценок ещё не подключён — список появится сам."
 		v.add_child(l)
 	else:
-		var gs := _grid(v, 3)
+		var gs := _grid(v, 2)
 		for sid: String in scenes:
 			var id := sid
-			_btn(gs, id, func() -> void: _run_scene(id), 220)
+			_btn(gs, LandDirector.scene_title(id), func() -> void: _run_scene(id), 330)
 	_head(v, "Реплей в максимальной графике")
 	var l2 := Label.new()
 	l2.text = "Игра всё время записывает последние 60 с. Кнопка перерисует их покадрово\nна «ультра» (не в реальном времени) и покажет видео. Консоль: replay [сек]"
@@ -279,7 +279,7 @@ func _run_scene(id: String) -> void:
 			var s := load(path) as Script
 			if s and s.has_method(&"trigger"):
 				s.call(&"trigger", id, poly.call(&"aim_point"))
-				_status.text = "Сценка: " + id
+				_status.text = "Сценка: " + LandDirector.scene_title(id)
 				return
 
 func _pick_anim_target() -> void:
