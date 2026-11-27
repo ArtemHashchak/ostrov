@@ -52,6 +52,10 @@ func begin() -> void:
 	host.add_child(crate)
 	var ws := float(w.call(&"water_level"))
 	crate.global_position = Vector3(pos.x, ws - 0.25, pos.z)
+	# ящик уже в море — без парашюта
+	var chute := crate.get_node_or_null(^"Parachute") as Node3D
+	if chute:
+		chute.visible = false
 	# лодка под ящиком (модель лодок ботов)
 	var ps := load(BOAT) as PackedScene if ResourceLoader.exists(BOAT) else null
 	if ps:

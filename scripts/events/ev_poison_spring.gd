@@ -70,15 +70,17 @@ func _make_signs(w: Node) -> void:
 	var fm := StandardMaterial3D.new()
 	fm.albedo_color = Color(0.72, 0.74, 0.7)
 	fm.roughness = 0.35
-	for i in 7:
-		var a := rng.randf() * TAU
-		var r := rng.randf_range(0.2, 0.75) * radius
+	# дохлая рыба прибита к одному берегу (ветер/течение), кучкой
+	var side_a := rng.randf() * TAU
+	for i in 11:
+		var a := side_a + rng.randf_range(-0.6, 0.6)
+		var r := rng.randf_range(0.45, 0.85) * radius
 		var p := spot + Vector3(cos(a) * r, 0.0, sin(a) * r)
 		var mi := MeshInstance3D.new()
 		if fish:
 			mi.mesh = fish
 			var ab := fish.get_aabb()
-			var k := 0.22 / maxf(maxf(ab.size.x, ab.size.z), 0.001)
+			var k := 0.28 / maxf(maxf(ab.size.x, ab.size.z), 0.001)
 			mi.scale = Vector3.ONE * k
 		else:
 			var cm := CapsuleMesh.new()

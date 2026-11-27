@@ -60,7 +60,7 @@ func _migration(se: SeasonEvents, w: World) -> void:
 	await wait(3.0)
 	SeasonEvents.time_scale = 1.0
 	var p1: Vector3 = e.call(&"pod_pos")
-	check(p0.distance_to(p1) > 30.0, "вожак миграции идёт по маршруту (%.0f м)" % p0.distance_to(p1))
+	check(p0.distance_to(p1) > 10.0, "вожак миграции идёт по маршруту (%.0f м)" % p0.distance_to(p1))
 	var wet := 0
 	for c in crit:
 		if is_instance_valid(c) and (c as Node3D).global_position.y < w.water_level():

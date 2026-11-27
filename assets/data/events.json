@@ -14,7 +14,7 @@
   "ring_r": 1430,
   "arc_deg": 150,
   "min_depth": 8.0,
-  "speed": 3.2,
+  "speed": 1.8,
   "mantas": [5, 8],
   "whale_chance": 0.55,
   "leap_every_s": [18, 40]

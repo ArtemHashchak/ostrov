@@ -53,7 +53,7 @@ func begin() -> void:
 	var L := 0.0
 	for i in range(1, route.size()):
 		L += route[i].distance_to(route[i - 1])
-	duration = minf(float(cfg.get("duration_s", 600)), L / float(cfg.get("speed", 3.2)) + 10.0)
+	duration = minf(float(cfg.get("duration_s", 600)), L / float(cfg.get("speed", 1.8)) + 10.0)
 	var mid := route[route.size() / 2]
 	say(host_line("migration", [where(mid)]) + (" С ними — горбатый кит." if _whale else ""))
 
@@ -84,7 +84,11 @@ func _build_route(w: Node) -> Array[Vector3]:
 func step(dt: float) -> void:
 	if _pod == null:
 		return
-	var spd := float(cfg.get("speed", 3.2))
+	var spd := float(cfg.get("speed", 1.8))
+	# вожак ждёт стаю: идёт, только пока манты держатся рядом (не обгоняет их)
+	var gc := group_center()
+	if gc != Vector3.INF and Vector2(gc.x - _pod.global_position.x, gc.z - _pod.global_position.z).length() > 14.0:
+		spd *= 0.15
 	var left := spd * dt
 	while left > 0.0 and _seg < route.size() - 1:
 		var a := _pod.global_position
@@ -121,6 +125,16 @@ func finish() -> void:
 			(c as Node).queue_free()
 	_crit.clear()
 	super.finish()
+
+## Центр стаи (без кита) — для камеры и метки.
+func group_center() -> Vector3:
+	var c := Vector3.ZERO
+	var n := 0
+	for k in _crit:
+		if is_instance_valid(k) and k != _whale_node:
+			c += (k as Node3D).global_position
+			n += 1
+	return c / float(n) if n > 0 else Vector3.INF
 
 func pod_pos() -> Vector3:
 	return _pod.global_position if _pod else Vector3.INF
