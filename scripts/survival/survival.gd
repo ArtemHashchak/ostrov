@@ -234,7 +234,17 @@ func on_use_item(ch: Node, id: StringName) -> bool:
 	if id == &"pot":
 		toast(ch, "Котелок: у горящего костра E — вскипятить морскую воду")
 		return true
-	if id == &"coconut" and not _can_crack(ch):
+	if dd.has("peel"):
+		# зелёный кокос: сначала очистить от шелухи (v5.1)
+		if not _can_crack(ch) and count(ch, &"machete") <= 0:
+			toast(ch, "Нечем очистить кокос — нужен нож, мачете, топор или камень")
+			return true
+		if take(ch, id, 1):
+			give(ch, StringName(dd.peel), 1)
+			give(ch, &"coconut_husk", 1)
+			toast(ch, "Кокос очищен — шелуха пойдёт на растопку")
+		return true
+	if id == &"coconut_peeled" and not _can_crack(ch):
 		toast(ch, "Нечем расколоть кокос — нужен камень, нож или топор")
 		return true
 	if dd.has("seed"):
@@ -1038,8 +1048,8 @@ func eat_best(ch: Node) -> StringName:
 
 ## Попить лучшее из инвентаря (пресное). Возвращает id или "".
 func drink_best(ch: Node) -> StringName:
-	for id in [&"water_bottle", &"shell_water", &"herbal_tea", &"coconut", &"melon"]:
-		if count(ch, id) > 0 and (id != &"coconut" or _can_crack(ch)):
+	for id in [&"water_bottle", &"shell_water", &"herbal_tea", &"coconut_peeled", &"melon"]:
+		if count(ch, id) > 0 and (id != &"coconut_peeled" or _can_crack(ch)):
 			consume_item(ch, id)
 			return id
 	return &""

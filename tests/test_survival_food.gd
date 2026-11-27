@@ -160,11 +160,13 @@ func run() -> void:
 	p.inventory.clear()
 	put(&"coconut", 2, 0)
 	p.thirst = 40.0
-	check(sv.on_use_item(p, &"coconut"), "без инструмента кокос не расколоть")
+	check(sv.on_use_item(p, &"coconut") and p.inventory.count(&"coconut") == 2, "без инструмента зелёный кокос не очистить")
 	p.inventory.add(&"rock", 1)
-	check(not sv.on_use_item(p, &"coconut"), "с камнем — можно")
-	check(sv.consume_item(p, &"coconut"), "выпил кокос")
-	check(p.thirst >= 40.0 + float(PlayerItems.data(&"coconut").get("thirst", 10.0)) - 0.5 and p.thirst > 48.0 and p.inventory.count(&"coconut_shell") == 1, "кокос поит, остаётся скорлупа: жажда %.1f, скорлуп %d" % [p.thirst, p.inventory.count(&"coconut_shell")])
+	check(sv.on_use_item(p, &"coconut") and p.inventory.count(&"coconut") == 1 and p.inventory.count(&"coconut_peeled") == 1 \
+		and p.inventory.count(&"coconut_husk") == 1, "с камнем зелёный кокос очищается: очищенный + шелуха")
+	check(not sv.on_use_item(p, &"coconut_peeled"), "очищенный с камнем — можно расколоть")
+	check(sv.consume_item(p, &"coconut_peeled"), "выпил кокос")
+	check(p.thirst >= 40.0 + float(PlayerItems.data(&"coconut_peeled").get("thirst", 10.0)) - 0.5 and p.thirst > 48.0 and p.inventory.count(&"coconut_shell") == 1, "кокос поит, остаётся скорлупа: жажда %.1f, скорлуп %d" % [p.thirst, p.inventory.count(&"coconut_shell")])
 
 	# ---------- мусор: ящик, бочка, жесть → котелок ----------
 	var debris := sv.debris_near(p.global_position, 500.0)

@@ -21,7 +21,8 @@ static func build(id: StringName) -> Node3D:
 		&"spear": _spear(root)
 		&"stick": _stick(root)
 		&"rock", &"stone": _rock(root)
-		&"coconut": _coconut(root)
+		&"coconut": _coconut_green(root)
+		&"coconut_peeled": _coconut(root)
 		&"water_bottle": _bottle(root)
 		&"flag": _flag(root)
 		&"rope", &"fiber": _rope_coil(root)
@@ -194,6 +195,16 @@ static func _rock(root: Node3D) -> void:
 	mi.mesh = rough_stone_mesh(0.065, 11)
 	mi.material_override = pbr("dark_rock", Vector3(0.8, 0.8, 0.8))
 	mi.position = Vector3(0, 0.04, -0.02)
+	root.add_child(mi)
+
+## Зелёный кокос в шелухе — та же модель, что лежит на земле и висит на пальме (v5.1).
+static func _coconut_green(root: Node3D) -> void:
+	var mi := MeshInstance3D.new()
+	mi.mesh = FloraLib.coconut_mesh()
+	var ab := mi.mesh.get_aabb()
+	var k := 0.2 / maxf(ab.get_longest_axis_size(), 0.01)   # в руке ~20 см
+	mi.scale = Vector3.ONE * k
+	mi.position = Vector3(0, 0.06, -0.02) - ab.get_center() * k
 	root.add_child(mi)
 
 static func _coconut(root: Node3D) -> void:

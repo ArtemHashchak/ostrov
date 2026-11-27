@@ -32,6 +32,8 @@ static func register() -> void:
 	_item(&"spear", "Копьё", &"weapon", 1, 1.5,
 		{"tool": &"spear", "damage": 20.0, "reach": 2.8, "color": Color(0.6, 0.5, 0.35), "desc": "Длинный удар. Хорошо против зверей и акул."})
 	_item(&"coconut", "Кокос", &"food", 10, 1.0,
+		{"hunger": 10.0, "thirst": 15.0, "color": Color(0.36, 0.52, 0.2)})
+	_item(&"coconut_peeled", "Очищенный кокос", &"food", 10, 0.8,
 		{"hunger": 10.0, "thirst": 15.0, "color": Color(0.45, 0.3, 0.18)})
 	_item(&"meat_raw", "Сырое мясо", &"food", 10, 0.5,
 		{"hunger": 12.0, "raw_risk": 0.35, "color": Color(0.75, 0.32, 0.32)})

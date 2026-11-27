@@ -59,9 +59,20 @@ static func register() -> void:
 		{"tool": &"knife", "damage": 9.0, "color": Color(0.6, 0.58, 0.55), "held": SurvivalModels.held_knife,
 		 "desc": "Колет кокосы, режет сети и лианы."})
 	# ---------- еда ----------
-	_item(&"coconut", "Кокос", &"food", 10, 1.2,
+	# v5.1: подобранный кокос — зелёный, в шелухе (та же модель, что на земле); пока его не очистят —
+	# не пьётся. Очистить (ПКМ/E): нож, мачете, топор или камень → очищенный кокос + шелуха (растопка).
+	_item(&"coconut", "Зелёный кокос", &"food", 10, 1.2,
+		{"hunger": 8.0, "thirst": 18.0, "color": Color(0.36, 0.52, 0.2), "peel": &"coconut_peeled",
+		 "desc": "Зелёный, в шелухе. Очистить (ПКМ/E): нож, мачете, топор или камень."})
+	var cd := Items.get_item(&"coconut")
+	if cd:
+		cd.name = "Зелёный кокос"
+		cd.data["color"] = Color(0.36, 0.52, 0.2)
+		cd.data["peel"] = &"coconut_peeled"
+		cd.data.erase("sv")
+	_item(&"coconut_peeled", "Очищенный кокос", &"food", 10, 0.8,
 		{"hunger": 8.0, "thirst": 18.0, "sv": &"coconut", "color": Color(0.45, 0.3, 0.18),
-		 "desc": "Пей и ешь. Расколоть: камень, топор или нож в инвентаре."})
+		 "desc": "Без шелухи. Пей и ешь — расколоть: камень, топор или нож в инвентаре."})
 	_item(&"meat_raw", "Сырое мясо", &"food", 10, 0.5,
 		{"hunger": 12.0, "raw_risk": 0.35, "cook": &"meat_cooked", "smoke": &"smoked_meat", "color": Color(0.75, 0.32, 0.32)})
 	_item(&"meat_cooked", "Жареное мясо", &"food", 10, 0.5,

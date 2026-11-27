@@ -15,20 +15,20 @@ func run() -> void:
 	inv.clear()
 	inv.add(&"axe_crude", 1)
 	inv.add(&"stick", 8)
-	inv.add(&"coconut", 2)
+	inv.add(&"coconut_peeled", 2)
 	inv.add(&"flag", 1)
 
 	# Еда.
 	p.hunger = 50.0
 	var ci := -1
 	for i in Inventory.SIZE:
-		if inv.get_slot(i).get("id") == &"coconut":
+		if inv.get_slot(i).get("id") == &"coconut_peeled":
 			ci = i
 	inv.select(ci)
 	await wait(0.3)
 	p.use_selected()
 	await until(func() -> bool: return p.hunger > 50.0, 8.0)
-	check(p.hunger > 50.0 and inv.count(&"coconut") == 1, "съел кокос: сытость %.0f" % p.hunger)
+	check(p.hunger > 50.0 and inv.count(&"coconut_peeled") == 1, "съел кокос: сытость %.0f" % p.hunger)
 
 	# Голод/жажда убывают.
 	var h0 := p.hunger
