@@ -14,7 +14,7 @@ const PREFIX_T := "v5t:"
 ## Вероятность на точку сетки STEP по зоне: [id-группа, вес]. Группы раскрываются в ids.
 const STEP := 5.0
 const ZONE_W := {
-	&"jungle": [["fern", 0.16], ["strelitzia", 0.035], ["howea", 0.03], ["kingsville", 0.008], ["wall", 0.0025]],
+	&"jungle": [["fern", 0.12], ["strelitzia", 0.035], ["howea", 0.03], ["kingsville", 0.008], ["wall", 0.0025]],
 	&"lowland_forest": [["fern", 0.10], ["strelitzia", 0.04], ["howea", 0.045], ["kingsville", 0.035]],
 	&"meadow": [["strelitzia", 0.05], ["fern", 0.05], ["howea", 0.03], ["kingsville", 0.03], ["macrozamia", 0.03]],
 	&"palm_belt": [["strelitzia", 0.02], ["howea", 0.02], ["macrozamia", 0.025]],
@@ -43,8 +43,8 @@ const GRASS := {
 	&"jungle": ["flora_gs_leaves_01", "flora_gs_wasteland_branches_01_001", "flora_gs_nettle_02", "flora_gs_grass3"],
 }
 ## Дальность видимости по группе (м).
-const RANGE := {"fern": 75.0, "strelitzia": 110.0, "howea": 170.0, "kingsville": 240.0, "macrozamia": 170.0, "wall": 90.0,
-	"hang": 130.0, "span": 150.0, "grass": 38.0}
+const RANGE := {"fern": 55.0, "strelitzia": 85.0, "howea": 140.0, "kingsville": 190.0, "macrozamia": 140.0, "wall": 75.0,
+	"hang": 95.0, "span": 115.0, "grass": 38.0}
 
 static var _mesh_cache: Dictionary = {}
 static var _group_of: Dictionary = {}
@@ -65,6 +65,10 @@ static func group_of(id: String) -> String:
 
 static func range_of(id: String) -> float:
 	return float(RANGE.get(group_of(id), 60.0))
+
+## Тень только у деревьев/пальм: подлесок и лианы под пологом теней почти не дают.
+static func casts_shadow(id: String) -> bool:
+	return group_of(id) in ["howea", "kingsville", "macrozamia"]
 
 ## Ключ подлеска: рубится ли мачете (папоротники, стрелиция, свисающие лианы) или нет.
 static func key_prefix(id: String) -> String:
@@ -245,7 +249,7 @@ static func _lianas(flora) -> void:
 		if not rec.has("epi"):
 			rec["epi"] = []
 		# свисающие / вьющиеся по стволу
-		if rng.randf() < (0.55 if rec["kind"] == &"banyan" else 0.28):
+		if rng.randf() < (0.4 if rec["kind"] == &"banyan" else 0.16):
 			var id: String = HANG[rng.randi_range(0, HANG.size() - 1)]
 			var m := mesh(id)
 			if m:

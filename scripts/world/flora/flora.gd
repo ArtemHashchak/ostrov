@@ -1009,7 +1009,7 @@ func _build_bushes() -> void:
 		mmi.name = "Bush_" + String(key).replace("|", "_")
 		mmi.multimesh = mm
 		_detail_range(mmi, FloraV5World.range_of(v5id) if v5id != "" else BUSH_RANGE, BUSH_CHUNK)
-		if v5id != "" and FloraV5World.group_of(v5id) == "fern":
+		if v5id != "" and not FloraV5World.casts_shadow(v5id):
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mmi)
 	stats["bush_mmi"] = _bush.size()

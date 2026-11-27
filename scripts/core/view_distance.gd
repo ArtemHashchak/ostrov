@@ -127,6 +127,7 @@ static func apply_fog(env: Environment, weather_density: float) -> void:
 	if env == null:
 		return
 	var vd := meters()
+	_set_view_fade(vd)
 	var wvis := 3.0 / maxf(weather_density, 1.0e-5)
 	if is_max() or vd >= wvis * 1.25:
 		env.fog_mode = Environment.FOG_MODE_EXPONENTIAL
@@ -155,6 +156,20 @@ static func apply_fog(env: Environment, weather_density: float) -> void:
 	env.fog_depth_begin = 0.0
 	env.fog_depth_end = minf(vd, wvis * 1.25)
 	env.fog_depth_curve = lerpf(0.55, 1.8, t)
+
+## v5.2 (агент O): дальний рельеф и деревья-снимки растворяются дизером к краю дальности
+## видимости (80–97 % vd). Иначе на короткой дальности за полностью «затуманенной» границей
+## оставались призрачные белёсые силуэты островов и висящие над ними кроны: цвет тумана у
+## края не совпадает с небом (sky_affect < 1). Глобальный параметр шейдеров view_fade (начало, конец).
+static var _vf_last := -1.0
+static func _set_view_fade(vd: float) -> void:
+	var v := Vector2(1.0e6, 2.0e6)
+	if not is_max() and OS.get_environment("OSTROVA_NO_VIEWFADE") == "":
+		v = Vector2(vd * 0.80, vd * 0.97)
+	if absf(v.x - _vf_last) < 0.5:
+		return
+	_vf_last = v.x
+	RenderingServer.global_shader_parameter_set(&"view_fade", v)
 
 ## Плотность тумана, эквивалентная текущему режиму (для отчётов/тестов).
 static func describe(env: Environment) -> String:

@@ -17,6 +17,7 @@ global uniform float weather_wetness;
 varying float v_fade;
 varying float v_var;
 
+global uniform vec2 view_fade;
 void vertex() {
 	vec3 o = MODEL_MATRIX[3].xyz;
 	float s = length(MODEL_MATRIX[0].xyz);
@@ -29,7 +30,8 @@ void vertex() {
 	vec3 nw = normalize(vec3(tc.x, 0.0, tc.y) * 0.55 + vec3(0.0, 0.85, 0.0));
 	NORMAL = normalize((inv * vec4(nw, 0.0)).xyz);
 	float d = length(to_cam);
-	v_fade = smoothstep(fade_in.x, fade_in.y, d) * (1.0 - smoothstep(fade_out.x, fade_out.y, d)) * ready;
+	v_fade = smoothstep(fade_in.x, fade_in.y, d) * (1.0 - smoothstep(fade_out.x, fade_out.y, d)) * ready
+		* (1.0 - smoothstep(view_fade.x, view_fade.y, d));   // край дальности видимости
 	v_var = fract(sin(dot(o.xz, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
 }
 
