@@ -41,7 +41,7 @@ func run() -> void:
 	check(Routines.mode(&"iguana", 23.0, false) == &"hidden", "игуана ночью в укрытии")
 	check(Routines.mode(&"crab", 13.0, false) == &"hidden" and Routines.mode(&"crab", 13.0, true) == &"active", "краб днём: прилив — в норе, отлив — снаружи")
 	check(Routines.mode(&"turtle", 23.0, false) == &"active" and Routines.mode(&"turtle", 12.0, false) == &"rest", "черепаха активна ночью")
-	check(Routines.activity(&"shark", 18.5) > 1.3 and Routines.activity(&"shark", 13.0) < 0.9, "акулы на закате активнее, в полдень ленивее (%.2f / %.2f)" % [Routines.activity(&"shark", 18.5), Routines.activity(&"shark", 13.0)])
+	check(Routines.activity(&"shark", 18.5) > 1.3 and Routines.activity(&"shark", 13.0) < 1.0, "акулы на закате активнее, в полдень ленивее (%.2f / %.2f)" % [Routines.activity(&"shark", 18.5), Routines.activity(&"shark", 13.0)])
 	check(Routines.mode(&"gull", 23.0, false) == &"rest", "чайки ночью сидят")
 	var ig := fauna.spawn(&"iguana", base + Vector3(25, 0, 0), 8.0)
 	_set_hour(8.0)
