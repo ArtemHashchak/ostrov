@@ -450,6 +450,19 @@ func spawn_wrack(center: Vector3, radius: float) -> int:
 					pts.append(Vector3(jx, h, jz))
 			z += step
 		x += step
+	return _build_wrack(pts)
+
+## Полоса выброса вдоль отрезка a–b (полигон/тесты/снимки).
+func spawn_wrack_line(a: Vector3, b: Vector3) -> int:
+	var pts: Array[Vector3] = []
+	var L := a.distance_to(b)
+	var n := int(L / 0.7)
+	for i in n:
+		var p := a.lerp(b, float(i) / maxf(1.0, n - 1)) + Vector3(_rng.randf_range(-0.4, 0.4), 0, _rng.randf_range(-0.4, 0.4))
+		pts.append(Vector3(p.x, _ground(p.x, p.z), p.z))
+	return _build_wrack(pts)
+
+func _build_wrack(pts: Array[Vector3]) -> int:
 	if pts.is_empty():
 		return 0
 	var root := Node3D.new()

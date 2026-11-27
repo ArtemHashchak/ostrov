@@ -251,20 +251,24 @@ func in_view(p: Vector3, max_d: float = VIEW_MAX) -> bool:
 
 func _process(dt: float) -> void:
 	for i in range(active.size() - 1, -1, -1):
-		var s := active[i]
-		if not is_instance_valid(s) or s.done:
-			if is_instance_valid(s):
-				s.cleanup()
+		var sv: Variant = active[i]
+		if not is_instance_valid(sv):
+			active.remove_at(i)
+			continue
+		var s := sv as LandScene
+		if s.done:
+			s.cleanup()
 			active.remove_at(i)
 			continue
 		if s.global_position.distance_to(player_pos()) > KEEP and not s.forced:
 			s.cleanup()
 			active.remove_at(i)
 	for i in range(leftovers.size() - 1, -1, -1):
-		var a := leftovers[i]
-		if not is_instance_valid(a):
+		var av: Variant = leftovers[i]
+		if not is_instance_valid(av):
 			leftovers.remove_at(i)
 			continue
+		var a := av as Node3D
 		if a is Animal:
 			(a as Animal).tick(dt)
 	if not auto:
@@ -353,9 +357,9 @@ func start(id: String, p: Vector3, forced: bool = false) -> LandScene:
 	return s
 
 func stop_all() -> void:
-	for s in active:
-		if is_instance_valid(s):
-			s.cleanup()
+	for sv: Variant in active:
+		if is_instance_valid(sv):
+			(sv as LandScene).cleanup()
 	active.clear()
 
 func keep_corpse(a: Node3D) -> void:

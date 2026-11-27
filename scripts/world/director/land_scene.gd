@@ -33,9 +33,11 @@ func _process(dt: float) -> void:
 	if done:
 		return
 	t += dt
-	for a in actors:
-		if is_instance_valid(a) and not a.has_meta(&"carried") and not a.is_queued_for_deletion():
-			a.tick(dt)
+	for av: Variant in actors:
+		if is_instance_valid(av):
+			var a := av as Animal
+			if not a.has_meta(&"carried") and not a.is_queued_for_deletion():
+				a.tick(dt)
 	var f := Callable(self, "_tick_" + kind)
 	if f.is_valid():
 		f.call(dt)
@@ -44,17 +46,18 @@ func _process(dt: float) -> void:
 
 func cleanup() -> void:
 	done = true
-	for a in actors:
-		if not is_instance_valid(a):
+	for av: Variant in actors:
+		if not is_instance_valid(av):
 			continue
+		var a := av as Animal
 		if a.dead and director:
 			director.keep_corpse(a)      # тушка остаётся: мухи, падальщики, варан
 		else:
 			a.queue_free()
 	actors.clear()
-	for p in props:
-		if is_instance_valid(p) and not p.has_meta(&"persist"):
-			p.queue_free()
+	for pv: Variant in props:
+		if is_instance_valid(pv) and not (pv as Node).has_meta(&"persist"):
+			(pv as Node).queue_free()
 	props.clear()
 	if not is_queued_for_deletion():
 		queue_free()
@@ -244,8 +247,11 @@ func _release_if_close(r: float) -> void:
 	if not director:
 		return
 	var pp := director.player_pos()
-	for a in actors:
-		if is_instance_valid(a) and not a.dead and a.scripted and not a.cfg.get("fly", false):
+	for av: Variant in actors:
+		if not is_instance_valid(av):
+			continue
+		var a := av as Animal
+		if not a.dead and a.scripted and not a.cfg.get("fly", false):
 			if a.global_position.distance_to(pp) < r:
 				a.scripted = false
 
@@ -588,9 +594,9 @@ func _setup_iguanas_bask() -> bool:
 	return true
 
 func _tick_iguanas_bask(_dt: float) -> void:
-	for a in actors:
-		if is_instance_valid(a) and a.scripted and _rng.randf() < 0.004:
-			a.anim_event(&"threat")      # кивок головой
+	for av: Variant in actors:
+		if is_instance_valid(av) and (av as Animal).scripted and _rng.randf() < 0.004:
+			(av as Animal).anim_event(&"threat")      # кивок головой
 	_release_if_close(5.0)
 
 # ============================================================ 8. стая попугаев на крону
