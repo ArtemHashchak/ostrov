@@ -284,7 +284,7 @@ func _scan_food(pp: Vector3) -> void:
 		var food := _has_spoiling(ip.stacks)
 		if food and age > FLY_FOOD_AGE and not flies.has(id) and flies.size() < MAX_FLIES:
 			add_flies(ip)
-		if _is_food(ip.stacks) and age > ANT_FOOD_AGE and not ants.has(id) and ants.size() < MAX_ANTS:
+		if _is_food(ip.stacks) and age > ANT_FOOD_AGE and not ants.has(id) and ants.size() < MAX_ANTS and not _nature_ants():
 			add_ants(ip)
 	# сундуки с портящейся едой
 	for n in get_tree().get_nodes_in_group(&"buildable"):
@@ -323,6 +323,15 @@ func _scan_food(pp: Vector3) -> void:
 	for id in pickup_seen.keys():
 		if not live.has(id):
 			pickup_seen.erase(id)
+
+## Агент N (NatureDetails) уже рисует муравьёв к еде — тогда свои не ставим (не дублировать).
+var _nd_checked := false
+var _nd_has := false
+func _nature_ants() -> bool:
+	if not _nd_checked:
+		_nd_checked = true
+		_nd_has = world != null and is_instance_valid(world) and world.find_child("NatureDetails", true, false) != null
+	return _nd_has
 
 func _is_corpse_id(id: int) -> bool:
 	return carrion.has(id)
