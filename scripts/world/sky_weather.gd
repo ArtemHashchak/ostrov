@@ -114,6 +114,8 @@ const CANOPY_AMBIENT := 0.6      # + к энергии рассеянного с
 const CANOPY_EXPOSURE := 0.25   # + к экспозиции (gl_compatibility; в Forward+ — треть, есть автоэкспозиция)
 const CANOPY_SHADOW_LIFT := 0.25  # насколько светлеет тень кроны (доля прямого солнца сквозь листву)
 var _canopy := 0.0
+var _uw_zt := -1.0       # сглаженная мутность под водой (без скачков на границах зон)
+var _late_cam: Camera3D = null
 ## Луна на 25% меньше стандартной Sky3D (0.07): в небе выглядела слишком крупной.
 const MOON_SIZE := 0.0525
 ## Фаза луны задаётся датой (Sky3D считает небо по-настоящему): от зерна мира — разная в разных
@@ -145,6 +147,12 @@ func setup(start_hour: float = 8.5, seed_value: int = 4242) -> void:
 	# 24 мин: солнце сдвигается на ~0.06°), облака — вручную ~10 раз в секунду.
 	# Каждое изменение материала неба заставляет пересчитывать отражения неба.
 	sky3d.update_interval = 0.25
+	# Мерцание (v5.1): таймер Sky3D (4 раза в секунду) обновляет солнце и в том же кадре ПОСЛЕ
+	# нашего _apply перезаписывает ambient_light_color (SkyDome._update_ambient_color) — каждый
+	# 4-й кадр рассеянный свет был без тона полога/сумерек → весь экран мигал. Поздний проход
+	# (_process с высоким process_priority) повторяет _apply после всех узлов и таймеров.
+	process_priority = 1000
+	set_process(true)
 	if sky3d.sky:
 		sky3d.sky.process_method = SkyDome.MANUAL
 	_env = sky3d.environment
@@ -399,6 +407,11 @@ func wetness() -> float:
 
 # ------------------------------------------------------------ обновление
 
+## Поздний проход: после Sky3D/таймеров ещё раз применить свет (значения уже посчитаны — idempotent).
+func _process(_d: float) -> void:
+	if sky3d != null and _env != null:
+		_apply(0.0)
+
 func update(dt: float, cam: Camera3D, water_surface_at_cam: float) -> void:
 	WetMaterials.update(wetness(), dt, get_tree())
 	if _auto:
@@ -426,7 +439,10 @@ func update(dt: float, cam: Camera3D, water_surface_at_cam: float) -> void:
 		sky3d.sky.process_tick(_cloud_t)
 		_cloud_t = 0.0
 	if cam:
-		_update_underwater(cam.global_position.y < water_surface_at_cam - 0.05)
+		# гистерезис: камера на поверхности качается с волной — без него «под водой/над водой»
+		# переключалось каждый кадр (туман 0,09 ↔ дневной → весь экран мигал бирюзой)
+		var cy := cam.global_position.y
+		_update_underwater(cy < water_surface_at_cam - 0.12 if not _underwater else cy < water_surface_at_cam + 0.04)
 		if _underwater:
 			_underwater_fog(cam.global_position.y, water_surface_at_cam)
 		_update_screen_fx(dt, cam)
@@ -784,6 +800,11 @@ func _underwater_fog(cam_y: float, surf: float) -> void:
 			zt = maxf(zt, 0.8)
 		elif z == &"lagoon":
 			zt *= 0.6
+	# сглаживание: граница зон (лагуна/мангры) не даёт скачка плотности тумана (~2 с)
+	if _uw_zt < 0.0:
+		_uw_zt = zt
+	_uw_zt = lerpf(_uw_zt, zt, clampf(get_process_delta_time() / 2.0, 0.0, 1.0))
+	zt = _uw_zt
 	_env.fog_light_color = clear_c.lerp(murk_c, zt) * clampf(light, 0.0, 1.0)
 	_env.fog_light_energy = 1.0
 	# плотность: видимость ~ 3/density м → ясно ~0.12 (≈25 м), муть ~0.7 (≈4 м)

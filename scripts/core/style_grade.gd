@@ -39,10 +39,12 @@ static func apply(env: Environment, world_env: Node = null) -> void:
 		ca.auto_exposure_enabled = enabled
 		# v5: глаз привыкает к свету — выход из тени джунглей на пляж слепит ~1 с, обратно —
 		# темно ~2 с (диапазон ≈ ±1 EV, скорость выше прежней)
-		ca.auto_exposure_min_sensitivity = 60.0
-		ca.auto_exposure_max_sensitivity = 260.0
+		# v5.1: мерцание — автоэкспозиция «качала» кадр при повороте камеры (небо ↔ земля, листва):
+		# диапазон уже (≈ ±0,7 EV) и привыкание медленнее (~2–3 с), без резких рывков
+		ca.auto_exposure_min_sensitivity = 80.0
+		ca.auto_exposure_max_sensitivity = 220.0
 		ca.auto_exposure_scale = 0.4
-		ca.auto_exposure_speed = 1.1
+		ca.auto_exposure_speed = 0.45
 
 
 static func set_enabled(on: bool) -> void:
