@@ -101,7 +101,7 @@ func run() -> void:
 	var cw := Combat.weapon(&"pistol_9mm")
 	check(Combat.is_weapon(&"pistol_9mm") and cw.type == &"gun" and int(cw.mag) == pd.mag_size and is_equal_approx(float(cw.cooldown), pd.cooldown()),
 		"Combat.weapon(pistol_9mm) собран из WeaponDef")
-	check(not Combat.weapon(&"musket").has("def") and int(Combat.weapon(&"rifle").mag) == 20, "старое оружие не тронуто, автомат — магазин 20")
+	check(not Combat.weapon(&"musket").has("def") and int(Combat.weapon(&"rifle").mag) == 30, "старое оружие не тронуто, автомат — магазин 30")
 	var in_loot := false
 	for e: Array in SupplyItems.LOOT_RARE + SupplyItems.LOOT_LEGENDARY:
 		for it: Array in e[0]:

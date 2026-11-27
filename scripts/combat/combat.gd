@@ -53,7 +53,7 @@ const WEAPONS := {
 		"cooldown": 1.0, "kind": &"explosion", "radius": 6.5, "fuse": 3.2, "range": 22.0},
 	# --- SUPPLY: «посылки из внешнего мира» (только из ящиков спонсоров; модели — SupplyModels) ---
 	&"rifle": {"name": "Автомат", "type": &"gun", "damage": 24.0, "speed": 420.0, "gravity": 1.0, "spread_hip": 2.6, "spread_ads": 0.7,
-		"reload": 3.0, "cooldown": 0.11, "mag": 20, "auto": true, "ammo": [{"id": &"rifle_ammo", "n": 1}],
+		"reload": 3.0, "cooldown": 0.11, "mag": 30, "auto": true, "ammo": [{"id": &"rifle_ammo", "n": 1}],
 		"kind": &"bullet", "range": 160.0, "zoom": 20.0, "recoil": 1.3, "sound": "pistol_shot", "flash": 0.45, "modern": true},
 	&"shotgun": {"name": "Дробовик", "type": &"gun", "damage": 11.0, "pellets": 8, "speed": 260.0, "gravity": 1.0, "spread_hip": 6.0,
 		"spread_ads": 4.2, "reload": 4.2, "cooldown": 0.9, "mag": 4, "ammo": [{"id": &"shotgun_shell", "n": 1}],
