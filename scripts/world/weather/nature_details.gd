@@ -170,14 +170,19 @@ static func _fish_tex() -> Texture2D:
 	return _fish_tex_c
 
 # ---------------------------------------------------------------- кокосы падают сами
+## Только в тихую и умеренную погоду (< 6,5 м/с): в сильный ветер кокосы роняет поведение
+## фауны (fauna_ext.gd, агент K) — частоты не складываются.
 func _tick_coconuts(dt: float, cp: Vector3, sky: SkyWeather) -> void:
-	_coco_t -= dt * (1.0 + clampf((sky.wind_speed() - 4.0) / 4.0, 0.0, 4.0))
+	if sky.wind_speed() >= 6.5:
+		return
+	_coco_t -= dt
 	if _coco_t > 0.0:
 		return
-	_coco_t = randf_range(60.0, 140.0)
+	_coco_t = randf_range(90.0, 200.0)
 	var cands: Array = []
 	for t in get_tree().get_nodes_in_group(&"choppable"):
-		if t is Node3D and int(t.get(&"coconuts")) > 0 and (t as Node3D).global_position.distance_to(cp) < 45.0:
+		var cn: Variant = t.get(&"coconuts")
+		if t is Node3D and cn is int and int(cn) > 0 and (t as Node3D).global_position.distance_to(cp) < 45.0:
 			cands.append(t)
 	if cands.is_empty():
 		return

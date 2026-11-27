@@ -77,7 +77,13 @@ func run() -> void:
 	# 2) кострище и отпечаток тела на песке
 	if only == "" or only.contains("pit"):
 		w.set_time_of_day(14.0)
+		# сухой песок выше наката (иначе волна стирает отпечаток за секунды)
 		var fp := bp - to_sea * 4.0
+		for s3 in 40:
+			var q3 := bp - to_sea * (s3 * 0.5)
+			if w.height_at(q3.x, q3.y) > wl + 1.4 and zm.zone_at(q3.x, q3.y) == ZoneMap.Z_BEACH:
+				fp = q3
+				break
 		var fy := w.height_at(fp.x, fp.y)
 		GroundMarks.fire_pit(w, Vector3(fp.x, fy, fp.y), 0.75)
 		var stt := get_node_or_null("/root/SandTracks")
@@ -115,7 +121,7 @@ func run() -> void:
 		f.queue_free()
 	# 4) золотая вода на закате (выкл/вкл: sun_day занижаем вне окна)
 	if only == "" or only.contains("golden"):
-		w.set_time_of_day(18.2)
+		w.set_time_of_day(17.25)
 		var e3 := Vector3(bp.x, by + 6.0, bp.y)
 		var l3 := Vector3(bp.x + to_sea.x * 200.0, wl, bp.y + to_sea.y * 200.0)
 		await _view(e3, l3, "golden_water_before", 3.0, func() -> void:
