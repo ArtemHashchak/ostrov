@@ -31,11 +31,20 @@ static func fire_pit(host: Node, pos: Vector3, radius: float = 0.75) -> Node3D:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	host.add_child(mi)
 	var y := pos.y
+	var nrm := Vector3.UP
 	var w := BuildEnv.world()
 	if w and w.has_method(&"height_at"):
 		y = float(w.call(&"height_at", pos.x, pos.z))
-	mi.global_position = Vector3(pos.x, y + 0.015, pos.z)
-	mi.rotation.y = randf() * TAU
+		# по склону: нормаль по разности высот (квад лежит на земле, края не уходят в песок)
+		var e := 0.4
+		var hx := float(w.call(&"height_at", pos.x + e, pos.z)) - float(w.call(&"height_at", pos.x - e, pos.z))
+		var hz := float(w.call(&"height_at", pos.x, pos.z + e)) - float(w.call(&"height_at", pos.x, pos.z - e))
+		nrm = Vector3(-hx / (2.0 * e), 1.0, -hz / (2.0 * e)).normalized()
+	var yaw := randf() * TAU
+	var xa := Vector3(cos(yaw), 0, sin(yaw))
+	xa = (xa - nrm * xa.dot(nrm)).normalized()
+	var za := xa.cross(nrm).normalized()
+	mi.global_transform = Transform3D(Basis(xa, nrm, za), Vector3(pos.x, y + 0.03 + radius * 0.04, pos.z))
 	mi.add_to_group(&"fire_pit_mark")
 	_pits.append(mi)
 	return mi
