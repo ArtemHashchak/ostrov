@@ -83,7 +83,7 @@ func run() -> void:
 	for id: StringName in [&"rifle", &"shotgun", &"flare_gun", &"grenade", &"machete", &"chainsaw", &"gas_torch", &"gas_can",
 			&"binoculars", &"flashlight", &"radio", &"fins", &"armor_vest", &"medkit", &"canned_food", &"rifle_ammo"]:
 		check(Items.get_item(id) != null, "предмет %s зарегистрирован" % id)
-	check(Combat.is_weapon(&"rifle") and int(Combat.weapon(&"rifle").mag) == 20, "автомат в Combat.WEAPONS (магазин 20)")
+	check(Combat.is_weapon(&"rifle") and int(Combat.weapon(&"rifle").mag) == 30, "автомат в Combat.WEAPONS (магазин 30)")
 	# лут по редкостям
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
@@ -145,7 +145,7 @@ func run() -> void:
 	await shot("02_landed_smoke")
 
 	# ---------- вскрытие: урон прерывает ----------
-	crate.loot = [{"id": &"rifle", "n": 1}, {"id": &"rifle_ammo", "n": 30}, {"id": &"gas_torch", "n": 1}, {"id": &"gas_can", "n": 1},
+	crate.loot = [{"id": &"rifle", "n": 1}, {"id": &"rifle_ammo", "n": 40}, {"id": &"gas_torch", "n": 1}, {"id": &"gas_can", "n": 1},
 		{"id": &"pot", "n": 1}, {"id": &"flare_gun", "n": 1}, {"id": &"flare", "n": 2}, {"id": &"armor_vest", "n": 1}, {"id": &"fins", "n": 1}]
 	var front := crate.global_position + crate.global_basis.z * -1.6
 	p.global_position = ground(front.x, front.z) + Vector3.UP * 0.1
@@ -172,8 +172,8 @@ func run() -> void:
 	# ---------- вскрытие до конца ----------
 	await hold_interact(3.5)
 	check(crate.state == SupplyCrate.State.OPENED, "ящик открыт удержанием E")
-	check(p.inventory.count(&"rifle") == 1 and p.inventory.count(&"rifle_ammo") == 30 and p.inventory.count(&"gas_torch") == 1,
-		"лут в инвентаре (автомат, патроны 30, горелка)")
+	check(p.inventory.count(&"rifle") == 1 and p.inventory.count(&"rifle_ammo") == 40 and p.inventory.count(&"gas_torch") == 1,
+		"лут в инвентаре (автомат, патроны 40, горелка)")
 	check(sup.map_markers(p).is_empty(), "открытый ящик убран с карты")
 	await wait(0.8)
 	p.global_position = ground(front.x, front.z) + Vector3.UP * 0.1 + crate.global_basis.x * 0.6
@@ -206,7 +206,8 @@ func run() -> void:
 	await wait(0.2)
 	check(Combat.is_reloading(p), "перезарядка (R)")
 	await wait(float(Combat.weapon(&"rifle").reload) + 0.3)
-	check(Combat.rounds(p, &"rifle") == 20 and p.inventory.count(&"rifle_ammo") == 10, "магазин 20, в запасе 10")
+	var mag := int(Combat.weapon(&"rifle").mag)
+	check(Combat.rounds(p, &"rifle") == mag and p.inventory.count(&"rifle_ammo") == 10, "магазин %d, в запасе 10" % mag)
 	p.global_position = ground(target.x + out.x * 6.0, target.z + out.z * 6.0) + Vector3.UP * 0.1
 	await wait(0.3)
 	aim_at(p.get_eye_position() + out * 10.0 + Vector3.DOWN * 0.6)
@@ -222,11 +223,11 @@ func run() -> void:
 	Input.action_release(&"attack")
 	await wait(0.3)
 	var left := Combat.rounds(p, &"rifle")
-	check(left < 18 and left > 5, "очередь: выпущено %d патронов" % (20 - left))
+	check(left < mag - 2 and left > 5, "очередь: выпущено %d патронов" % (mag - left))
 	await tap(&"reload")
 	await wait(float(Combat.weapon(&"rifle").reload) + 0.3)
-	# GUNPLAY: тактическая перезарядка — магазин 20 + 1 в патроннике (WeaponDef.chamber)
-	var want := mini(20 + (1 if left > 0 else 0), left + 10)
+	# GUNPLAY: тактическая перезарядка — магазин (30) + 1 в патроннике (WeaponDef.chamber)
+	var want := mini(mag + (1 if left > 0 else 0), left + 10)
 	check(Combat.rounds(p, &"rifle") == want and p.inventory.count(&"rifle_ammo") == 10 - (want - left),
 		"дозарядка из запаса: %d в магазине, %d в запасе" % [Combat.rounds(p, &"rifle"), p.inventory.count(&"rifle_ammo")])
 
