@@ -20,8 +20,8 @@ const KINDS := {
 	&"pellet": {"r": 0.007, "len": 1.0, "bleed": 0.4, "spurt": 8},
 	&"arrow": {"r": 0.014, "len": 1.6, "bleed": 0.9, "spurt": 14},
 	&"spear": {"r": 0.02, "len": 1.8, "bleed": 1.2, "spurt": 20},
-	&"cut": {"r": 0.022, "len": 3.6, "bleed": 1.3, "spurt": 22},
-	&"chop": {"r": 0.03, "len": 3.0, "bleed": 1.6, "spurt": 28},
+	&"cut": {"r": 0.018, "len": 3.0, "bleed": 1.3, "spurt": 22},
+	&"chop": {"r": 0.026, "len": 2.6, "bleed": 1.6, "spurt": 28},
 	&"blunt": {"r": 0.035, "len": 1.2, "bleed": 0.25, "spurt": 6},
 	&"bite": {"r": 0.04, "len": 1.5, "bleed": 1.4, "spurt": 16},
 }
@@ -39,6 +39,8 @@ var _t := 0.0
 var _cloud_t := {}                     # instance_id → время последнего облака в воде
 ## Для тестов: последние раны [{target, node, kind, pos}]
 var last: Array[Dictionary] = []
+## Куда класть брызги и пятна (тесты/витрины в своём SubViewport); иначе — текущая сцена.
+var host_override: Node3D
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -107,7 +109,11 @@ func add_hit(target: Node, pos: Vector3, normal: Vector3, weapon: StringName, ki
 	if normal.length_squared() < 0.01:
 		normal = (pos - root.global_position).normalized()
 	normal = normal.normalized()
-	var w := _make_wound(root, pos, normal, wk, size)
+	# точка попадания — на коробке хитбокса; рану ставим на настоящую кожу (кость + её толщина)
+	var surf := surface_point(root, pos, normal)
+	pos = surf.pos
+	normal = surf.normal
+	var w := _make_wound(root, pos, normal, wk, size, int(surf.bone))
 	if w == null:
 		return null
 	var cfg: Dictionary = KINDS[wk]
@@ -174,7 +180,7 @@ static func wound_kind(weapon: StringName, kind: StringName) -> StringName:
 		return &"blunt"
 	return &"cut" if kind == &"melee" else &"bullet_small"
 
-func _make_wound(root: Node3D, pos: Vector3, normal: Vector3, wk: StringName, size: float) -> Node3D:
+func _make_wound(root: Node3D, pos: Vector3, normal: Vector3, wk: StringName, size: float, bone := -1) -> Node3D:
 	var count := int(root.get_meta(&"wound_count", 0))
 	if count >= MAX_WOUNDS_PER:
 		# самая старая рана уступает место
@@ -187,7 +193,7 @@ func _make_wound(root: Node3D, pos: Vector3, normal: Vector3, wk: StringName, si
 	var cfg: Dictionary = KINDS[wk]
 	var k := clampf(sqrt(size / 1.5), 0.7, 2.2)     # крупный зверь — рана чуть больше
 	var r := float(cfg.r) * k
-	var parent := _attach_parent(root, pos)
+	var parent := _attach_parent(root, pos, bone)
 	var mi := MeshInstance3D.new()
 	mi.name = "Wound"
 	var q := QuadMesh.new()
@@ -197,22 +203,28 @@ func _make_wound(root: Node3D, pos: Vector3, normal: Vector3, wk: StringName, si
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# ось Z квада — нормаль поверхности, порез — вдоль случайного направления в плоскости
 	var z := normal
-	var tmp := Vector3.UP if absf(z.dot(Vector3.UP)) < 0.9 else Vector3.RIGHT
-	var x := tmp.cross(z).normalized().rotated(z, randf() * TAU)
-	var y := z.cross(x).normalized()
-	var xf := Transform3D(Basis(x, y, z), pos + normal * 0.004)
+	# «вниз по коже»: проекция вертикали на касательную плоскость — подтёк крови стекает вниз
+	var down := Vector3.DOWN - z * Vector3.DOWN.dot(z)
+	if down.length_squared() < 0.01:
+		down = (Vector3.FORWARD - z * Vector3.FORWARD.dot(z))
+	var y := -down.normalized()
+	var x := y.cross(z).normalized()
+	# порез — под случайным углом к вертикали (рана поворачивается, подтёк — нет)
+	var xr := x.rotated(z, randf_range(-1.0, 1.0))
+	var yr := z.cross(xr).normalized()
+	var xf := Transform3D(Basis(xr, yr, z), pos + normal * 0.004)
 	parent.add_child(mi)
 	mi.global_transform = xf
 	# подтёк крови вокруг — больший полупрозрачный квад
 	var sp := MeshInstance3D.new()
 	sp.name = "WoundBlood"
 	var q2 := QuadMesh.new()
-	q2.size = Vector2(r * 5.0 * float(cfg.len) * 0.6 + r * 2.5, r * 5.0)
+	q2.size = Vector2(r * 2.2 * float(cfg.len) * 0.5 + r * 1.6, r * 5.5)
 	sp.mesh = q2
 	sp.material_override = _smear_material()
 	sp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(sp)
-	sp.global_transform = Transform3D(Basis(x, y, z), pos + normal * 0.003 - y * r * 0.8)
+	sp.global_transform = Transform3D(Basis(x, y, z), pos + normal * 0.003 - y * r * 1.6)
 	mi.set_meta(&"bleed", float(cfg.bleed))
 	mi.set_meta(&"born", _t)
 	mi.add_to_group(&"wound")
@@ -223,19 +235,20 @@ func _make_wound(root: Node3D, pos: Vector3, normal: Vector3, wk: StringName, si
 	return mi
 
 ## Родитель раны: кость скелета рядом с точкой (BoneAttachment3D), иначе сам корень.
-func _attach_parent(root: Node3D, pos: Vector3) -> Node3D:
+func _attach_parent(root: Node3D, pos: Vector3, bone := -1) -> Node3D:
 	var sk := _skeleton_of(root)
 	if sk == null or sk.get_bone_count() == 0:
 		return root
-	var best := -1
-	var bd := INF
+	var best := bone
 	var inv := sk.global_transform
-	for i in sk.get_bone_count():
-		var bp := inv * sk.get_bone_global_pose(i).origin
-		var d := bp.distance_squared_to(pos)
-		if d < bd:
-			bd = d
-			best = i
+	if best < 0:
+		var bd := INF
+		for i in sk.get_bone_count():
+			var bp := inv * sk.get_bone_global_pose(i).origin
+			var d := bp.distance_squared_to(pos)
+			if d < bd:
+				bd = d
+				best = i
 	if best < 0:
 		return root
 	var bname := sk.get_bone_name(best)
@@ -258,6 +271,160 @@ static func _skeleton_of(root: Node3D) -> Skeleton3D:
 			best = sk
 	return best
 
+# ============================== поверхность тела ==============================
+
+static var _radii_cache: Dictionary = {}   # id меша → {bone: радиус}
+
+## Точка на коже рядом с попаданием: ближайшая к точке кость (отрезок кость→дочерняя) и её толщина
+## (из вершин меша в позе покоя). Без скелета — точка как есть. → {pos, normal, bone}
+static func surface_point(root: Node3D, pos: Vector3, normal: Vector3) -> Dictionary:
+	var out := {"pos": pos, "normal": normal, "bone": -1}
+	var sk := _skeleton_of(root)
+	if sk == null or sk.get_bone_count() == 0:
+		return out
+	var radii := _bone_radii(root, sk)
+	if radii.is_empty():
+		return out
+	var gx := sk.global_transform
+	var ks := gx.basis.get_scale().x
+	# луч «пули» снаружи внутрь (против нормали коробки) — первая капсула кости, в которую он входит
+	var o := pos + normal * 0.6
+	var dir := -normal
+	var far := o + dir * 3.0
+	var best := -1
+	var best_t := INF
+	var best_p := Vector3.ZERO
+	var best_n := normal
+	var near_b := -1
+	var near_d := INF
+	var near_c := Vector3.ZERO
+	for b: int in radii:
+		var seg := _segment(sk, b)
+		var a: Vector3 = gx * seg[0]
+		var e: Vector3 = gx * seg[1]
+		var r := float(radii[b]) * ks
+		var cps := Geometry3D.get_closest_points_between_segments(o, far, a, e)
+		var d: float = (cps[0] as Vector3).distance_to(cps[1])
+		if d < r:
+			var tc: float = ((cps[0] as Vector3) - o).dot(dir)
+			var t := tc - sqrt(maxf(r * r - d * d, 0.0))
+			if t < best_t:
+				best_t = t
+				best = b
+				best_p = o + dir * maxf(t, 0.0)
+				var cc := Geometry3D.get_closest_point_to_segment(best_p, a, e)
+				best_n = (best_p - cc).normalized() if best_p.distance_to(cc) > 1e-4 else normal
+		# запасной вариант: ближайшая кость к точке попадания
+		var c := Geometry3D.get_closest_point_to_segment(pos, a, e)
+		var dd := pos.distance_to(c) - r
+		if dd < near_d:
+			near_d = dd
+			near_b = b
+			near_c = c
+	if best >= 0:
+		out.pos = best_p
+		out.normal = best_n
+		out.bone = best
+		return out
+	if near_b < 0:
+		return out
+	var dir2 := pos - near_c
+	dir2 = dir2.normalized() if dir2.length_squared() > 1e-6 else normal
+	out.pos = near_c + dir2 * float(radii[near_b]) * ks
+	out.normal = dir2
+	out.bone = near_b
+	return out
+
+## Отрезок кости в пространстве скелета: от неё к первой дочерней (лист — продолжение родителя).
+static func _segment(sk: Skeleton3D, b: int) -> Array:
+	var h := sk.get_bone_global_pose(b).origin
+	var ch := sk.get_bone_children(b)
+	if not ch.is_empty():
+		return [h, sk.get_bone_global_pose(ch[0]).origin]
+	var p := sk.get_bone_parent(b)
+	if p >= 0:
+		var hp := sk.get_bone_global_pose(p).origin
+		return [h, h + (h - hp) * 0.5]
+	return [h, h]
+
+## Толщина тела у каждой кости: 85-й перцентиль расстояний её вершин до отрезка кости (поза покоя).
+static func _bone_radii(root: Node3D, sk: Skeleton3D) -> Dictionary:
+	var meshes := root.find_children("*", "MeshInstance3D", true, false)
+	var key := ""
+	for m: Node in meshes:
+		var mi := m as MeshInstance3D
+		if mi.mesh and mi.skin:
+			key += str(mi.mesh.get_rid().get_id()) + "_"
+	if key == "":
+		return {}
+	if _radii_cache.has(key):
+		return _radii_cache[key]
+	var dists := {}     # bone → Array[float] (Array — по ссылке; Packed* копировались бы)
+	for m: Node in meshes:
+		var mi := m as MeshInstance3D
+		if mi.mesh == null or mi.skin == null:
+			continue
+		var skin := mi.skin
+		# bind индекс → кость скелета
+		var bind_bone := PackedInt32Array()
+		bind_bone.resize(skin.get_bind_count())
+		for bi in skin.get_bind_count():
+			var bn := skin.get_bind_bone(bi)
+			if bn < 0:
+				bn = sk.find_bone(skin.get_bind_name(bi))
+			bind_bone[bi] = bn
+		for si in mi.mesh.get_surface_count():
+			var arr := mi.mesh.surface_get_arrays(si)
+			var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			var bo: Variant = arr[Mesh.ARRAY_BONES]
+			var we: Variant = arr[Mesh.ARRAY_WEIGHTS]
+			if not (bo is PackedInt32Array) or not (we is PackedFloat32Array) or v.is_empty():
+				continue
+			var bones: PackedInt32Array = bo
+			var wts: PackedFloat32Array = we
+			var per := bones.size() / v.size()
+			var step := maxi(1, v.size() / 6000)
+			for i in range(0, v.size(), step):
+				# главная кость вершины
+				var bw := -1.0
+				var bix := -1
+				for k in per:
+					var w := wts[i * per + k]
+					if w > bw:
+						bw = w
+						bix = bones[i * per + k]
+				if bix < 0 or bix >= bind_bone.size():
+					continue
+				var b := bind_bone[bix]
+				if b < 0:
+					continue
+				var vp := sk.get_bone_global_rest(b) * (skin.get_bind_pose(bix) * v[i])
+				var seg := _segment_rest(sk, b)
+				var c := Geometry3D.get_closest_point_to_segment(vp, seg[0], seg[1])
+				if not dists.has(b):
+					dists[b] = []
+				(dists[b] as Array).append(vp.distance_to(c))
+	var out := {}
+	for b: int in dists:
+		var arr2: Array = dists[b]
+		if arr2.size() < 6:
+			continue
+		arr2.sort()
+		out[b] = arr2[int(arr2.size() * 0.85)]
+	_radii_cache[key] = out
+	return out
+
+static func _segment_rest(sk: Skeleton3D, b: int) -> Array:
+	var h := sk.get_bone_global_rest(b).origin
+	var ch := sk.get_bone_children(b)
+	if not ch.is_empty():
+		return [h, sk.get_bone_global_rest(ch[0]).origin]
+	var p := sk.get_bone_parent(b)
+	if p >= 0:
+		var hp := sk.get_bone_global_rest(p).origin
+		return [h, h + (h - hp) * 0.5]
+	return [h, h]
+
 # ============================== кровь ==============================
 
 func _spurt(pos: Vector3, normal: Vector3, n: int, in_water: bool) -> void:
@@ -266,6 +433,7 @@ func _spurt(pos: Vector3, normal: Vector3, n: int, in_water: bool) -> void:
 		return
 	var p := CPUParticles3D.new()
 	p.name = "BloodSpurt"
+	p.add_to_group(&"blood_spurt")
 	p.one_shot = true
 	p.emitting = false
 	p.amount = n
@@ -421,6 +589,8 @@ func _drip_spot(from: Vector3, s: float) -> void:
 # ============================== вспомогательное ==============================
 
 func _fx_host() -> Node:
+	if is_instance_valid(host_override) and host_override.is_inside_tree():
+		return host_override
 	if is_instance_valid(_host) and _host.is_inside_tree():
 		return _host
 	var t := get_tree()
@@ -463,7 +633,7 @@ func _wound_material(wk: StringName) -> StandardMaterial3D:
 func _smear_material() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = _spot_texture()
-	m.albedo_color = Color(0.45, 0.02, 0.02, 0.75)
+	m.albedo_color = Color(0.3, 0.015, 0.015, 0.62)
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	m.roughness = 0.3
@@ -503,7 +673,7 @@ func _wound_texture(wk: StringName) -> ImageTexture:
 		for x in n:
 			var u := (x + 0.5) / n * 2.0 - 1.0
 			var v := (y + 0.5) / n * 2.0 - 1.0
-			var d := sqrt(u * u + v * v) + noise.get_noise_2d(x, y) * 0.22
+			var d := sqrt(u * u + v * v) + noise.get_noise_2d(x, y) * 0.1
 			var c: Color
 			if key == &"blunt":
 				# ушиб/ссадина: тёмно-багровое пятно без дыры
@@ -513,10 +683,10 @@ func _wound_texture(wk: StringName) -> ImageTexture:
 				c = Color(0.08, 0.0, 0.0, 1.0)                  # отверстие
 			elif d < 0.62:
 				var k := (d - 0.32) / 0.3
-				c = Color(0.55 - k * 0.15, 0.03, 0.03, 1.0)     # мякоть
+				c = Color(0.42 - k * 0.12, 0.03, 0.03, 1.0)     # мякоть
 			elif d < 0.95:
 				var k2 := (d - 0.62) / 0.33
-				c = Color(0.4, 0.02, 0.02, 1.0 - k2)            # кровь вокруг
+				c = Color(0.3, 0.015, 0.015, 1.0 - k2)          # кровь вокруг
 			else:
 				c = Color(0, 0, 0, 0)
 			img.set_pixel(x, y, c)
