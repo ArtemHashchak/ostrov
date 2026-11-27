@@ -495,7 +495,33 @@ func _env_speed() -> float:
 	var surf := get_node_or_null(^"/root/Surfaces")
 	if surf and surf.has_method(&"speed_mul_at"):
 		m *= float(surf.call(&"speed_mul_at", global_position))
+	# v5.2 (агент K): хромота (морской ёж) и спотыкание (кокос под ногой)
+	if limp_t > 0.0:
+		m *= LIMP_MUL
+	if _stumble_t > 0.0:
+		m *= 0.45
 	return m
+
+## v5.2: хромота после укола морского ежа — LIMP_MUL скорости, пока limp_t > 0 (с).
+const LIMP_MUL := 0.72
+var limp_t: float = 0.0
+var _stumble_t: float = 0.0
+
+func limp(sec: float) -> void:
+	limp_t = maxf(limp_t, sec)
+
+## Споткнуться (кокос под ногой на бегу): рывок вперёд-вниз камерой, скорость падает на ~0.6 с.
+func stumble() -> void:
+	if _stumble_t > 0.0 or vaulting:
+		return
+	_stumble_t = 0.6
+	velocity.x *= 0.35
+	velocity.z *= 0.35
+	_land_dip = maxf(_land_dip, 0.14)
+
+func _tick_k(delta: float) -> void:
+	limp_t = maxf(0.0, limp_t - delta)
+	_stumble_t = maxf(0.0, _stumble_t - delta)
 
 func _gamepad_look(delta: float) -> void:
 	if not input_enabled:
@@ -556,7 +582,10 @@ func _update_camera(delta: float, hspeed: float) -> void:
 	# Тяжёлое дыхание — медленное покачивание даже стоя.
 	var breath := sin(Time.get_ticks_msec() * 0.0042) * 0.018 * tired_amount
 	_land_dip = move_toward(_land_dip, 0.0, delta * 0.6)
-	head.position = Vector3(bob_x, _cur_height - EYE_OFFSET + bob_y + breath - _land_dip, 0.0)
+	_tick_k(delta)
+	# хромота: шаг «проваливается» на больную ногу
+	var limp_dip := (maxf(0.0, sin(_bob_t)) * 0.035 * moving_f) if limp_t > 0.0 else 0.0
+	head.position = Vector3(bob_x, _cur_height - EYE_OFFSET + bob_y + breath - _land_dip - limp_dip, 0.0)
 	head.rotation = Vector3(_pitch + breath * 0.3, _yaw, sin(_bob_t) * 0.006 * moving_f * (1.0 + tired_amount * 2.0))
 	var fov_target := Settings.fov + (5.0 if sprinting else 0.0) - fov_zoom
 	camera.fov = lerpf(camera.fov, fov_target, clampf(delta * 6.0, 0.0, 1.0))

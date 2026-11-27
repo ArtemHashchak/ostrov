@@ -313,6 +313,9 @@ static func bullet_impact(ctx: Node, col: Node, pos: Vector3, normal: Vector3, s
 			var ww := ctx.get_node_or_null(^"/root/WaterWakes")
 			if ww:
 				ww.call(&"splash", pos, 0.45)   # v5 (агент D): пятно пены и кольцо на воде
+			var rl := ReefLife.instance()
+			if rl:
+				rl.scare_at(pos, 10.0)   # v5.2 (агент K): рыбы разлетаются от всплеска (пуля, копьё)
 			if a:
 				a.pitch_scale = randf_range(1.5, 1.9)
 		&"wood":

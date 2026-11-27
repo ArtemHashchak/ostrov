@@ -21,6 +21,15 @@ var scare_power: float = 4.0
 var hidden_i: int = -1
 var hidden_until: float = 0.0
 var size_avg: float = 0.2
+## v5.2: коралл-«дом» (INF — нет) и курс последнего хищника (для «фонтана» стаи).
+var shelter := Vector3.INF
+var scare_heading := Vector3.ZERO
+
+## Привязать группу к коралловой голове: при испуге прячутся в неё (рифовые рыбы, mode 1).
+func set_shelter(p: Vector3) -> void:
+	shelter = p
+	if mat:
+		mat.set_shader_parameter(&"shelter", Vector4(p.x, p.y, p.z, 1.0))
 
 ## Построить группу: homes — мировые точки, sizes — размер каждой рыбы.
 func setup(sp: StringName, at: Vector3, fish_homes: PackedVector3Array, rng: RandomNumberGenerator, floor_min: float) -> void:
@@ -97,12 +106,25 @@ func fish_pos(i: int, t: float = -1.0) -> Vector3:
 	var d := _path(t, c, home)
 	var wp := home + d
 	var sdt := t - scare_t
-	if sdt > 0.0 and sdt < 9.0:
-		var f := (1.0 - exp(-sdt * 6.0)) * exp(-sdt * 0.55)
+	if sdt > 0.0 and sdt < 14.0:
 		var aw := wp - scare_pos
 		aw.y *= 0.35
 		var dist := aw.length() + 0.001
-		d += aw / dist * scare_power * f * clampf(1.4 - dist / 12.0, 0.0, 1.0)
+		var near_k := clampf(1.4 - dist / 12.0, 0.0, 1.0)
+		if shelter != Vector3.INF:
+			var f2 := (1.0 - exp(-sdt * 5.0)) * exp(-sdt * 0.22)
+			var tw := shelter - (home + d)
+			var dl := tw.length() + 0.001
+			d += tw / dl * minf(dl - 0.15, scare_power * 1.5) * f2 * maxf(near_k, 0.35)
+		else:
+			var f := (1.0 - exp(-sdt * 6.0)) * exp(-sdt * 0.55)
+			var push := aw / dist
+			if scare_heading.length() > 0.1:
+				var hd := Vector3(scare_heading.x, 0.0, scare_heading.z).normalized()
+				var side := Vector3(-hd.z, 0.0, hd.x)
+				var sg := 1.0 if aw.dot(side) >= 0.0 else -1.0
+				push = (side * sg * 0.85 + push * 0.45 - hd * 0.2).normalized()
+			d += push * scare_power * f * near_k
 	var y := clampf(home.y + d.y, y_min + 0.25 + c.b * 0.3, ReefLife.level - 0.35)
 	d.y = y - home.y
 	return home + d
@@ -117,18 +139,20 @@ func count() -> int:
 	return homes.size()
 
 ## Испуг: веерный разлёт от точки (мировой).
-func scare(from: Vector3, power: float = -1.0) -> void:
+func scare(from: Vector3, power: float = -1.0, heading: Vector3 = Vector3.ZERO) -> void:
 	if ReefLife.time - scare_t < 2.5:
 		return
 	scare_t = ReefLife.time
 	scare_pos = from
+	scare_heading = heading
+	mat.set_shader_parameter(&"scare_dir", Vector4(heading.x, 0.0, heading.z, 1.0 if heading.length() > 0.1 else 0.0))
 	if power > 0.0:
 		scare_power = power
 		mat.set_shader_parameter(&"scare_power", power)
 	mat.set_shader_parameter(&"scare", Vector4(from.x, from.y, from.z, scare_t))
 
 func is_scared() -> bool:
-	return ReefLife.time - scare_t < 4.0
+	return ReefLife.time - scare_t < (7.0 if shelter != Vector3.INF else 4.0)
 
 ## Спрятать одну рыбу (её «съели»); вернётся через sec секунд.
 func hide_fish(i: int, sec: float = 25.0) -> void:

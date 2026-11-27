@@ -74,7 +74,47 @@ static func make_rock() -> FloraPickup:
 	return p
 
 func _ready() -> void:
+	add_to_group(&"flora_pickups")   # v5.2: пальмовый вор ищет кокосы, спотыкание об кокос
 	_check_dynamic.call_deferred()
+
+## v5.2: падающий кокос бьёт того, кто под пальмой (голова — больно, зверю — тоже).
+var _hit_done := false
+var _fall_y0 := 0.0
+const HEAD_HIT_DMG := 18.0
+
+func _check_hit() -> void:
+	if _hit_done or item_id != &"coconut" or linear_velocity.y > -2.0:
+		return
+	var p := global_position
+	for c in get_tree().get_nodes_in_group(&"characters"):
+		var ch := c as Node3D
+		if ch == null or not ch.has_method(&"apply_damage"):
+			continue
+		var d := ch.global_position
+		var top := d.y + 1.85
+		if Vector2(p.x - d.x, p.z - d.z).length() < 0.42 and p.y < top + 0.15 and p.y > d.y + 0.5:
+			_hit_done = true
+			var h := clampf(_fall_y0 - p.y, 2.0, 25.0)
+			var head := p.y > top - 0.35
+			var dmg := HEAD_HIT_DMG * (1.0 if head else 0.5) * clampf(h / 12.0, 0.4, 1.6)
+			ch.call(&"apply_damage", dmg, self, &"fall")
+			if ch.is_in_group(&"player"):
+				Events.toast.emit("Кокос упал на голову!" if head else "По плечу ударил кокос")
+			Flora.play_sfx(self, "FGHTImpt_PunchRegular_OS_01", p, 0.0, 0.8)
+			linear_velocity = Vector3(linear_velocity.x * 0.3 + randf_range(-1, 1), 1.2, linear_velocity.z * 0.3 + randf_range(-1, 1))
+			return
+	if Fauna.instance():
+		for a in Fauna.instance().animals_near(p, 1.5):
+			if a.dead or a.cfg.get("fly", false):
+				continue
+			var box: Vector3 = a.cfg["box"]
+			var ap := a.global_position
+			if Vector2(p.x - ap.x, p.z - ap.z).length() < maxf(box.x, box.z) * 0.5 * a.growth + 0.1 \
+					and p.y < ap.y + box.y * a.growth + 0.2 and p.y > ap.y:
+				_hit_done = true
+				a.apply_damage(HEAD_HIT_DMG * 0.6, self, &"fall")
+				linear_velocity.y = 1.0
+				return
 
 func _check_dynamic() -> void:
 	if freeze or not is_inside_tree():
@@ -100,6 +140,7 @@ func _check_dynamic() -> void:
 	angular_velocity = Vector3(randf_range(-2, 2), randf_range(-1, 1), randf_range(-2, 2))
 	mode = FALL
 	_t = 0.0
+	_fall_y0 = global_position.y
 	set_physics_process(true)
 
 func _ground(x: float, z: float) -> float:
@@ -143,6 +184,7 @@ func _physics_process(dt: float) -> void:
 		linear_velocity = Vector3.ZERO
 	var near_ground := g > -INF and p.y - g < _r + 0.05
 	if mode == FALL:
+		_check_hit()
 		if near_ground or (g == -INF and get_contact_count() > 0) or _t > 6.0:
 			_land(p, g)
 		elif get_contact_count() > 0 and absf(linear_velocity.y) < 0.4 and _t > 0.3:

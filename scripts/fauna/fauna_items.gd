@@ -12,6 +12,15 @@ static func register() -> void:
 	_item(&"feather", "Перо", &"resource", 30, 0.05, {"color": Color(0.85, 0.2, 0.15), "desc": "Перья — для стрел и украшений."})
 	_item(&"crab_meat", "Крабовое мясо", &"food", 10, 0.3, {"hunger": 8.0, "raw_risk": 0.2, "color": Color(0.95, 0.6, 0.5)})
 	_item(&"turtle_egg", "Черепашье яйцо", &"food", 12, 0.15, {"hunger": 9.0, "health": 2.0, "raw_risk": 0.1, "color": Color(0.93, 0.9, 0.82)})
+	# v5.2 (агент K): пойманный краб, раковина отшельника, обувь от морских ежей
+	_item(&"crab_live", "Живой краб", &"food", 10, 0.35, {"hunger": 6.0, "raw_risk": 0.3, "cook": &"crab_meat", "color": Color(0.85, 0.35, 0.15),
+		"desc": "Пойман руками. Сварить или запечь на костре — будет крабовое мясо."})
+	_item(&"seashell", "Раковина", &"resource", 20, 0.08, {"color": Color(0.92, 0.85, 0.75),
+		"desc": "Пустая раковина рака-отшельника. Скребок, украшение, приманка."})
+	_item(&"sandals", "Сандалии из коры", &"tool", 1, 0.3, {"footwear": true, "color": Color(0.45, 0.32, 0.2),
+		"desc": "Обувь: защищает ступни от морских ежей и острых камней (носится, пока лежит в инвентаре)."})
+	if not Items.recipes.has(&"r_sandals"):
+		Items.register_recipe(&"r_sandals", &"sandals", {&"fiber": 4, &"stick": 1}, 1)
 	_item(&"meat_raw", "Сырое мясо", &"food", 10, 0.5, {"hunger": 12.0, "raw_risk": 0.35, "color": Color(0.75, 0.32, 0.32)})
 
 static func _item(id: StringName, nm: String, kind: StringName, stack: int, weight: float, data: Dictionary) -> void:

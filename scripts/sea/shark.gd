@@ -47,6 +47,10 @@ var _leap: float = 0.0
 var _last_aggressor: Node = null
 var _hitbox: StaticBody3D = null
 var bait_t: float = 0.0          # >0 — кормится у приманки (почти не ищет людей)
+## v5.2 (агент K): распорядок дня (Routines «shark»): на закате и рассвете активнее
+## (быстрее патруль, дальше чует), в полдень ленивее. Обновляется раз в ~5 с.
+var activity: float = 1.0
+var _act_t: float = 0.0
 var _bump_cd: float = 0.0
 
 ## Слой коллизии для попаданий оружием (лучи Combat видят все слои; игрок/боты — нет).
@@ -281,8 +285,13 @@ func tick(delta: float, full: bool) -> void:
 				investigate_at = at
 				_enter(State.INVESTIGATE, 8.0)
 
+	_act_t -= delta
+	if _act_t <= 0.0:
+		_act_t = 5.0 + _rng.randf() * 2.0
+		var rt := Routines.now(self)
+		activity = Routines.activity(&"shark", rt.hour, rt.low_tide)
 	var want := Vector3.ZERO
-	var want_speed: float = cfg["speed"]
+	var want_speed: float = float(cfg["speed"]) * lerpf(1.0, activity, 0.6)
 	var depth_here: float = sea.depth_at(global_position.x, global_position.z)
 	var cruise_depth := clampf(depth_here * 0.45, 1.3, 4.5)
 	target_y = water - cruise_depth

@@ -441,7 +441,7 @@ func find_prey(s: Shark) -> Dictionary:
 	var best_score := 0.0
 	var kind := &"swim"
 	var blood := false
-	var sense: float = s.cfg["sense"]
+	var sense: float = float(s.cfg["sense"]) * s.activity   # v5.2: распорядок — на закате чутче
 	if s.bait_t > 0.0:
 		sense *= 0.3   # кормится у приманки — люди интересны, только если совсем рядом
 	for n in get_tree().get_nodes_in_group(&"characters"):

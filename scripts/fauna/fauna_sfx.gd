@@ -71,6 +71,8 @@ static func _make(kind: StringName, v: int) -> AudioStreamWAV:
 		&"bite": data = _snap(rng)
 		&"wings": data = _flutter(rng, 0.6)
 		&"egg_dig": data = _dig(rng, 0.8)
+		&"dolphin_blow": data = _hiss(rng, 0.55 + v * 0.08)   # v5.2: выдох дельфина (резкий «пф-ф»)
+		&"crunch": data = _clicks(rng, 0.18, 9, 1800.0)        # v5.2: раздавленная мелочь
 		_: data = _hiss(rng, 0.3)
 	return _to_wav(data)
 

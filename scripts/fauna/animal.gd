@@ -16,7 +16,7 @@ const SPECIES := {
 		"sound": &"boar_grunt", "hurt": &"boar_squeal"},
 	&"crab": {"name": "Краб", "hp": 8.0, "walk": 0.7, "run": 2.6, "dmg": 2.0, "reach": 0.5, "cd": 1.5,
 		"temper": &"timid", "aggro_r": 0.0, "flee_r": 3.5, "box": Vector3(0.45, 0.25, 0.35), "box_y": 0.08,
-		"drops": [{"id": &"crab_meat", "n": 1}], "sound": &"crab_click", "hurt": &"crab_click"},
+		"drops": [{"id": &"crab_meat", "n": 1}], "sound": &"crab_click", "hurt": &"crab_click", "catch": true},
 	&"snake": {"name": "Змея", "hp": 16.0, "walk": 0.3, "run": 0.6, "dmg": 5.0, "reach": 0.9, "cd": 2.6,
 		"temper": &"territorial", "aggro_r": 2.0, "flee_r": 0.0, "box": Vector3(0.35, 0.2, 0.85), "box_y": 0.05,
 		"poison": [1.5, 12.0], "warn": 1.6,
@@ -46,6 +46,10 @@ const SPECIES := {
 	&"centipede": {"name": "Сколопендра", "hp": 5.0, "walk": 0.16, "run": 0.4, "dmg": 4.0, "reach": 0.45, "cd": 2.0,
 		"temper": &"territorial", "aggro_r": 1.0, "flee_r": 0.0, "box": Vector3(0.15, 0.1, 0.55), "box_y": 0.02,
 		"poison": [1.5, 12.0], "warn": 0.7, "drops": [], "sound": &"scorpion", "hurt": &"scorpion"},
+	## v5.2: пальмовый вор — ночью утаскивает кокосы (своей модели пока нет: краб ×1.9)
+	&"coconut_crab": {"name": "Пальмовый вор", "hp": 22.0, "walk": 0.35, "run": 1.1, "dmg": 6.0, "reach": 0.6, "cd": 1.8,
+		"temper": &"timid", "aggro_r": 0.0, "flee_r": 2.5, "box": Vector3(0.6, 0.35, 0.6), "box_y": 0.12,
+		"drops": [{"id": &"crab_meat", "n": 3}], "sound": &"crab_click", "hurt": &"crab_click", "catch": true},
 	&"hermit_crab": {"name": "Рак-отшельник", "hp": 4.0, "walk": 0.06, "run": 0.12, "dmg": 1.0, "reach": 0.3, "cd": 2.0,
 		"temper": &"hermit", "aggro_r": 0.0, "flee_r": 1.5, "box": Vector3(0.25, 0.15, 0.25), "box_y": 0.0,
 		"drops": [{"id": &"crab_meat", "n": 1}], "sound": &"crab_click", "hurt": &"crab_click"},
@@ -139,6 +143,13 @@ var anim_state: Dictionary = {}
 ## Сцена моря (SeaScene) ведёт животное сама: своё «мышление» выключено, состояние/цель
 ## (state, target, move_to) задаёт сцена; поединки таких животных друг с другом без урона.
 var scripted := false
+## v5.2 (агент K): распорядок дня (Routines), несомый предмет (краб/пальмовый вор), корм у туши.
+var routine: StringName = &"active"
+var _routine_t: float = 0.0
+var carry_node: Node3D = null          # кокос, который тащит пальмовый вор
+var _carrion_t: float = 0.0
+var _crush_cd: float = 0.0
+const BEHAVIOUR := preload("res://scripts/fauna/animal_behaviour.gd")
 
 static func create(sp: StringName, pos: Vector3, fauna_node: Node = null) -> Animal:
 	var a := Animal.new()
@@ -153,6 +164,8 @@ static func create(sp: StringName, pos: Vector3, fauna_node: Node = null) -> Ani
 func _ready() -> void:
 	add_to_group(&"animals")
 	add_to_group(&"fauna_animals")
+	if species in BEHAVIOUR.PERCEIVERS:
+		add_to_group(&"perceiver")
 	if cfg.is_empty():
 		cfg = SPECIES.get(species, SPECIES[&"boar"])
 	_rng.seed = get_instance_id()
@@ -251,8 +264,11 @@ func die(killer: Node = null) -> void:
 			continue
 		var n := int(d["n"]) if scale_n else maxi(1, int(d["n"]) / 2)
 		items.append({"id": d["id"], "n": n})
+	if species == &"hermit_crab" and Items.get_item(&"seashell") != null:
+		items.append({"id": &"seashell", "n": 1})   # v5.2: раковина остаётся после разделки
 	items.append_array(stolen)
 	stolen.clear()
+	BEHAVIOUR.drop_carried(self)
 	if not items.is_empty() and is_inside_tree():
 		var parent := get_parent()
 		var gp := global_position + Vector3(0, 0.4 + (0.0 if not is_flying() else 0.0), 0)
@@ -265,6 +281,8 @@ func die(killer: Node = null) -> void:
 func get_interact_text(by: Node) -> String:
 	if dead:
 		return ""
+	if BEHAVIOUR.can_catch(self, by):
+		return "E — поймать: %s" % display_name().to_lower()
 	var food := _held_food(by)
 	if tamed and owner_node == by:
 		if food != &"" and _accepts(food):
@@ -276,6 +294,9 @@ func get_interact_text(by: Node) -> String:
 
 func interact(by: Node) -> void:
 	if dead:
+		return
+	if BEHAVIOUR.can_catch(self, by):
+		BEHAVIOUR.catch_by(self, by)
 		return
 	var food := _held_food(by)
 	if food != &"" and _accepts(food) and (cfg.get("tame", false)):
@@ -312,6 +333,12 @@ func on_feed(by: Node, id: StringName) -> bool:
 		Events.toast.emit("%s берёт еду (%d/%d)" % [display_name(), trust, int(cfg["trust"])])
 	return true
 
+## Раздражитель восприятия (Perception, группа perceiver): варан чует кровь/тушу по ветру,
+## змея — дрожь земли от шагов, ящерицы удирают раньше (v5.2, animal_behaviour.gd).
+func on_stimulus(st: Dictionary) -> void:
+	if not dead and not tamed and not scripted:
+		BEHAVIOUR.on_stimulus(self, st)
+
 func tame_by(by: Node) -> void:
 	tamed = true
 	owner_node = by
@@ -340,6 +367,15 @@ func tick(dt: float) -> void:
 	breed_cd = maxf(0.0, breed_cd - dt)
 	_hurt_flash = maxf(0.0, _hurt_flash - dt)
 	state_t += dt
+	_crush_cd = maxf(0.0, _crush_cd - dt)
+	if lod == 0 and not scripted:
+		BEHAVIOUR.check_crush(self)
+		if dead:
+			return
+	_routine_t -= dt
+	if _routine_t <= 0.0:
+		_routine_t = 2.0 + _rng.randf()
+		routine = Routines.mode_now(species, self)
 	if growth < 1.0 and fauna and not scripted:
 		set_growth(growth + dt / fauna.grow_seconds * 0.55)
 	if cfg.get("fly", false) and tamed:
@@ -368,6 +404,11 @@ func _think() -> void:
 	if species == &"crab":
 		_think_crab(pl, d)
 		temper = &"_crab"
+	if species == &"coconut_crab" and BEHAVIOUR.think_coconut_crab(self, pl, d):
+		return
+	if state in BEHAVIOUR.OWN_STATES:
+		BEHAVIOUR.think_own(self, pl, d)
+		return
 	match temper:
 		&"timid":
 			if pl and d < float(cfg["flee_r"]) * (1.6 if _is_crouching(pl) == false else 0.8):
@@ -411,7 +452,11 @@ func _think() -> void:
 			_think_turtle(pl, d)
 		&"hermit":
 			_think_hermit(pl, d)
-	if state == &"idle" and state_t > _rng.randf_range(2.0, 6.0):
+	if BEHAVIOUR.apply_routine(self, pl, d):
+		return
+	if state == &"idle" and state_t > _rng.randf_range(2.0, 6.0) * (2.5 if routine == &"rest" else 1.0):
+		if species == &"crab" and BEHAVIOUR.try_crab_carry(self):
+			return
 		_pick_wander()
 	elif state == &"wander" and (global_position.distance_to(move_to) < 0.6 or state_t > 20.0):
 		_set_state(&"idle")
@@ -425,7 +470,9 @@ func _act(dt: float) -> void:
 	match state:
 		&"burrow":
 			speed = move_toward(speed, 0.0, dt * 8.0)
-		&"idle", &"stay", &"ambush", &"nest", &"warn", &"hide", &"peek":
+		&"to_cover", &"investigate", &"carry", &"fetch", &"drag":
+			BEHAVIOUR.act_own(self, dt)
+		&"idle", &"stay", &"ambush", &"nest", &"warn", &"hide", &"peek", &"bask", &"rest_hidden", &"freeze", &"feed":
 			speed = move_toward(speed, 0.0, dt * 4.0)
 			if state == &"warn" and target and species == &"crab":
 				_face(target.global_position, dt * 5.0)
@@ -531,9 +578,16 @@ func _think_crab(pl: Node3D, d: float) -> void:
 			if pl == null or d > fr * 3.0:
 				_set_state(&"idle")
 			return
+	if state == &"freeze":
+		if state_t > 6.0 or (pl and d < 0.8 and not _is_crouching(pl)):
+			_set_state(&"flee" if pl and d < fr else &"idle")
+		return
 	if pl and d < fr:
 		target = pl
 		var r := _rng.randf()
+		if _is_crouching(pl) and r < 0.55:
+			_set_state(&"freeze")   # v5.2: подкрадываются медленно — краб замирает (его можно схватить)
+			return
 		if _biome() == &"beach" and r < 0.4:
 			_set_state(&"burrow")
 		elif r < 0.75:
@@ -921,6 +975,9 @@ func _tick_shoulder(dt: float) -> void:
 	speed = 0.0
 
 func _tick_bird(dt: float) -> void:
+	if has_meta(&"dive"):
+		BEHAVIOUR.tick_gull_dive(self, dt)   # v5.2: чайка пикирует за едой
+		return
 	var night_bird: bool = cfg.get("night", false)
 	var night := Fauna.is_night_now(self)
 	if night_bird:
@@ -1258,6 +1315,10 @@ func _snap_ground(dt: float) -> void:
 
 func _tick_dead(dt: float) -> void:
 	_dead_t += dt
+	_carrion_t -= dt
+	if _carrion_t <= 0.0 and _dead_t < 600.0 and max_health >= 15.0:
+		_carrion_t = 6.0
+		BEHAVIOUR.emit_carrion(self)
 	if anim_ctrl and anim_ctrl.has_method(&"animate_dead"):
 		anim_ctrl.call(&"animate_dead", self, dt)
 	var own_death: bool = anim_ctrl != null and anim_ctrl.get(&"owns_death") == true   # клип death сам кладёт тушку

@@ -1,0 +1,62 @@
+{
+  "_doc": "Распорядок дня видов (A13, v5.2). Для каждого вида — окна по часам игровых суток [from, to) (to может быть меньше from — через полночь) и режим: active — обычная жизнь; bask — греется на открытом месте, почти не ходит; rest — отдыхает у укрытия, бродит редко; hidden — в укрытии/норе (не бродит, бежит только от угрозы вплотную). tide: any | low | high — окно действует только при таком приливе (low — уровень воды ниже среднего). Первое подходящее окно выигрывает; если ни одно не подошло — default. activity — множитель скорости/радиуса поиска (акулы на закате 1.5). Правка JSON — без перекомпиляции (DataTables.reload()).",
+  "iguana": {"default": "active", "windows": [
+    {"from": 6.5, "to": 10.0, "mode": "bask"},
+    {"from": 19.0, "to": 6.5, "mode": "hidden"}
+  ]},
+  "monitor": {"default": "active", "windows": [
+    {"from": 6.5, "to": 9.5, "mode": "bask"},
+    {"from": 12.5, "to": 15.0, "mode": "rest"},
+    {"from": 19.5, "to": 6.5, "mode": "hidden"}
+  ]},
+  "salamander": {"default": "rest", "windows": [
+    {"from": 19.0, "to": 6.0, "mode": "active"}
+  ]},
+  "crab": {"default": "active", "windows": [
+    {"from": 18.5, "to": 6.5, "mode": "active"},
+    {"from": 6.5, "to": 18.5, "tide": "low", "mode": "active"},
+    {"from": 10.0, "to": 16.0, "tide": "high", "mode": "hidden"}
+  ]},
+  "hermit_crab": {"default": "rest", "windows": [
+    {"from": 18.0, "to": 7.0, "mode": "active"},
+    {"from": 7.0, "to": 18.0, "tide": "low", "mode": "active"}
+  ]},
+  "coconut_crab": {"default": "hidden", "windows": [
+    {"from": 19.0, "to": 5.5, "mode": "active"}
+  ]},
+  "turtle": {"default": "active", "windows": [
+    {"from": 20.0, "to": 5.0, "mode": "active", "activity": 1.0},
+    {"from": 5.0, "to": 20.0, "mode": "rest"}
+  ]},
+  "snake": {"default": "active", "windows": [
+    {"from": 7.0, "to": 9.5, "mode": "bask"},
+    {"from": 12.0, "to": 15.0, "mode": "hidden"}
+  ]},
+  "python": {"default": "rest", "windows": [
+    {"from": 19.0, "to": 5.0, "mode": "active"}
+  ]},
+  "scorpion": {"default": "hidden", "windows": [
+    {"from": 19.0, "to": 6.0, "mode": "active"}
+  ]},
+  "spider": {"default": "hidden", "windows": [
+    {"from": 18.5, "to": 6.0, "mode": "active"}
+  ]},
+  "centipede": {"default": "hidden", "windows": [
+    {"from": 19.0, "to": 6.0, "mode": "active"}
+  ]},
+  "boar": {"default": "active", "windows": [
+    {"from": 11.5, "to": 15.5, "mode": "rest"},
+    {"from": 22.0, "to": 4.5, "mode": "rest"}
+  ]},
+  "shark": {"default": "active", "windows": [
+    {"from": 17.5, "to": 20.5, "mode": "active", "activity": 1.5},
+    {"from": 5.0, "to": 7.0, "mode": "active", "activity": 1.3},
+    {"from": 11.0, "to": 15.0, "mode": "rest", "activity": 0.75}
+  ]},
+  "gull": {"default": "active", "windows": [
+    {"from": 20.0, "to": 5.5, "mode": "rest"}
+  ]},
+  "parrot": {"default": "active", "windows": [
+    {"from": 19.0, "to": 6.0, "mode": "rest"}
+  ]}
+}

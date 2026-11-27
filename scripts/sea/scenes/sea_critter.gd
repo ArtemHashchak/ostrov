@@ -539,6 +539,7 @@ func _reflex(dt: float) -> void:
 		"dolphin":
 			if global_position.y > water_y() - L * 0.6 and _act_cd <= 0.0:
 				skel.act("breathe")
+				_blow()   # v5.2 (агент K): фонтанчик выдоха и звук
 				_act_cd = _rng.randf_range(8.0, 20.0)
 		"squid_red":
 			if dist < 2.0 and _act_cd <= 0.0:
@@ -610,3 +611,55 @@ func _on_skel_event(ev: String, s: SeaSkel) -> void:
 			SeaSkelFx.cavitation(self, p, 0.23)   # кадр 7 из 30 к/с
 		"ink":
 			SeaSkelFx.ink(self, s.global_position - forward() * length * 0.3, length)
+
+## v5.2: выдох дельфина у поверхности — облачко брызг и пара из дыхала (над головой) и звук.
+var blow_count := 0
+func _blow() -> void:
+	blow_count += 1
+	if not is_inside_tree():
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(global_position) > 120.0:
+		return
+	var hp := global_position + forward() * length * 0.25
+	if skel:
+		var bp: Variant = skel.bone_point("head")
+		if bp is Vector3:
+			hp = bp
+	hp.y = water_y() + 0.05
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.emitting = false
+	p.amount = 40
+	p.lifetime = 1.4
+	p.explosiveness = 0.9
+	p.direction = Vector3.UP
+	p.spread = 12.0
+	p.initial_velocity_min = 3.0
+	p.initial_velocity_max = 5.5
+	p.gravity = Vector3(0, -5.0, 0)
+	p.damping_min = 1.5
+	p.damping_max = 3.0
+	p.scale_amount_min = 0.08
+	p.scale_amount_max = 0.22
+	var curve := Curve.new()
+	curve.add_point(Vector2(0.0, 0.4))
+	curve.add_point(Vector2(0.4, 1.0))
+	curve.add_point(Vector2(1.0, 1.6))
+	p.scale_amount_curve = curve
+	var grad := Gradient.new()
+	grad.set_color(0, Color(0.95, 0.98, 1.0, 0.75))
+	grad.set_color(1, Color(0.92, 0.95, 1.0, 0.0))
+	p.color_ramp = grad
+	var mesh := QuadMesh.new()
+	mesh.size = Vector2(1, 1)
+	var sea_n := get_tree().get_first_node_in_group(&"sea")
+	if sea_n and sea_n.has_method(&"soft_material"):
+		mesh.material = sea_n.call(&"soft_material", Color(1, 1, 1, 0.8))
+	p.mesh = mesh
+	var host: Node = get_tree().current_scene if get_tree().current_scene else self
+	host.add_child(p)
+	p.global_position = hp
+	p.emitting = true
+	p.finished.connect(p.queue_free)
+	FaunaSfx.play(self, &"dolphin_blow", 4.0, 8.0, 1.0)

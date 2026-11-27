@@ -15,6 +15,8 @@ const LOOK := {
 		"detail": Color(0.86, 0.82, 0.72), "pk": 5.0, "ps": 7.0, "pa": 0.6, "rough": 0.92, "sheen": 0.6},
 	&"crab": {"back": Color(0.78, 0.3, 0.12), "belly": Color(0.95, 0.75, 0.55), "pat": Color(0.55, 0.16, 0.06),
 		"detail": Color(0.08, 0.06, 0.05), "pk": 1.0, "ps": 18.0, "pa": 0.5, "rough": 0.45, "wet": 0.5},
+	&"coconut_crab": {"back": Color(0.36, 0.22, 0.32), "belly": Color(0.75, 0.55, 0.45), "pat": Color(0.2, 0.12, 0.2),
+		"detail": Color(0.08, 0.06, 0.05), "pk": 1.0, "ps": 14.0, "pa": 0.5, "rough": 0.55, "wet": 0.2},
 	&"snake": {"back": Color(0.36, 0.33, 0.18), "belly": Color(0.82, 0.76, 0.52), "pat": Color(0.12, 0.1, 0.06),
 		"detail": Color(0.85, 0.7, 0.3), "pk": 3.0, "ps": 7.0, "pa": 0.85, "rough": 0.38, "wet": 0.2},
 	&"croc": {"back": Color(0.23, 0.26, 0.17), "belly": Color(0.7, 0.67, 0.5), "pat": Color(0.12, 0.13, 0.09),
@@ -252,6 +254,7 @@ static func build(species: StringName) -> Node3D:
 	match species:
 		&"boar": return _boar()
 		&"crab": return _crab()
+		&"coconut_crab": return _coconut_crab()
 		&"snake": return _snake()
 		&"croc": return _croc()
 		&"monkey": return _monkey()
@@ -337,6 +340,20 @@ static func _crab() -> Node3D:
 	else:
 		ArthropodRig.build_crab(root, root.get_meta(&"mat"))
 	root.set_meta(&"length", 0.3)
+	return root
+
+## Пальмовый вор (v5.2): своей модели пока нет (в списке моделей) — модель краба пользователя
+## ×1.9 внутри обёртки (Animal ставит масштаб корня = рост, поэтому масштаб — у вложенного узла).
+static func _coconut_crab() -> Node3D:
+	var inner := _crab()
+	inner.scale = Vector3.ONE * 1.9
+	var root := Node3D.new()
+	root.name = "CoconutCrab"
+	root.add_child(inner)
+	for k in inner.get_meta_list():
+		root.set_meta(k, inner.get_meta(k))
+	root.set_meta(&"length", 0.55)
+	root.set_meta(&"display_name", "Пальмовый вор")
 	return root
 
 # ---------------------------- змея ----------------------------

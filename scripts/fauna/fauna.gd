@@ -35,11 +35,17 @@ static var _inst: Fauna = null
 static func instance() -> Fauna:
 	return _inst if _inst and is_instance_valid(_inst) else null
 
+var ext: Node = null   # v5.2 (агент K): FaunaExt — ветер и кокосы, ежи, чайки-воры, попугай-сторож
+
 func _ready() -> void:
 	_inst = self
 	add_to_group(&"fauna")
 	FaunaItems.register()
 	_rng.seed = seed_value
+	ext = preload("res://scripts/fauna/fauna_ext.gd").new()
+	ext.name = "FaunaExt"
+	ext.set(&"fauna", self)
+	add_child(ext)
 	_find_world.call_deferred()
 
 func _exit_tree() -> void:
@@ -218,6 +224,11 @@ func _populate_island(isl: Dictionary) -> void:
 		if p == null: break
 		for k in _rng.randi_range(2, 4):
 			_try_spawn(&"hermit_crab", p + Vector3(_rng.randf_range(-1.5, 1.5), 0, _rng.randf_range(-1.5, 1.5)), 6.0)
+	# v5.2: пальмовые воры — у пояса пальм за пляжем (днём в норе, ночью тащат кокосы)
+	for i in count.call(0.5 * area_k):
+		var p: Variant = pick.call([&"beach", &"meadow"])
+		if p == null: break
+		_try_spawn(&"coconut_crab", p, 15.0)
 	if buckets.has(&"beach") and _room(6):
 		var p: Variant = pick.call([&"beach"])
 		spawn_flock(&"gull", p, _rng.randi_range(4, 7), R * 0.9)
@@ -441,11 +452,23 @@ func _tick_flocks(dt: float) -> void:
 		var mode: StringName = fl["mode"]
 		if sp == &"bat" and not is_night_now(self) and not force_night_birds:
 			continue
+		# v5.2: распорядок — чайки и попугаи ночуют (Routines «rest»): садятся и не взлетают до утра
+		var roost := sp != &"bat" and Routines.mode_now(sp, self) == &"rest"
 		if mode == &"perch":
-			if float(fl["t"]) <= 0.0 and not (sp == &"parrot" and is_night_now(self)):
+			if float(fl["t"]) <= 0.0 and not roost:
 				fl["mode"] = &"fly"
 				fl["t"] = 0.0
 			continue
+		var calm := float(fl.get("spooked_until", 0.0)) < Time.get_ticks_msec() * 0.001
+		if roost and calm and float(fl.get("roost_try_t", -1.0)) < clock:
+			fl["roost_try_t"] = clock + 20.0
+			var rp := _find_perch(sp, home_p, R, sp == &"gull")
+			if rp != Vector3.INF:
+				fl["perch"] = rp
+				fl["mode"] = &"perch"
+				fl["target"] = rp
+				fl["t"] = 60.0
+				continue
 		var pos: Vector3 = fl["pos"]
 		var tgt: Vector3 = fl["target"]
 		var spd := 6.0 if sp != &"bat" else 5.0

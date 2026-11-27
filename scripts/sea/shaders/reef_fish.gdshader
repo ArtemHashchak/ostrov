@@ -19,6 +19,10 @@ uniform float lag = 0.12;
 uniform float y_min = -100.0;
 uniform vec4 scare = vec4(0.0, 0.0, 0.0, -1000.0);
 uniform float scare_power = 4.0;
+// v5.2 (агент K): коралл-«дом» рифовой группы (w=1): при испуге рыбы прячутся в него;
+// направление хищника (xz, w=1): стая расходится «фонтаном» в стороны от его курса.
+uniform vec4 shelter = vec4(0.0);
+uniform vec4 scare_dir = vec4(0.0);
 uniform int hidden = -1;
 uniform float wiggle_amp = 0.07;
 uniform float wiggle_freq = 8.0;
@@ -72,12 +76,29 @@ vec3 offset_at(float t, vec4 c, vec3 home) {
 	vec3 d = path(t, c, home);
 	vec3 wp = home + d;
 	float sdt = t - scare.w;
-	if (sdt > 0.0 && sdt < 9.0) {
-		float f = (1.0 - exp(-sdt * 6.0)) * exp(-sdt * 0.55);
+	if (sdt > 0.0 && sdt < 14.0) {
 		vec3 aw = wp - scare.xyz;
 		aw.y *= 0.35;
 		float dist = length(aw) + 0.001;
-		d += aw / dist * scare_power * f * clamp(1.4 - dist / 12.0, 0.0, 1.0);
+		float near_k = clamp(1.4 - dist / 12.0, 0.0, 1.0);
+		if (shelter.w > 0.5) {
+			// в свой коралл: быстро внутрь, сидят дольше, выплывают медленно
+			float f2 = (1.0 - exp(-sdt * 5.0)) * exp(-sdt * 0.22);
+			vec3 tw = shelter.xyz - (home + d);
+			float dl = length(tw) + 0.001;
+			d += tw / dl * min(dl - 0.15, scare_power * 1.5) * f2 * max(near_k, 0.35);
+		} else {
+			float f = (1.0 - exp(-sdt * 6.0)) * exp(-sdt * 0.55);
+			vec3 push = aw / dist;
+			if (scare_dir.w > 0.5) {
+				// «фонтан»: в стороны от курса хищника и чуть назад — стая смыкается за ним
+				vec3 hd = normalize(vec3(scare_dir.x, 0.0, scare_dir.z));
+				vec3 side = vec3(-hd.z, 0.0, hd.x);
+				float sg = dot(aw, side) >= 0.0 ? 1.0 : -1.0;
+				push = normalize(side * sg * 0.85 + push * 0.45 - hd * 0.2);
+			}
+			d += push * scare_power * f * near_k;
+		}
 	}
 	float y = clamp(home.y + d.y, y_min + 0.25 + c.z * 0.3, sea_level - 0.35);
 	d.y = y - home.y;

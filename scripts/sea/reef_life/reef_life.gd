@@ -85,6 +85,12 @@ var _mats: Dictionary = {}
 var _crawl_mats: Dictionary = {}
 var _islands: Array = []
 var _zones: Array = []
+## v5.2 (агент K): морские ежи по клеткам (наступил босиком — укол), коралл-«дом» текущей
+## головы (рифовые рыбы при испуге прячутся в свой коралл), коньки в лугах морской травы.
+var urchin_spots: Dictionary = {}  # Vector2i → PackedVector3Array
+var _cur_home := Vector3.INF       # центр коралловой головы, вокруг которой строятся группы
+var _grass_spots: Array[Vector3] = []
+const SEAHORSE_BED := preload("res://scripts/sea/reef_life/seahorse_bed.gd")
 
 func _ready() -> void:
 	add_to_group(&"reef_life")
@@ -162,6 +168,7 @@ func _drop_cell(k: Vector2i) -> void:
 		if _grid.has(g):
 			(_grid[g] as Array).erase(s)
 	_cell_schools.erase(k)
+	urchin_spots.erase(k)
 	var n: Node3D = _cells.get(k)
 	if n and is_instance_valid(n):
 		decor_count -= int(n.get_meta(&"decor", 0))
@@ -254,8 +261,10 @@ func _build_cell(k: Vector2i) -> void:
 		_reef_ok.clear()
 	var d0 := decor_count
 	var c0 := crawler_count
+	_grass_spots.clear()
 	if rich > 0.0:
 		_fill_cell(pts, depths, rich)
+		_seahorses(cell, rich)
 	_flush_decor()
 	_flush_crawlers()
 	cell.set_meta(&"decor", decor_count - d0)
@@ -303,6 +312,8 @@ func _fill_cell(pts: Array[Vector3], depths: PackedFloat32Array, rich: float) ->
 		var p := pts[i]
 		var nv := _noise.get_noise_2d(p.x, p.z)
 		if nv > -0.05:
+			if nv > 0.2 and _plevel() - p.y > 0.8 and _plevel() - p.y < 6.0:
+				_grass_spots.append(p)
 			var n := 2 + int(nv * 8.0 * rich)
 			for k in n:
 				var q := p + Vector3(_rng.randf_range(-2.6, 2.6), 0, _rng.randf_range(-2.6, 2.6))
@@ -316,6 +327,7 @@ func _fill_cell(pts: Array[Vector3], depths: PackedFloat32Array, rich: float) ->
 			_add_decor(&"cucumber", p)
 		elif roll < 0.25 * rich:
 			_add_decor(&"urchin", p)
+			_note_urchin(p)
 		elif roll < 0.33 * rich:
 			_add_decor(&"brown_algae", p)
 		elif roll < 0.4 * rich:
@@ -341,6 +353,11 @@ func _fill_cell(pts: Array[Vector3], depths: PackedFloat32Array, rich: float) ->
 
 ## Одна коралловая голова: скалы, кораллы, губки, водоросли, актинии, вокруг — рыбы.
 func _coral_head(p: Vector3, r: float, rich: float) -> void:
+	_cur_home = p
+	_coral_head_body(p, r, rich)
+	_cur_home = Vector3.INF
+
+func _coral_head_body(p: Vector3, r: float, rich: float) -> void:
 	var cc := Vector2(p.x, p.z)
 	for i in _rng.randi_range(2, 4):
 		var q: Variant = _spot(cc, 0.0, r * 0.45, 0.5, 12.0, 4)
@@ -450,6 +467,8 @@ func _add_school(sp: StringName, at: Vector3, hs: PackedVector3Array, floor_min:
 	var s := ReefSchool.new()
 	s.name = "%s_%d" % [sp, schools.size()]
 	s.setup(sp, at, hs, _rng, floor_min)
+	if _cur_home != Vector3.INF and int(ReefSpecies.FISH[sp]["mode"]) == 1:
+		s.set_shelter(_cur_home + Vector3(0, 0.6, 0))
 	if _cur:
 		_cur.add_child(s)
 		(_cell_schools[_cur_key] as Array).append(s)
@@ -464,6 +483,48 @@ func _add_school(sp: StringName, at: Vector3, hs: PackedVector3Array, floor_min:
 	return s
 
 # ---------------- декор и ходоки (MultiMesh в ячейках) ----------------
+
+func _note_urchin(p: Vector3) -> void:
+	if not urchin_spots.has(_cur_key):
+		urchin_spots[_cur_key] = PackedVector3Array()
+	var a: PackedVector3Array = urchin_spots[_cur_key]
+	a.append(p)
+	urchin_spots[_cur_key] = a
+
+## Морские ежи около точки (мировые позиции).
+func urchins_near(p: Vector3, r: float) -> Array[Vector3]:
+	var out: Array[Vector3] = []
+	var k := Vector2i(floori(p.x / CELL), floori(p.z / CELL))
+	for dx in range(-1, 2):
+		for dz in range(-1, 2):
+			var a: Variant = urchin_spots.get(k + Vector2i(dx, dz))
+			if a == null:
+				continue
+			for q: Vector3 in a:
+				if q.distance_to(p) < r:
+					out.append(q)
+	return out
+
+## Морские коньки: 0–2 пары в лугах морской травы клетки (лагуна, 0.8–6 м) — держатся за стебли.
+func _seahorses(cell: Node3D, rich: float) -> void:
+	if _grass_spots.is_empty() or _rng.randf() > 0.55 * clampf(rich, 0.3, 1.2):
+		return
+	var bed: Node3D = SEAHORSE_BED.new()
+	bed.name = "Seahorses"
+	cell.add_child(bed)
+	var n := _rng.randi_range(1, 2)
+	var spots: Array[Vector3] = []
+	for i in n:
+		var g := _grass_spots[_rng.randi() % _grass_spots.size()]
+		var q := g + Vector3(_rng.randf_range(-1.5, 1.5), 0, _rng.randf_range(-1.5, 1.5))
+		var f := _floor(q.x, q.z)
+		if _plevel() - f < 0.7:
+			continue
+		spots.append(Vector3(q.x, f, q.z))
+	bed.call(&"setup", sea, spots, hash(_cur_key))
+	seahorse_count += spots.size() * 2
+
+var seahorse_count: int = 0
 
 func _add_decor(t: StringName, p: Vector3) -> void:
 	var d: Dictionary = DECOR[t]
@@ -650,27 +711,37 @@ func _scare_near_threats() -> void:
 	var near := schools_near(cp, 60.0)
 	if near.is_empty():
 		return
+	# угрозы: позиция + курс (стая расходится «фонтаном» в стороны от курса хищника)
 	var threats: Array[Vector3] = []
+	var heads: Array[Vector3] = []
 	for ch in get_tree().get_nodes_in_group(&"characters"):
 		var n := ch as Node3D
 		if n == null or not n.has_method(&"is_in_water"):
 			continue
 		if n.global_position.distance_to(cp) < 70.0 and bool(n.call(&"is_in_water")):
 			threats.append(n.global_position)
+			heads.append((n as CharacterBody3D).velocity if n is CharacterBody3D else Vector3.ZERO)
 	if sea:
 		for s: Node3D in sea.call(&"sharks_near", cp, 70.0):
 			threats.append(s.global_position)
+			heads.append(-s.global_basis.z)
 	if scenes:
-		threats.append_array(scenes.call(&"predator_positions"))
+		for q: Vector3 in scenes.call(&"predator_positions"):
+			threats.append(q)
+			heads.append(Vector3.ZERO)
 	for s in near:
 		s.tick()
 		if s.is_scared():
 			continue
 		var c := s.current_center()
-		for t in threats:
+		for ti in threats.size():
+			var t := threats[ti]
+			# хищник вызывает испуг дальше, чем пловец; стая (mode 0) — чуткая
 			var r := 3.5 + s.radius * 0.6 + (2.0 if s.mode == 0 else 0.0)
+			if heads[ti].length() > 2.0:
+				r += 1.5   # быстрый (бросок хищника) — заметен раньше
 			if t.distance_to(c) < r:
-				s.scare(t)
+				s.scare(t, -1.0, heads[ti])
 				break
 
 ## Внешний испуг (всплеск, взрыв, выстрел).
