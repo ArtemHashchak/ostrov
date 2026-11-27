@@ -68,17 +68,22 @@ func run() -> void:
 			var space := w.get_world_3d().direct_space_state
 			for k in 16:
 				var ang := TAU * k / 16.0
-				for dist: float in [6.0, 8.0, 10.0]:
+				for dist: float in [6.0, 8.0, 10.0, 13.0]:
 					var q2 := Vector2(c.x, c.z) + Vector2(cos(ang), sin(ang)) * dist
 					var e3p := Vector3(q2.x, w.height_at(q2.x, q2.y) + 4.2, q2.y)
-					var rq := PhysicsRayQueryParameters3D.create(e3p, c + Vector3(0, 0.2, 0))
-					if space.intersect_ray(rq).is_empty():
+					# без деревьев рядом: низкая густота джунглей на всём отрезке до цели
+					var clear := true
+					for f in 6:
+						var m := q2.lerp(Vector2(c.x, c.z), float(f) / 6.0)
+						if w.jungle_density(m.x, m.y) > 0.12 or StringName(w.zone_at(m.x, m.y)) in [&"jungle", &"forest", &"lowland_forest", &"palm_belt"]:
+							clear = false
+					if clear:
 						best = e3p
 						break
 				if best != Vector3.INF:
 					break
 			if best == Vector3.INF:
-				best = c + Vector3(0, 6.0, 8.0)
+				best = c + Vector3(0, 11.0, 9.0)
 			await _view(best, c, "red_crabs_stream", 2.0)
 			se.stop(&"red_crabs")
 	# 2) миграция мант
