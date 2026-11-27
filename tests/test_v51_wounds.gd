@@ -55,7 +55,7 @@ func run() -> void:
 	# сквозное ранение: выходное отверстие с другой стороны тела (винтовка через тело ≤ 0,6 м)
 	var exits := 0
 	for wn in get_tree().get_nodes_in_group(&"wound"):
-		if (wn as Node3D).global_basis.z.dot(side) < -0.3:
+		if (wn as Node).get_meta(&"kind", &"") == &"exit":
 			exits += 1
 	check(exits >= 1, "винтовочная пуля навылет — выходное отверстие с другой стороны (%d)" % exits)
 	check(w1.get_parent() is BoneAttachment3D, "рана пули прикреплена к кости (%s)" % w1.get_parent().get_class())
@@ -82,6 +82,27 @@ func run() -> void:
 		moved = maxf(moved, w1.global_position.distance_to(p0))
 	print("[test] рана: сдвиг с телом %.3f м, отклонение от кости %.4f м" % [moved, drift])
 	check(moved > 0.01 and drift < 0.01, "рана едет вместе с телом (сдвиг %.3f, от кости %.4f)" % [moved, drift])
+	# маска повреждений: рана нарисована в UV меша, материал — с наложением крови, подтёки растут по коже
+	check(w1.has_meta(&"mask"), "рана в маске повреждений (UV меша)")
+	var dm: DamageMask = w1.get_meta(&"mask") if w1.has_meta(&"mask") else null
+	if dm:
+		var bm0 := dm.mi.get_active_material(0)
+		var has_ov := false
+		var mm: Material = bm0
+		while mm:
+			if mm is ShaderMaterial and (mm as ShaderMaterial).shader == DamageMask.OVERLAY:
+				has_ov = true
+			mm = mm.next_pass
+		check(has_ov, "у материала варана next_pass с кровью из маски")
+		var px0 := _mask_px(dm)
+		var dd0 := dm.drip_dist
+		c.player.play("idle", 0.0)
+		await wait(4.5)
+		var px1 := _mask_px(dm)
+		print("[test] маска %d px: крови %d → %d пикселей, подтёки протекли %.2f → %.2f м, в работе %d" % [dm.size, px0, px1, dd0, dm.drip_dist, dm.drips.size()])
+		check(px0 > 40, "рана нарисована в маске (%d px)" % px0)
+		check(px1 > px0 and dm.drip_dist > dd0 + 0.2, "подтёки поползли по коже за 4,5 с (%.2f → %.2f м)" % [dd0, dm.drip_dist])
+		check(dm.drips.is_empty(), "подтёки дотекли за 2–5 с")
 	# брызги и кровь на земле
 	var spots := get_tree().get_nodes_in_group(&"blood_spot").size()
 	print("[test] брызг %d, пятен %d" % [spurts, spots])
@@ -100,10 +121,15 @@ func run() -> void:
 	check(W.call(&"add_hit", shb, small.global_position, Vector3.UP, &"ak47", &"bullet") == null, "мелкое существо (<0,5 м) — без ран")
 	# не существа: персонажи и постройки — без ран
 	check(Wounds.creature_root(stage) == null, "сцена — не существо")
-	# смерть: раны остаются на туше, кровотечение кончается лужей
+	# крупные планы живого (подтёки дотекли), затем смерть: раны остаются на туше
+	await _shots_close(root)
 	hb.dead = true
 	await wait(1.5)
 	check(is_instance_valid(w1) and is_instance_valid(w2), "раны остаются на туше")
+	if dm:
+		await wait(26.0)
+		print("[test] туша: spread %.2f dry %.2f" % [dm.spread, dm.dry])
+		check(dm.spread > 0.8 and dm.dry > 0.6, "на туше кровь расползлась и побурела (%.2f/%.2f)" % [dm.spread, dm.dry])
 	await _shots_wounds(root, sk)
 	# ---------- походка варана: изгиб и высота корпуса
 	await _gait_check()
@@ -183,34 +209,38 @@ func _look(from: Vector3, at: Vector3) -> void:
 	cam.global_position = from
 	cam.look_at(at, Vector3.UP)
 
-func _shots_wounds(root: Node3D, sk: Skeleton3D) -> void:
-	var side := root.global_basis.x
-	# крупно: входное отверстие, разрез, выходное — каждое отдельным снимком
-	var ws := get_tree().get_nodes_in_group(&"wound")
-	var entry: Node3D = null
-	var gash: Node3D = null
-	var exitw: Node3D = null
-	for w in ws:
-		var n3 := w as Node3D
-		var q := (n3 as MeshInstance3D).mesh as QuadMesh
-		var zz := n3.global_basis.z
-		if zz.dot(side) < -0.3:
-			exitw = n3
-		elif q.size.x > q.size.y * 2.0:
-			gash = n3
-		elif entry == null:
-			entry = n3
-	var shots := [["wounds_entry_close", entry], ["wounds_gash_close", gash], ["wounds_exit_close", exitw]]
+func _mask_px(dm: DamageMask) -> int:
+	var n := 0
+	for y in range(0, dm.size, 2):
+		for x in range(0, dm.size, 2):
+			if dm.img.get_pixel(x, y).r > 0.3:
+				n += 1
+	return n
+
+func _wound_of(kind: Array) -> Node3D:
+	for w in get_tree().get_nodes_in_group(&"wound"):
+		if kind.has((w as Node).get_meta(&"kind", &"")):
+			return w as Node3D
+	return null
+
+## Крупно: входное отверстие, разрез, выходное — каждое отдельным снимком, камера по нормали раны.
+func _shots_close(root: Node3D) -> void:
+	var shots := [["wounds_entry_close", [&"bullet_rifle"], 0.30], ["wounds_gash_close", [&"cut"], 0.36],
+		["wounds_exit_close", [&"exit"], 0.32], ["wounds_arrow_close", [&"arrow"], 0.30]]
 	for sh: Array in shots:
-		var wn: Node3D = sh[1]
+		var wn := _wound_of(sh[1])
 		if wn == null:
 			continue
-		var zn := wn.global_basis.z
-		_look(wn.global_position + zn * 0.42 + Vector3(0, 0.12, 0) + wn.global_basis.x * 0.08, wn.global_position)
+		var n: Vector3 = wn.get_meta(&"normal", root.global_basis.x)
+		n = Vector3(n.x, maxf(n.y, 0.0) + 0.3, n.z).normalized()
+		_look(wn.global_position + n * float(sh[2]), wn.global_position + Vector3.DOWN * 0.035)
 		await wait_frames(4)
 		await _save(String(sh[0]))
+
+func _shots_wounds(root: Node3D, sk: Skeleton3D) -> void:
+	var side := root.global_basis.x
 	var c := sk.global_transform * sk.get_bone_global_pose(sk.find_bone("spine.01")).origin
-	_look(c + side * 2.6 + Vector3(0, 0.9, 0.4), c + Vector3(0, -0.05, 0))
+	_look(c + side * 2.2 + Vector3(0, 0.8, 0.3), c + Vector3(0, -0.05, 0))
 	await wait_frames(4)
 	await _save("wounds_varan_side")
 	var g := Vector3(c.x, 0.0, c.z) + side * 0.6
@@ -218,15 +248,16 @@ func _shots_wounds(root: Node3D, sk: Skeleton3D) -> void:
 	await wait_frames(3)
 	await _save("wounds_blood_ground")
 	# туша через ~25 с: кровь вокруг ран расползлась и запеклась
-	await wait(26.0)
+	var entry := _wound_of([&"bullet_rifle"])
 	if entry:
-		var zn2 := entry.global_basis.z
-		_look(entry.global_position + zn2 * 0.6 + Vector3(0, 0.2, 0), entry.global_position)
+		var n: Vector3 = entry.get_meta(&"normal", side)
+		n = Vector3(n.x, maxf(n.y, 0.0) + 0.35, n.z).normalized()
+		_look(entry.global_position + n * 0.45, entry.global_position + Vector3.DOWN * 0.04)
 		await wait_frames(4)
 		await _save("wounds_corpse_matted")
 	root.visible = false
-	for n in get_tree().get_nodes_in_group(&"blood_spot"):
-		(n as Node).queue_free()
+	for nn in get_tree().get_nodes_in_group(&"blood_spot"):
+		(nn as Node).queue_free()
 
 ## Поправка походки: изгиб позвоночника при беге меньше, корпус выше; снимки бега до/после.
 func _gait_check() -> void:

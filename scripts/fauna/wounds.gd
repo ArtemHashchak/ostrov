@@ -5,7 +5,8 @@ extends Node
 ## и двигается с телом, остаётся на туше. Из раны бьёт струйка крови, пока зверь жив — капает:
 ## на суше пятна на земле (след крови), в воде — облако крови через Sea.add_blood (акулы чуют).
 ## Источники: Combat.hit_landed (пули, стрелы, острога, удары ботов) и Events.player_swing (удар игрока).
-## Работает в gl_compatibility (рана — сетка, не Decal).
+## Рана и подтёки рисуются в маске повреждений в UV меша (DamageMask + шейдер blood_overlay, next_pass):
+## кровь лежит прямо на коже и течёт по ней вниз. Работает в gl_compatibility и Forward+ (не Decal).
 
 const MIN_SIZE := 0.5          # наибольший габарит существа (м), начиная с которого — раны
 const MAX_WOUNDS_PER := 24     # ран на одном существе
@@ -38,6 +39,7 @@ var _drop_mat: StandardMaterial3D
 var _spot_mat_base: StandardMaterial3D
 var _t := 0.0
 var _cloud_t := {}                     # instance_id → время последнего облака в воде
+var _masks: Array[DamageMask] = []     # живые маски повреждений (подтёки ползут, текстура обновляется)
 ## Для тестов: последние раны [{target, node, kind, pos}]
 var last: Array[Dictionary] = []
 ## Куда класть брызги и пятна (тесты/витрины в своём SubViewport); иначе — текущая сцена.
@@ -52,6 +54,12 @@ func _process(dt: float) -> void:
 	if not _combat_hooked or not _swing_hooked:
 		_try_hook()
 	_bleed_tick(dt)
+	for i in range(_masks.size() - 1, -1, -1):
+		var dm := _masks[i]
+		if not is_instance_valid(dm.mi):
+			_masks.remove_at(i)
+			continue
+		dm.tick(dt)
 
 func _try_hook() -> void:
 	if not _combat_hooked:
@@ -204,54 +212,114 @@ func _make_wound(root: Node3D, pos: Vector3, normal: Vector3, wk: StringName, si
 	var k := clampf(sqrt(size / 1.5), 0.7, 2.2)     # крупный зверь — рана чуть больше
 	var r := float(cfg.r) * k
 	var parent := _attach_parent(root, pos, bone)
-	var z := normal
-	# «вниз по коже»: проекция вертикали на касательную плоскость — кровь стекает вниз
-	var down := Vector3.DOWN - z * Vector3.DOWN.dot(z)
-	if down.length_squared() < 0.01:
-		down = (Vector3.FORWARD - z * Vector3.FORWARD.dot(z))
-	var y := -down.normalized()
-	var x := y.cross(z).normalized()
 	var parts: Array = []
-	# 1) кровь вокруг (тёмно-красная → бурая, влажная) — под раной, чуть вниз
-	var sp := _quad(parent, Vector2(r * (2.0 + float(cfg.len) * 1.2), r * 3.4), _smear_material(),
-		Transform3D(Basis(x, y, z), pos + z * 0.003 - y * r * 0.7))
-	sp.name = "WoundBlood"
-	parts.append(sp)
-	# 2) подтёки вниз по телу: растут несколько секунд
-	var nd := int(cfg.drips)
-	for i in nd:
-		var w := r * randf_range(0.25, 0.5)
-		# короче на крутом изгибе тела: плоская полоска не должна отходить от кожи
-		var L := minf(r * randf_range(2.5, 5.5) * (1.0 + float(cfg.bleed) * 0.25), 0.075 * k)
-		var off := x * randf_range(-0.8, 0.8) * r * (1.0 + float(cfg.len) * 0.3)
-		var tilt := randf_range(-0.18, 0.18)          # подтёки чуть вкось, не по линейке
-		var sx := x.rotated(z, tilt)
-		var sy := z.cross(sx).normalized()
-		var st := _quad(parent, Vector2(w, L), _streak_material(), Transform3D(Basis(sx, sy, z), pos + z * (0.0022 + i * 0.0003) + off - y * r * 0.4),
-			Vector3(0, -L * 0.5, 0))
-		st.name = "WoundDrip"
-		st.scale = Vector3(1, 0.04, 1)
-		var tw := st.create_tween()
-		tw.tween_interval(randf_range(0.1, 1.2))
-		tw.tween_property(st, ^"scale:y", 1.0, randf_range(2.0, 5.0)).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		parts.append(st)
-	# 3) сама рана: входное отверстие с рваными краями / разрез / выходное / ушиб; рельеф картой нормалей
-	var ang := randf_range(-1.0, 1.0) if cfg.tex == &"gash" else randf() * TAU
-	var xr := x.rotated(z, ang)
-	var yr := z.cross(xr).normalized()
-	var mi := _quad(parent, Vector2(r * 2.0 * float(cfg.len), r * 2.0), _wound_material(StringName(cfg.tex)),
-		Transform3D(Basis(xr, yr, z), pos + z * 0.004))
+	# 1) основной путь: рана и подтёки рисуются в маске повреждений (UV меша) — кровь прямо на коже
+	var painted := _paint_mask(root, pos, normal, wk, r, size, bone)
+	var mi: Node3D
+	if painted.is_empty():
+		# запасной путь (меш без UV/треугольников): только пятно раны квадом, без подтёков-полосок
+		var z := normal
+		var down := Vector3.DOWN - z * Vector3.DOWN.dot(z)
+		if down.length_squared() < 0.01:
+			down = (Vector3.FORWARD - z * Vector3.FORWARD.dot(z))
+		var y := -down.normalized()
+		var x := y.cross(z).normalized()
+		var ang := randf_range(-1.0, 1.0) if cfg.tex == &"gash" else randf() * TAU
+		var xr := x.rotated(z, ang)
+		var yr := z.cross(xr).normalized()
+		mi = _quad(parent, Vector2(r * 2.0 * float(cfg.len), r * 2.0), _wound_material(StringName(cfg.tex)),
+			Transform3D(Basis(xr, yr, z), pos + z * 0.004))
+	else:
+		# узел-метка раны на кости (кровотечение, тесты); видимое — в маске
+		mi = Node3D.new()
+		parent.add_child(mi)
+		mi.global_position = pos
+		mi.set_meta(&"mask", painted.mask)
+		mi.set_meta(&"uv", painted.uv)
 	mi.name = "Wound"
 	mi.set_meta(&"parts", parts)
-	mi.set_meta(&"smear", sp)
 	mi.set_meta(&"bleed", float(cfg.bleed))
 	mi.set_meta(&"born", _t)
+	mi.set_meta(&"kind", wk)
+	mi.set_meta(&"normal", normal)
 	mi.add_to_group(&"wound")
 	var nodes: Array = root.get_meta(&"wound_nodes", [])
 	nodes.append(mi)
 	root.set_meta(&"wound_nodes", nodes)
 	root.set_meta(&"wound_count", nodes.size())
 	return mi
+
+## Главный меш существа с UV (крупнейший по числу вершин) и его скелет.
+static func _body_mesh(root: Node3D) -> MeshInstance3D:
+	var best: MeshInstance3D = null
+	var bn := 0
+	for m: Node in root.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		if mi.mesh == null or not mi.is_visible_in_tree() or mi.mesh is PrimitiveMesh:
+			continue
+		if mi.get_parent() is BoneAttachment3D:
+			continue
+		var n := 0
+		for si in mi.mesh.get_surface_count():
+			if mi.mesh.surface_get_format(si) & Mesh.ARRAY_FORMAT_TEX_UV:
+				n += mi.mesh.surface_get_array_len(si)
+		if n > bn:
+			bn = n
+			best = mi
+	return best
+
+## Рана в маску повреждений: луч по треугольникам меша → UV → рисунок раны, + подтёки по коже.
+## → {mask, uv} или {} (нет подходящего меша).
+func _paint_mask(root: Node3D, pos: Vector3, normal: Vector3, wk: StringName, r: float, size: float, bone: int) -> Dictionary:
+	var body := _body_mesh(root)
+	if body == null:
+		return {}
+	var sk: Skeleton3D = null
+	if body.skin:
+		sk = body.get_node_or_null(body.skeleton) as Skeleton3D
+		if sk == null:
+			sk = _skeleton_of(root)
+	var dm := DamageMask.of(body, sk, size > 1.5)
+	if dm == null:
+		return {}
+	if not _masks.has(dm):
+		_masks.append(dm)
+	var ws := maxf(dm.world_scale(), 1e-4)
+	var p_rest := dm.to_rest(pos, bone)
+	var n_rest := dm.dir_to_rest(normal, bone)
+	var hit := dm.raycast(p_rest + n_rest * (0.25 / ws), -n_rest, 0.6 / ws)
+	if hit.is_empty():
+		var q := dm.closest(p_rest)
+		if q.is_empty() or float(q.d) * ws > 0.2:
+			return {}
+		hit = q
+	var cfg: Dictionary = KINDS[wk]
+	var tex := StringName(cfg.tex)
+	# направление разреза: косо-горизонтально по боку (мачете/топор/клыки)
+	var cut := normal.cross(Vector3.UP)
+	if cut.length_squared() < 0.01:
+		cut = normal.cross(Vector3.RIGHT)
+	cut = cut.normalized().rotated(normal, randf_range(-0.6, 0.6))
+	var hp: Vector3 = hit.p
+	var g_rest := dm.dir_to_rest(Vector3.DOWN, bone)
+	var cut_rest := dm.dir_to_rest(cut, bone)
+	var rr := r
+	if tex == &"gash":
+		rr = r * 0.8
+	elif tex == &"bruise":
+		rr = r * 0.8
+	dm.paint_wound(hp, n_rest, tex, rr, cut_rest, g_rest)
+	# подтёки: от нижнего края раны вниз по коже, 2–5 с, по проекции силы тяжести на поверхность
+	var nd := int(cfg.drips)
+	var span := r * (float(cfg.len) * 0.7 if tex == &"gash" else 0.8)
+	var gt := g_rest - n_rest * g_rest.dot(n_rest)
+	gt = gt.normalized() if gt.length() > 0.1 else Vector3.ZERO
+	for i in nd:
+		var off := (randf_range(-1.0, 1.0) * span) / ws
+		var start := hp + cut_rest * off + gt * (r * randf_range(0.5, 1.4) / ws)
+		var L := r * randf_range(5.0, 12.0) * (0.8 + float(cfg.bleed) * 0.4)
+		dm.add_drip(start, g_rest, clampf(L, 0.05, 0.3), randf_range(2.0, 5.0), r * randf_range(0.2, 0.34), randf_range(0.0, 0.8))
+	return {"mask": dm, "uv": dm.uv_of(int(hit.tri), hit.bary)}
 
 func _quad(parent: Node3D, sz: Vector2, mat: Material, xf: Transform3D, center := Vector3.ZERO) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
@@ -547,22 +615,30 @@ func _bleed_tick(dt: float) -> void:
 
 ## Туша: пятна крови вокруг ран за ~25 с расползаются вдвое, темнеют (запёкшаяся, бурая), подтёки длиннее.
 func _mat_corpse(root: Node3D) -> void:
+	var body := _body_mesh(root)
+	if body == null or not body.has_meta(&"damage_mask"):
+		return
+	var dm: DamageMask = body.get_meta(&"damage_mask")
+	var tw := body.create_tween().set_parallel(true)
+	tw.tween_method(func(v: float) -> void: dm.set_corpse(v, dm.dry), 0.0, 1.0, 25.0).set_trans(Tween.TRANS_SINE)
+	tw.tween_method(func(v: float) -> void: dm.set_corpse(dm.spread, v), 0.0, 1.0, 35.0)
+	# кровь из ран расползается по коже (в 3D вокруг раны — швы UV не мешают)
+	# из ран на туше ещё натекает: подтёки длиннее
+	var g := Vector3.DOWN
 	for w: Variant in root.get_meta(&"wound_nodes", []):
-		if not is_instance_valid(w):
+		if not (w is Node3D) or not is_instance_valid(w) or not (w as Node).has_meta(&"mask"):
 			continue
-		var sm: Variant = (w as Node).get_meta(&"smear", null)
-		if sm is MeshInstance3D and is_instance_valid(sm):
-			var smi := sm as MeshInstance3D
-			var mat := (smi.material_override as StandardMaterial3D).duplicate() as StandardMaterial3D
-			smi.material_override = mat
-			var tw := smi.create_tween().set_parallel(true)
-			tw.tween_property(smi, ^"scale", Vector3(1.9, 1.7, 1.0), 25.0).set_trans(Tween.TRANS_SINE)
-			tw.tween_property(mat, ^"albedo_color", Color(0.17, 0.035, 0.02, 0.9), 25.0)
-			tw.tween_property(mat, ^"roughness", 0.55, 40.0)
-		for p: Variant in (w as Node).get_meta(&"parts", []):
-			if p is MeshInstance3D and is_instance_valid(p) and String((p as Node).name).begins_with("WoundDrip"):
-				var tw2 := (p as Node3D).create_tween()
-				tw2.tween_property(p, ^"scale:y", 1.5, 18.0)
+		var wp := (w as Node3D).global_position
+		var bone := -1
+		var par := (w as Node).get_parent()
+		if par is BoneAttachment3D and dm.sk:
+			bone = dm.sk.find_bone((par as BoneAttachment3D).bone_name)
+		var q := dm.closest(dm.to_rest(wp, bone))
+		if q.is_empty():
+			continue
+		dm.add_seep(q.p, q.n, 0.06 * float((w as Node).get_meta(&"bleed", 1.0)) + 0.03, 25.0)
+		for i in 2:
+			dm.add_drip(q.p, dm.dir_to_rest(g, bone), randf_range(0.12, 0.25), randf_range(6.0, 12.0), 0.007, randf_range(0.0, 4.0))
 
 func _water_blood(root: Node3D, pos: Vector3, s: float) -> void:
 	var id := root.get_instance_id()
