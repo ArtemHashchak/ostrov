@@ -26,7 +26,7 @@ const RAIN_PER_S := 1.0 / 120.0
 const WASH_PER_S := 1.0 / 3.0       # под накатом — за 3 с
 const REDRAW_HZ := 8.0
 
-enum { FOOT, HOOF, CLAW, HAND, FLIPPER, DRAG, FOOT_TOE, FOOT_HEEL, KNEE, BIRD, DENT }
+enum { FOOT, HOOF, CLAW, HAND, FLIPPER, DRAG, FOOT_TOE, FOOT_HEEL, KNEE, BIRD, DENT, BODY }
 
 ## Походки: шаг (м), штамп, размер штампа (м, сторона квадрата), смещение лап вбок, база (перед—зад),
 ## разворот пальцев наружу (рад), сила вдавливания, борозда хвоста/брюха (ширина м, 0 — нет).
@@ -125,6 +125,14 @@ func drag_mark(a: Vector3, b: Vector3, width: float, strength := 0.8) -> void:
 		if _world and not _is_sand(q):
 			continue
 		_add(q, d, 0, strength, width, DRAG, d.length() / n + width)
+
+## v5.2: отпечаток тела на песке: pos — центр (таз), dir — куда смотрит голова.
+func body_imprint(pos: Vector3, dir: Vector2, strength := 0.9) -> void:
+	if _world and not _is_sand(Vector2(pos.x, pos.z)):
+		return
+	var dd := dir.normalized() if dir.length_squared() > 1e-6 else Vector2(0, -1)
+	# центр штампа сдвинут к груди (таз — u=−0.15 в штампе высотой 1.9 м)
+	_add(Vector2(pos.x, pos.z) + dd * 0.15, dd, 0, strength, 1.05, BODY, 1.9)
 
 ## Свежесть ближайшего отпечатка (0..1) в радиусе 0.2 м — для тестов/логики.
 func depth_at(x: float, z: float) -> float:
@@ -227,6 +235,13 @@ func _track_walkers() -> void:
 			w.last = p
 			continue
 		var animal: bool = n.is_in_group(&"animals")
+		# v5.2: погиб/упал на песке — отпечаток тела (один раз)
+		if not animal and n.has_method(&"is_dead"):
+			var dead_now := bool(n.call(&"is_dead"))
+			if dead_now and not bool(w.get("body", false)) and _is_sand(p):
+				var fwd := Vector2(0, -1).rotated(-float((n as Node3D).global_rotation.y))
+				body_imprint(g3, fwd, 0.9)
+			w["body"] = dead_now
 		var key: StringName = StringName(str(n.get("species"))) if animal else &"human"
 		var g: Dictionary = GAITS[key]
 		var sc := 1.0
@@ -258,6 +273,9 @@ func _track_walkers() -> void:
 				var air_t := float(w.get("air_t", 0.0))
 				var st := clampf(0.75 + air_t * 0.6, 0.75, 1.0)
 				_jump_pair(p, hv if hv.length() > 0.3 else d, FOOT_HEEL, st)
+				if air_t > 1.6:       # v5.2: падение с высоты — человек валится на песок всем телом
+					var fd := hv if hv.length() > 0.3 else d
+					body_imprint(Vector3(p.x, g3.y, p.y) + Vector3(fd.normalized().x, 0, fd.normalized().y) * 0.6, fd, 0.85)
 				if air_t > 0.9:       # тяжёлое приземление: рука упирается в песок
 					_add(p + _right(hv if hv.length() > 0.3 else d) * 0.32 + (hv.normalized() if hv.length() > 0.3 else d.normalized()) * 0.35,
 						hv if hv.length() > 0.3 else d, 1, 0.8, 0.2, HAND, 0.0)
@@ -518,6 +536,17 @@ func _shape(t: int, u: float, v: float) -> float:
 			var d := _ell(u, v, 0.45, 0.0, 0.38, 0.62)
 			d = maxf(d, _capsule(u, v, Vector2(0.3, 0.0), Vector2(-0.85, 0.0), 0.38) * 0.55)
 			return d
+		BODY:
+			# v5.2: отпечаток тела (упал/лёг/погиб на песке): голова, плечи, торс, таз, руки, ноги.
+			# u — от ног (−1) к голове (+1), v — вбок
+			var d := _ell(u, v, 0.82, 0.0, 0.12, 0.2) * 0.8                          # голова
+			d = maxf(d, _ell(u, v, 0.45, 0.0, 0.28, 0.42) * 1.0)                     # плечи и грудь
+			d = maxf(d, _ell(u, v, 0.08, 0.0, 0.22, 0.32) * 0.8)                     # живот
+			d = maxf(d, _ell(u, v, -0.15, 0.0, 0.16, 0.36) * 0.95)                   # таз
+			for k in [-1.0, 1.0]:
+				d = maxf(d, _capsule(u, v, Vector2(0.5, 0.36 * k), Vector2(0.05, 0.56 * k), 0.07) * 0.6)   # руки
+				d = maxf(d, _capsule(u, v, Vector2(-0.25, 0.14 * k), Vector2(-0.92, 0.2 * k), 0.085) * 0.7)  # ноги
+			return d
 		DRAG:
 			# борозда: округлый профиль поперек, по длине почти ровная
 			var a := clampf(1.0 - absf(v) / 0.7, 0.0, 1.0)
@@ -537,7 +566,7 @@ func _capsule(u: float, v: float, a: Vector2, b: Vector2, r: float) -> float:
 
 func _build_stamps() -> void:
 	var n := STAMP_RES
-	for t in [FOOT, HOOF, CLAW, HAND, FLIPPER, DRAG, FOOT_TOE, FOOT_HEEL, KNEE, BIRD, DENT]:
+	for t in [FOOT, HOOF, CLAW, HAND, FLIPPER, DRAG, FOOT_TOE, FOOT_HEEL, KNEE, BIRD, DENT, BODY]:
 		var dimg := Image.create(n, n, false, Image.FORMAT_RF)
 		for y in n:
 			for x in n:

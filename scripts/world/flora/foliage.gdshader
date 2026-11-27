@@ -20,6 +20,7 @@ uniform float color_var : hint_range(0.0, 0.5) = 0.12;
 global uniform vec2 wind_dir;
 global uniform float wind_gust;
 global uniform float weather_wetness;
+global uniform float dew_amount;
 global uniform float weather_storm;
 
 // Мягкий уход мелкой растительности вдали (трава/папоротник/кусты): экземпляр плавно
@@ -80,6 +81,9 @@ void fragment() {
 	ALBEDO *= 1.0 - 0.18 * weather_wetness;
 	ROUGHNESS = mix(roughness_v, 0.38, weather_wetness * 0.85);
 	SPECULAR = mix(0.25, 0.5, weather_wetness);
+	// v5.2: роса на рассвете — глянец
+	ROUGHNESS = mix(ROUGHNESS, 0.2, dew_amount * 0.6);
+	SPECULAR = mix(SPECULAR, 0.55, dew_amount);
 	if (!FRONT_FACING) {
 		NORMAL = -NORMAL;
 	}

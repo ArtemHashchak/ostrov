@@ -92,6 +92,30 @@ vec3 tex2(sampler2D t, vec2 uv) {
 
 // Рябь от капель в луже: сетка ячеек, в каждой — расходящееся кольцо со своей фазой.
 // Возвращает наклон нормали (xy). Два слоя со сдвигом — без видимой сетки.
+
+// v5.2: оспинки от капель на песке — мелкие лунки (~1–1,5 см) с тёмным ободком. Плотность растёт
+// с силой дождя; после дождя остаются, пока песок сырой (weather_wetness), и выглаживаются по мере высыхания.
+// Возвращает (тёмность 0..1, наклон xy для нормали).
+vec3 rain_pits(vec2 p, float dens) {
+	vec3 acc = vec3(0.0);
+	for (int k = 0; k < 2; k++) {
+		vec2 q = p * (1.0 + float(k) * 0.73) + vec2(float(k) * 3.7, float(k) * 1.9);
+		vec2 cell = floor(q);
+		vec2 f = fract(q) - 0.5;
+		float hs = hash(cell + float(k) * 11.0);
+		if (hs > dens) continue;
+		vec2 o = vec2(hash(cell + 2.1), hash(cell + 5.3)) - 0.5;
+		vec2 d = f - o * 0.6;
+		float r = length(d);
+		float rad = 0.16 + 0.12 * hash(cell + 9.7);
+		float pit = 1.0 - smoothstep(rad * 0.55, rad, r);
+		float rim = smoothstep(rad * 0.7, rad, r) * (1.0 - smoothstep(rad, rad * 1.35, r));
+		acc.x += pit * 0.8 - rim * 0.25;
+		acc.yz += (d / max(r, 1e-3)) * (pit - rim) * 0.6;
+	}
+	return acc;
+}
+
 vec2 rain_ripples(vec2 p, float t) {
 	vec2 g = vec2(0.0);
 	for (int k = 0; k < 2; k++) {
@@ -266,6 +290,31 @@ void fragment() {
 	float puddle = smoothstep(0.66 - 0.1 * grow, 0.72 - 0.1 * grow, pn) * grow * flatness
 			* (1.0 - k_sea) * (1.0 - k_wet) * (1.0 - k_rock) * (1.0 - k_volc * 0.6) * mix(0.25, 1.0, max(k_grass, k_mud));
 	col = mix(col, col * 0.42 + vec3(0.015, 0.02, 0.025), puddle);
+	// v5.2: в лужах под деревьями плавают опавшие листья (лес/джунгли/трава у леса)
+	float leafy = puddle * clamp(k_jungle + k_grass * 0.35, 0.0, 1.0);
+	float in_leaf = 0.0;
+	if (leafy > 0.02) {
+		vec2 lq = wpos.xz * 3.2;
+		vec2 lc = floor(lq);
+		vec2 lf = fract(lq) - 0.5;
+		float lh = hash(lc + 41.0);
+		if (lh > 0.55) {
+			float la = hash(lc + 3.3) * 6.2832;
+			vec2 ld = mat2(vec2(cos(la), sin(la)), vec2(-sin(la), cos(la))) * (lf - (vec2(hash(lc + 8.1), hash(lc + 2.7)) - 0.5) * 0.4);
+			float el = (ld.x * ld.x) / 0.035 + (ld.y * ld.y) / 0.012;
+			in_leaf = (1.0 - smoothstep(0.75, 1.0, el)) * leafy;
+			vec3 lcol = mix(vec3(0.42, 0.3, 0.12), vec3(0.32, 0.38, 0.14), hash(lc + 5.5));
+			col = mix(col, lcol * (0.8 + 0.2 * vnoise(lq * 7.0)), in_leaf);
+		}
+	}
+	// v5.2: оспинки от капель на песке (сухой/влажный пляж; не прибой и не море)
+	float k_pitsand = (1.0 - k_grass) * (1.0 - k_sea) * (1.0 - k_rock) * (1.0 - k_volc) * (1.0 - puddle);
+	float pit_amt = max(clamp(weather_rain * 1.4, 0.0, 1.0), smoothstep(0.2, 0.7, weather_wetness) * 0.7);
+	vec3 pits = vec3(0.0);
+	if (pit_amt * k_pitsand > 0.02) {
+		pits = rain_pits(wpos.xz * 40.0, 0.25 + 0.6 * pit_amt) * pit_amt * k_pitsand;
+		col *= 1.0 - clamp(pits.x, -0.2, 1.0) * 0.28;
+	}
 	// v5: сильный ветер гонит сухой песок низкими струйками вдоль пляжа (светлые бегущие ленты)
 	float k_dry_sand = (1.0 - k_grass) * (1.0 - k_wet) * (1.0 - k_sea) * (1.0 - k_rock) * (1.0 - rain_wet);
 	float blow = smoothstep(7.0, 15.0, wind_speed) * k_dry_sand;
@@ -312,8 +361,14 @@ void fragment() {
 	nm = mix(nm, n_r, k_rock);
 	nm = mix(nm, tri(volc_normal, wpos, tn, rock_tile * 1.6), k_volc);
 	if (puddle > 0.01) {
-		vec2 rip = rain_ripples(wpos.xz * 2.6, TIME * 1.1) * clamp(weather_rain * 1.5, 0.0, 1.0);
+		// v5.2: в ливень лужа «кипит» — капли чаще и мельче (второй слой ряби)
+		float rr = clamp(weather_rain * 1.5, 0.0, 1.0);
+		vec2 rip = rain_ripples(wpos.xz * 2.6, TIME * 1.1) * rr;
+		rip += rain_ripples(wpos.xz * 6.3 + 1.7, TIME * 2.3) * smoothstep(0.55, 1.0, weather_rain) * 0.8;
 		nm = mix(nm, vec3(0.5 + rip.x * 0.35, 0.5 + rip.y * 0.35, 1.0), puddle);
+	}
+	if (abs(pits.x) > 0.001) {
+		nm = vec3(clamp(nm.xy - pits.yz * 0.35, 0.0, 1.0), nm.z);
 	}
 	NORMAL_MAP = nm;
 	NORMAL_MAP_DEPTH = mix(mix(1.0, 0.7, use_beach_sand * (1.0 - k_grass) * (1.0 - k_sea)), 1.6, k_rock);
@@ -321,6 +376,6 @@ void fragment() {
 	ROUGHNESS = mix(mix(sand_r, 0.6, k_wet * (1.0 - k_grass)), 0.95, max(max(k_grass, k_rock), k_volc));
 	ROUGHNESS = mix(ROUGHNESS, mix(0.32, 0.55, k_grass), rain_wet);
 	SPECULAR = mix(mix(0.3, 0.45, k_wet * (1.0 - k_grass)), 0.55, rain_wet * 0.8);
-	ROUGHNESS = mix(ROUGHNESS, 0.04, puddle);
+	ROUGHNESS = mix(ROUGHNESS, 0.04, puddle * (1.0 - in_leaf));
 	SPECULAR = mix(SPECULAR, 0.65, puddle);
 }

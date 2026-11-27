@@ -715,10 +715,18 @@ func _drip_spot(from: Vector3, s: float) -> void:
 	mi.global_transform = Transform3D(Basis(x, z.cross(x), z), p + z * 0.012)
 	mi.add_to_group(&"blood_spot")
 	_spots.append(mi)
+	# v5.2: пролитая кровь темнеет (свежая алая → бурая) и впитывается в землю (мутнеет, теряет
+	# блеск, бледнеет); на песке впитывается быстрее, в дождь смывается.
+	var soak := 1.6 if String(Surfaces.at(p)).contains("sand") else 1.0
+	mi.set_meta(&"soak", soak)
 	var tw := mi.create_tween()
-	tw.tween_interval(SPOT_LIFE)
-	tw.tween_property(mat, ^"albedo_color:a", 0.0, 8.0)
-	tw.tween_callback(mi.queue_free)
+	tw.set_parallel(true)
+	tw.tween_property(mat, ^"albedo_color", Color(0.17, 0.035, 0.02, 0.86), 45.0 / soak).set_ease(Tween.EASE_OUT)
+	tw.tween_property(mat, ^"roughness", 0.85, 30.0 / soak)
+	tw.chain().tween_property(mat, ^"albedo_color:a", 0.55, maxf(SPOT_LIFE - 45.0 / soak, 5.0) / soak)
+	tw.chain().tween_property(mat, ^"albedo_color:a", 0.0, 8.0)
+	tw.chain().tween_callback(mi.queue_free)
+	mi.add_to_group(&"soaking_blood")
 
 # ============================== вспомогательное ==============================
 

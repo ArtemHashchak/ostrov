@@ -28,4 +28,12 @@ void fragment() {
 		NORMAL = -NORMAL;
 	}
 	BACKLIGHT = col * translucency;
+	// v5.2: роса — листья глянцевые, на верхней стороне блестят капли
+	if (dew_amount > 0.01) {
+		ROUGHNESS = mix(ROUGHNESS, 0.16, dew_amount * 0.7);
+		SPECULAR = mix(SPECULAR, 0.6, dew_amount);
+		float sp = dew_sparkle(UV) * dew_amount * (FRONT_FACING ? 1.0 : 0.3);
+		ALBEDO = mix(ALBEDO, vec3(0.85, 0.9, 0.95), sp * 0.35);
+		EMISSION = vec3(0.9, 0.95, 1.0) * sp * 0.12;
+	}
 }

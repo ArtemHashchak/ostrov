@@ -27,6 +27,13 @@ var _pot_root: Node3D
 var _steam: CPUParticles3D
 var _sound: AudioStreamPlayer3D
 var _dirty := true
+## v5.2: дождь заливает костёр без крыши — шипит, дымит паром и гаснет (_rain_soak → 1)
+var _rain_soak := 0.0
+var _burned := 0.0
+var _hiss: CPUParticles3D
+var _cover_t := 0.0
+var _covered := false
+var put_out_by_rain := false
 
 func _ready() -> void:
 	kind = &"campfire"
@@ -96,6 +103,8 @@ func light(ch: Node = null) -> bool:
 		Survival.take(ch, &"stick", LIGHT_STICKS)
 	fuel = maxf(fuel, FUEL_PER_STICK * LIGHT_STICKS)
 	lit = true
+	put_out_by_rain = false
+	_fire.scale = Vector3.ONE
 	_apply_lit()
 	if ch:
 		toast(ch, "Костёр горит" + (" (сырые дрова — много дыма)" if smoke_amt > 1.1 else ""))
@@ -112,12 +121,58 @@ func add_fuel(ch: Node) -> bool:
 	return true
 
 func extinguish() -> void:
+	var was := lit
 	lit = false
 	fuel = 0.0
 	_apply_lit()
+	# v5.2: после горевшего костра на земле остаётся кострище (свой костёр, не очаг постройки)
+	if was and _burned > 20.0 and not attached and is_inside_tree():
+		GroundMarks.fire_pit(get_parent(), global_position, 0.75)
+	_rain_soak = 0.0
+
+## Крыша/навес над костром? Луч вверх раз в 2 с.
+func _is_covered(dt: float) -> bool:
+	_cover_t -= dt
+	if _cover_t > 0.0 or not is_inside_tree():
+		return _covered
+	_cover_t = 2.0
+	var space := get_world_3d().direct_space_state
+	var q := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 1.2, global_position + Vector3.UP * 9.0)
+	q.collide_with_areas = false
+	_covered = not space.intersect_ray(q).is_empty()
+	return _covered
+
+func _rain_tick(dt: float) -> void:
+	var r := Survival.rain()
+	var exposed := r > 0.2 and not _is_covered(dt)
+	if exposed:
+		# ливень (1.0) гасит открытый костёр примерно за 50 с, дождь 0.5 — за ~2 мин;
+		# чем больше топлива, тем дольше держится
+		var k := 1.0 / (50.0 * (1.0 + clampf(fuel / FUEL_MAX, 0.0, 1.0) * 0.8))
+		_rain_soak += dt * k * clampf((r - 0.2) / 0.8, 0.15, 1.0) * 1.25
+	else:
+		_rain_soak = maxf(0.0, _rain_soak - dt / 40.0)
+	if _hiss == null:
+		_hiss = SurvivalModels.smoke_only(self, Vector3(0, 0.35, 0), Color(0.86, 0.88, 0.9, 0.3), 14, 0.5)
+	_hiss.emitting = lit and exposed
+	var l := _fire.get_node_or_null(^"Light") as OmniLight3D
+	if l and exposed:
+		# шипит и захлёбывается: свет проседает и дёргается
+		l.light_energy *= lerpf(1.0, randf_range(0.35, 0.9), clampf(_rain_soak * 1.3, 0.0, 1.0))
+	_fire.scale = Vector3.ONE * lerpf(1.0, 0.45, clampf(_rain_soak, 0.0, 1.0))
+	if _rain_soak >= 1.0:
+		put_out_by_rain = true
+		Events.toast.emit("Дождь залил костёр")
+		extinguish()
+		if _hiss:
+			_hiss.emitting = true
+			get_tree().create_timer(4.0).timeout.connect(func() -> void:
+				if is_instance_valid(_hiss) and not lit:
+					_hiss.emitting = false)
 
 func tick(dt: float) -> void:
 	if lit:
+		_burned += dt
 		var drain := 1.0 + Survival.rain() * 1.5
 		fuel -= dt * drain
 		if fuel <= 0.0:
@@ -126,6 +181,7 @@ func tick(dt: float) -> void:
 			var l := _fire.get_node_or_null(^"Light") as OmniLight3D
 			if l:
 				l.light_energy = clampf(fuel / 120.0, 0.5, 1.0) * (2.0 + randf() * 0.4)
+			_rain_tick(dt)
 	if lit:
 		for g in grill:
 			var q0 := int(float(g.t) / COOK_TIME * 4.0)

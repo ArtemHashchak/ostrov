@@ -51,6 +51,9 @@ global uniform sampler2D wake_map : filter_linear, repeat_disable;
 global uniform vec4 wake_rect;
 global uniform float sea_turbidity;
 global uniform float heat_haze;
+// v5.2: отражение костра (xyz — огонь, w — яркость 0..1) и закатное золото (sun_day низко)
+global uniform vec4 fire_glow;
+global uniform float sun_day;
 
 varying vec3 wpos;
 varying float depth_m;
@@ -381,7 +384,26 @@ void fragment() {
 		SPECULAR = 0.2;
 		ALPHA = mix(0.96, 0.55, win);
 	} else {
+	// v5.2: закат/рассвет — вода с золотым отливом (солнце низко, ясно; сильнее на дальней воде)
+	float golden = smoothstep(0.02, 0.15, sun_day) * (1.0 - smoothstep(0.22, 0.42, sun_day)) * (1.0 - storm);
+	if (golden > 0.01) {
+		float farw = smoothstep(30.0, 400.0, length(p - cam_xz));
+		col = mix(col, col * vec3(1.35, 1.0, 0.55) + vec3(0.09, 0.05, 0.0), golden * (0.3 + 0.4 * farw) * (1.0 - foam));
+	}
 	ALBEDO = col * night_tint;
+	// v5.2: отражение костра на воде — дрожащая тёплая дорожка (блик точечного света по нормали волн)
+	if (fire_glow.w > 0.01) {
+		vec3 L = fire_glow.xyz - wpos;
+		float dist = length(L);
+		if (dist < 70.0) {
+			vec3 nw = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+			vec3 vw = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
+			vec3 h = normalize(L / dist + vw);
+			float sp = pow(max(dot(nw, h), 0.0), 90.0) * 3.5 + pow(max(dot(nw, h), 0.0), 12.0) * 0.12;
+			float att = fire_glow.w / (1.0 + dist * dist * 0.004);
+			EMISSION += vec3(1.0, 0.45, 0.12) * sp * att * (1.0 - foam) * (1.0 - sun_day * 0.85);
+		}
+	}
 	ROUGHNESS = mix(mix(0.05, 0.14, storm), 0.6, foam);
 	// тонкий слой набежавшей воды на песке — зеркальный «мокрый блеск»
 	float sheet = 1.0 - smoothstep(0.02, 0.12, dl);

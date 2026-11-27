@@ -114,6 +114,10 @@ const CANOPY_AMBIENT := 0.6      # + к энергии рассеянного с
 const CANOPY_EXPOSURE := 0.25   # + к экспозиции (gl_compatibility; в Forward+ — треть, есть автоэкспозиция)
 const CANOPY_SHADOW_LIFT := 0.25  # насколько светлеет тень кроны (доля прямого солнца сквозь листву)
 var _canopy := 0.0
+var _forest := 0.0        # v5.2: лесистость зоны под камерой (туман над джунглями, листопад)
+var after_rain: AfterRainFx
+var storm_omens: StormOmens
+var nature: NatureDetails
 var _uw_zt := -1.0       # сглаженная мутность под водой (без скачков на границах зон)
 var _late_cam: Camera3D = null
 ## Луна на 25% меньше стандартной Sky3D (0.07): в небе выглядела слишком крупной.
@@ -470,8 +474,23 @@ func update(dt: float, cam: Camera3D, water_surface_at_cam: float) -> void:
 		var light := clampf(0.25 + daylight() * 0.75, 0.2, 1.0) + _flash * 0.8
 		rain_fx.update(dt, cam, float(_cur.rain), float(_cur.storm), _wind_dir, _wind_speed, light,
 				_underwater, gh, sea, near_shore)
+		if after_rain == null:
+			after_rain = AfterRainFx.new()
+			add_child(after_rain)
+		after_rain.update_fx(dt, cam, float(_cur.rain), _wetness, float(_cur.storm), _canopy, time_of_day(),
+				daylight() * clampf(float(_cur.get("sun", 1.0)), 0.0, 1.0), light, _wind_dir, _wind_speed, gh,
+				_underwater, rain_fx.covered, _forest)
+		if nature == null:
+			nature = NatureDetails.new()
+			add_child(nature)
+		nature.tick(dt, cam, self)
 	_update_lightning(dt, cam)
 	_update_sounds(dt)
+	# v5.2: предвестники грозы — птицы улетают, крабы прячутся (сигнал storm_coming)
+	if storm_omens == null:
+		storm_omens = StormOmens.new()
+		add_child(storm_omens)
+	storm_omens.tick(dt, self, cam)
 
 ## Следующий этап сценария; сценарий кончился — выбрать новый (ночью чаще туман к утру).
 func _next_stage() -> void:
@@ -664,6 +683,7 @@ func _update_canopy(dt: float, cam: Camera3D) -> void:
 					var zt := z.zone_at(cp.x, cp.z)
 					var forest := 1.0 if zt == ZoneMap.Z_JUNGLE else (0.6 if zt == ZoneMap.Z_LOWLAND_FOREST else (0.5 if zt == ZoneMap.Z_MANGROVE else 0.0))
 					target = clampf(maxf(jd, forest * 0.7) * forest, 0.0, 1.0) * clampf((12.0 - above) / 6.0, 0.0, 1.0)
+					_forest = move_toward(_forest, clampf(maxf(jd, forest * 0.7), 0.0, 1.0) * forest, 0.02)
 	_canopy = move_toward(_canopy, target, dt / 1.5)
 
 func _update_lightning(dt: float, cam: Camera3D) -> void:

@@ -28,6 +28,15 @@ global uniform vec2 wind_dir;
 global uniform float wind_gust;
 global uniform float weather_storm;
 global uniform float weather_wetness;
+global uniform float dew_amount;   // v5.2: роса на рассвете (AfterRainFx)
+
+// v5.2: роса — мелкие блёстки капель на листьях (по UV листа, не мерцают при движении камеры)
+float dew_sparkle(vec2 uv) {
+	vec2 c = floor(uv * 90.0);
+	float h = fract(sin(dot(c, vec2(12.9898, 78.233))) * 43758.5453);
+	vec2 f = fract(uv * 90.0) - 0.5;
+	return step(0.93, h) * (1.0 - smoothstep(0.12, 0.3, length(f)));
+}
 
 varying float v_ly;
 varying float v_var;

@@ -28,8 +28,20 @@ static func register(m: Material) -> void:
 		return
 	if b.roughness < 0.2 or b.metallic > 0.5 or b.emission_enabled:
 		return   # вода, стекло, металл, светящееся — не трогаем
-	_base[id] = [weakref(b), b.albedo_color, b.roughness, b.metallic_specular]
+	_base[id] = [weakref(b), b.albedo_color, b.roughness, b.metallic_specular, _is_wood(b)]
 	_apply_one(_base[id], _applied)
+
+## Древесина? (по имени материала/текстуры: wood, log, plank, bark, timber, дерев, брев, доск)
+static func _is_wood(b: BaseMaterial3D) -> bool:
+	var nm := b.resource_name.to_lower()
+	if b.albedo_texture:
+		nm += " " + b.albedo_texture.resource_path.get_file().to_lower() + " " + b.albedo_texture.resource_name.to_lower()
+	for k in ["wood", "log", "plank", "bark", "timber", "дерев", "брев", "доск", "crate", "raft"]:
+		if nm.contains(k):
+			return true
+	# тёплый бурый оттенок без текстуры — процедурное дерево построек
+	var c := b.albedo_color
+	return b.albedo_texture == null and c.r > c.g and c.g > c.b and c.r - c.b > 0.15 and c.v < 0.75
 
 static func count() -> int:
 	return _base.size()
@@ -39,7 +51,8 @@ static func _apply_one(e: Array, wet: float) -> void:
 	if b == null:
 		return
 	var a: Color = e[1]
-	var k := 1.0 - DARKEN * wet
+	# v5.2: мокрая древесина темнеет сильнее камня (впитывает воду): ×1.5
+	var k := 1.0 - DARKEN * wet * (1.5 if e.size() > 4 and bool(e[4]) else 1.0)
 	b.albedo_color = Color(a.r * k, a.g * k, a.b * k, a.a)
 	b.roughness = lerpf(float(e[2]), WET_ROUGH, wet * 0.85)
 	b.metallic_specular = lerpf(float(e[3]), 0.65, wet)

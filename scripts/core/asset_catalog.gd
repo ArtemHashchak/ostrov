@@ -118,6 +118,9 @@ static func instantiate(id: String, lod: int = 0) -> Node3D:
 		var n := (res as PackedScene).instantiate() as Node3D
 		if n:
 			n.name = id
+			# v5.2: новые растения пользователя — общий шейдер листвы (ветер, касание игроком)
+			if FloraV5Mat.is_v5(path):
+				FloraV5Mat.convert(n, e)
 		return n
 	if res is Mesh:
 		var mi2 := MeshInstance3D.new()

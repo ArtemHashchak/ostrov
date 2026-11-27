@@ -31,11 +31,14 @@ const PRESETS: Array[Dictionary] = [
 		"radiance": Sky.RADIANCE_SIZE_64, "sky_fog": true,
 		"detail": 0.75, "lod_threshold": 2.0, "aniso": 2,
 	},
-	{ # высокое — цель 60 FPS на современных ноутбуках (M-серия, RTX 3050+)
+	{ # высокое — цель 60 FPS на современных ноутбуках (M-серия, RTX 3050+).
+		# v5.2: SDFGI (3 каскада, половинное разрешение) и объёмный туман (объём 40³,
+		# 160 м) — облегчённые варианты Ультры; на «Среднем» оба выключены.
 		"scale": 0.85, "upscaler": "temporal",
 		"shadow_atlas": 4096, "shadow_splits": 4, "shadow_dist": 130.0, "soft_shadows": 2, "shadow_blur": 1.2,
 		"pos_shadow_atlas": 2048,
-		"ssao": true, "ssil": false, "sdfgi": false, "vol_fog": false, "glow": true, "ssr": false,
+		"ssao": true, "ssil": false, "sdfgi": true, "vol_fog": true, "glow": true, "ssr": false,
+		"sdfgi_cascades": 3, "vol_fog_size": 40, "vol_fog_length": 160.0,
 		"radiance": Sky.RADIANCE_SIZE_128, "sky_fog": true,
 		"detail": 1.0, "lod_threshold": 1.0, "aniso": 3,
 	},
@@ -44,6 +47,7 @@ const PRESETS: Array[Dictionary] = [
 		"shadow_atlas": 8192, "shadow_splits": 4, "shadow_dist": 180.0, "soft_shadows": 3, "shadow_blur": 1.3,
 		"pos_shadow_atlas": 4096,
 		"ssao": true, "ssil": true, "sdfgi": true, "vol_fog": true, "glow": true, "ssr": false,
+		"sdfgi_cascades": 4, "vol_fog_size": 64, "vol_fog_length": 240.0,
 		"radiance": Sky.RADIANCE_SIZE_256, "sky_fog": true,
 		"detail": 1.25, "lod_threshold": 1.0, "aniso": 4,
 	},
@@ -124,7 +128,8 @@ static func apply_viewport(vp: Viewport) -> void:
 	RenderingServer.environment_set_ssao_quality(
 		RenderingServer.ENV_SSAO_QUALITY_LOW if q < 2 else RenderingServer.ENV_SSAO_QUALITY_MEDIUM, true, 0.5, 2, 50.0, 300.0)
 	RenderingServer.environment_set_ssil_quality(RenderingServer.ENV_SSIL_QUALITY_MEDIUM, true, 0.5, 4, 50.0, 300.0)
-	RenderingServer.environment_set_volumetric_fog_volume_size(64 if q >= 3 else 48, 64 if q >= 3 else 48)
+	var vfs := int(p.get("vol_fog_size", 48))
+	RenderingServer.environment_set_volumetric_fog_volume_size(vfs, vfs)
 	RenderingServer.environment_set_volumetric_fog_filter_active(q >= 3)
 	RenderingServer.gi_set_use_half_resolution(q < 3)
 
@@ -138,7 +143,7 @@ static func apply_environment(env: Environment) -> void:
 	env.sdfgi_enabled = bool(p.sdfgi)
 	if env.sdfgi_enabled:
 		env.sdfgi_use_occlusion = true
-		env.sdfgi_cascades = 4
+		env.sdfgi_cascades = int(p.get("sdfgi_cascades", 4))
 		env.sdfgi_y_scale = Environment.SDFGI_Y_SCALE_50_PERCENT
 	env.volumetric_fog_enabled = bool(p.vol_fog)
 	if env.volumetric_fog_enabled:
@@ -146,7 +151,7 @@ static func apply_environment(env: Environment) -> void:
 		# вокруг игрока (дальше туман резко пропадает). Растягиваем объём на 240 м
 		# (дальние срезы грубее — detail_spread) и гасим его плотность к краю: дальше
 		# работает обычный глубинный туман, который продолжается без шва.
-		env.volumetric_fog_length = 240.0
+		env.volumetric_fog_length = float(p.get("vol_fog_length", 240.0))
 		env.volumetric_fog_detail_spread = 2.5
 		env.volumetric_fog_temporal_reprojection_enabled = true
 	env.glow_enabled = bool(p.glow)

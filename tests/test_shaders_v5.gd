@@ -10,6 +10,7 @@ const SHADERS := [
 	"res://scripts/world/flora/foliage.gdshader",
 	"res://scripts/world/flora/pack_leaf.gdshader",
 	"res://scripts/world/flora/pack_bark.gdshader",
+	"res://scripts/world/flora/flora_v5_leaf.gdshader",
 	"res://scripts/world/flora/tree_sway_pbr.gdshader",
 	"res://scripts/player/fp_skin.gdshader",
 	"res://scripts/world/weather/screen_fx.gdshader",
