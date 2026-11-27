@@ -22,6 +22,7 @@ DevConsole="*res://scripts/core/dev_console.gd"
 Surfaces="*res://scripts/mech/surfaces.gd"
 ShowBus="*res://scripts/mech/show_bus.gd"
 Perception="*res://scripts/mech/perception.gd"
+Wounds="*res://scripts/fauna/wounds.gd"
 
 [display]
 
@@ -121,6 +122,18 @@ plant_push_b={
 "value": Vector4(0, 0, 0, 0)
 }
 plant_push_c={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+plant_trail_a={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+plant_trail_b={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+plant_trail_c={
 "type": "vec4",
 "value": Vector4(0, 0, 0, 0)
 }

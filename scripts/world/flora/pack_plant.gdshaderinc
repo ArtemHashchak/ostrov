@@ -15,6 +15,8 @@ uniform float alpha_cut : hint_range(0.0, 1.0) = 0.5;
 uniform float wind_amp = 0.06;      // м на вес 1 в штиль
 uniform float rough_k = 1.0;
 uniform float translucency : hint_range(0.0, 1.0) = 0.3;
+uniform float push_reach = 0.85;     // полуширина куста для касания игроком (м)
+uniform float push_flex = 0.0;       // 0 — не отгибается (деревья), 1 — куст/папоротник отгибается целиком
 uniform float bend_k = 1.0;         // 0 — без изгиба целиком (кусты гнутся только листвой)
 uniform float clip_lo = -1000.0;
 uniform float clip_hi = 1000.0;
@@ -47,7 +49,8 @@ void pack_vertex(inout vec3 vtx, vec2 uv2, mat4 model, vec3 cam, float t) {
 			sin(tt * 3.1 + ph * 0.7) * 0.35,
 			cos(tt * 0.9 + ph + wp.z * 0.21) * 0.6);
 	vec3 dw = fl * amp;
-	dw += plant_push(wp, w * (1.0 - bend_k));   // кусты/папоротники раздвигаются (деревья — нет)
+	// куст/папоротник, которого касается персонаж, отгибается от основания (деревья — нет)
+	dw += plant_push_hinge(wp, model[3].xyz, push_flex * (0.6 + 0.4 * w), push_reach, t);
 	// листья «стелются» по ветру в шторм
 	float lay = max(0.0, wf - 1.25) * w * wind_amp * 4.0;
 	dw += vec3(wind_dir.x, -0.2, wind_dir.y) * lay;

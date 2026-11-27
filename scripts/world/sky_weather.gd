@@ -690,8 +690,12 @@ func _update_underwater(under: bool) -> void:
 		_env.fog_sky_affect = 0.15
 		_apply(0.0)
 
-## Раздвигание растений: три ближайших к камере персонажа/зверя → plant_push_a/b/c. Позиция
-## догоняет настоящую с запаздыванием (пружина): стебли отклоняются и плавно выпрямляются.
+## Касание растений: три ближайших к камере персонажа/зверя → plant_push_a/b/c (позиция ног
+## с небольшим запаздыванием — куст «догоняет» движение) и plant_trail_a/b/c (позиция ~0,4 с
+## назад + сила покачивания). Шейдер отгибает от основания только те растения, которых касаются,
+## а после прохода они коротко качаются и выпрямляются (shaders/plant_push.gdshaderinc).
+var _trail := {}         # id -> Vector3 (сильно запаздывающая позиция для покачивания после прохода)
+
 func _update_plant_push(dt: float, cam: Camera3D) -> void:
 	var cands: Array = []
 	var cp := cam.global_position
@@ -705,23 +709,33 @@ func _update_plant_push(dt: float, cam: Camera3D) -> void:
 				cands.append([dd, nd])
 	cands.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	var names := [&"plant_push_a", &"plant_push_b", &"plant_push_c"]
+	var tnames := [&"plant_trail_a", &"plant_trail_b", &"plant_trail_c"]
 	var seen := {}
 	for i in 3:
 		var v := Vector4.ZERO
+		var tv := Vector4.ZERO
 		if i < cands.size():
 			var nd: Node3D = cands[i][1]
 			var id := nd.get_instance_id()
 			seen[id] = true
 			var tgt := nd.global_position
 			var cur: Vector3 = _push.get(id, tgt)
-			cur = cur.lerp(tgt, 1.0 - exp(-dt * 7.0))
+			cur = cur.lerp(tgt, 1.0 - exp(-dt * 10.0))
 			_push[id] = cur
-			var r := 0.75 if nd.is_in_group(&"characters") else clampf(float(nd.get_meta(&"push_radius", 0.6)), 0.2, 2.0)
+			var tr: Vector3 = _trail.get(id, tgt)
+			tr = tr.lerp(tgt, 1.0 - exp(-dt * 2.5))
+			_trail[id] = tr
+			var r := 0.35 if nd.is_in_group(&"characters") else clampf(float(nd.get_meta(&"push_radius", 0.4)), 0.15, 1.5)
 			v = Vector4(cur.x, cur.y, cur.z, r)
+			# сила покачивания: есть, пока «хвост» не догнал персонажа (только что прошёл сквозь куст)
+			var lagd := Vector2(tgt.x - tr.x, tgt.z - tr.z).length()
+			tv = Vector4(tr.x, tr.y, tr.z, clampf(lagd / 0.5, 0.0, 1.0))
 		RenderingServer.global_shader_parameter_set(names[i], v)
+		RenderingServer.global_shader_parameter_set(tnames[i], tv)
 	for id in _push.keys():
 		if not seen.has(id):
 			_push.erase(id)
+			_trail.erase(id)
 
 ## Лучи солнца, ослепление, радуга (ScreenFx на камере).
 func _update_screen_fx(dt: float, cam: Camera3D) -> void:

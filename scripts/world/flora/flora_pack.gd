@@ -142,6 +142,8 @@ static func material(surface_name: String, group: String = "plant") -> ShaderMat
 			# кусты/травы: изгиб целиком слабее (низкие), листья колышутся заметнее
 			m.set_shader_parameter(&"wind_amp", 0.05)
 			m.set_shader_parameter(&"bend_k", 0.6)
+			# касание игроком: куст отгибается целиком от основания (стебли вместе с листьями)
+			m.set_shader_parameter(&"push_flex", 1.0)
 	if surface_name.begins_with("Palm_Leaf"):
 		m.set_shader_parameter(&"wind_amp", 0.14)
 	_mats[key] = m

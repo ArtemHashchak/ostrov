@@ -7,6 +7,7 @@ render_mode cull_disabled, depth_draw_opaque, diffuse_lambert_wrap, specular_sch
 
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap_anisotropic, repeat_disable;
 uniform vec4 tint : source_color = vec4(1.0);
+uniform float push_reach = 0.35;   // трава: касание только под ногами
 uniform float alpha_cut : hint_range(0.0, 1.0) = 0.42;
 uniform float wind_strength = 0.12;
 uniform float wind_speed = 1.3;
@@ -57,7 +58,8 @@ void vertex() {
 	// постоянный изгиб по ветру (кроны пальм «стелются» в шторм): мировое направление → локальное
 	float bend = max(0.0, wf - 1.25) * w * w * wind_strength * 7.0 * (0.8 + 0.4 * wind_gust + 0.25 * s1);
 	vec3 bw = vec3(wind_dir.x, -0.25, wind_dir.y) * bend;
-	bw += plant_push(wp, w);   // трава и подлесок раздвигаются под ногами
+	// трава и подлесок: мягкий изгиб от основания только у того пучка, на который наступили
+	bw += plant_push_hinge(wp, (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz, w * 0.6, push_reach, TIME);
 	vec3 bl = transpose(mat3(MODEL_MATRIX)) * bw;
 	float sc2 = max(dot(MODEL_MATRIX[0].xyz, MODEL_MATRIX[0].xyz), 1e-4);
 	VERTEX += bl / sc2;
