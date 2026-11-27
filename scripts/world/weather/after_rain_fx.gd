@@ -12,7 +12,7 @@ extends Node3D
 ## Вызов: SkyWeather.update → update_fx(...).
 
 ## [капли, пар, туман, листья, пепел] по пресету Низкое..Ультра
-const AMOUNTS := [[60, 10, 6, 4, 20], [140, 18, 10, 6, 40], [240, 28, 16, 10, 60], [360, 40, 22, 14, 90]]
+const AMOUNTS := [[60, 10, 4, 4, 20], [140, 18, 6, 6, 40], [240, 28, 10, 10, 60], [360, 40, 14, 14, 90]]
 
 var drips: GPUParticles3D
 var steam: GPUParticles3D
@@ -72,6 +72,13 @@ func _ready() -> void:
 
 	mist = _particles("JungleMist", 14.0, Vector3(30.0, 1.2, 30.0))
 	var mpm := mist.process_material as ParticleProcessMaterial
+	# кольцо вокруг камеры (10–32 м): клубы видны слоем между деревьями, а не во весь экран —
+	# крупные полупрозрачные квады у самой камеры дают многократную перерисовку экрана
+	mpm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_RING
+	mpm.emission_ring_axis = Vector3.UP
+	mpm.emission_ring_radius = 32.0
+	mpm.emission_ring_inner_radius = 10.0
+	mpm.emission_ring_height = 2.0
 	mpm.gravity = Vector3.ZERO
 	mpm.direction = Vector3(1, 0, 0)
 	mpm.spread = 180.0
@@ -81,7 +88,7 @@ func _ready() -> void:
 	mpm.scale_max = 2.0
 	mpm.color_ramp = _fade_ramp(0.0, 1.0, 0.0)
 	var mq := QuadMesh.new()
-	mq.size = Vector2(9.0, 3.2)
+	mq.size = Vector2(7.0, 2.4)
 	_mist_mat = _soft_mat(Color(0.88, 0.91, 0.93, 0.13))
 	mq.material = _mist_mat
 	mist.draw_pass_1 = mq
