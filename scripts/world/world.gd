@@ -389,7 +389,10 @@ func monuments() -> Array[Dictionary]:
 
 ## Текущий уровень воды (среднее 0 + прилив).
 func water_level() -> float:
-	return sin(time_s / tide_period * TAU) * tide_amplitude + _surge
+	return sin(time_s / tide_period * TAU) * tide_amplitude + _surge + event_sea_offset
+
+## Сдвиг уровня моря от событий (v5.2: цунами — отступ воды и волна), управляет SeasonEvents.
+var event_sea_offset := 0.0
 
 ## Штормовой нагон: море поднимается до ~0.6 м (v5: было 1.8 — заливало полуострова) и плавно
 ## (минуты) уходит обратно. Волны в шторм на вид выше (SkyWeather.WEATHERS.storm.waves).

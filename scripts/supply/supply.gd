@@ -62,6 +62,9 @@ func _ready() -> void:
 	add_child(ShowProps.new())
 	# кат-сцена «В эфире» в начале матча
 	add_child(ShowIntro.new())
+	# v5.2: события сезона (миграция, крабы, цунами, награда за лидера, родник, дрейф, задания, штиль)
+	if SeasonEvents.instance() == null:
+		add_child(SeasonEvents.new())
 
 func _exit_tree() -> void:
 	SupplyModels.clear_caches()

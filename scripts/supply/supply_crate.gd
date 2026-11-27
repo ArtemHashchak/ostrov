@@ -186,11 +186,14 @@ func _float(delta: float) -> void:
 	var p := global_position
 	var ws := BuildEnv.water_surface(p.x, p.z)
 	var gy := BuildEnv.height_at(p.x, p.z)
-	if _shore != Vector3.INF and gy < ws - 1.1 and state != State.OPENED:
+	if has_meta(&"drift") and state != State.OPENED and gy < ws - 1.1:
+		# v5.2: ящик на лодке дрейфует по течению (событие «дрейфующий ящик»)
+		p += (get_meta(&"drift") as Vector3) * delta
+	elif _shore != Vector3.INF and gy < ws - 1.1 and state != State.OPENED:
 		var d := Vector3(_shore.x - p.x, 0, _shore.z - p.z)
 		if d.length() > 0.5:
 			p += d.normalized() * 0.35 * delta
-	var y := ws - 0.24 + sin(_t * 1.4) * 0.05
+	var y := ws - 0.24 + float(get_meta(&"float_lift", 0.0)) + sin(_t * 1.4) * 0.05
 	if gy > y - 0.05:
 		y = gy + 0.02 # село на мель
 	p.y = lerpf(p.y, y, clampf(delta * 3.0, 0.0, 1.0))

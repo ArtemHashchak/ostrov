@@ -140,6 +140,9 @@ func interact(ch: Node) -> void:
 
 ## Набрать в тару id (всё, что есть в инвентаре, пока хватает воды).
 func fill(ch: Node, id: StringName) -> int:
+	if SeasonEvents.is_poisoned(global_position):
+		toast(ch, "Вода пахнет тухлым — набирать не стал")
+		return 0
 	var to := StringName(Survival.data(id).get("fill_fresh", &""))
 	if to == &"":
 		return 0
@@ -157,6 +160,13 @@ func fill(ch: Node, id: StringName) -> int:
 func drink(ch: Node) -> bool:
 	if portions() <= 0:
 		return false
+	# v5.2: отравленный родник (событие)
+	if SeasonEvents.is_poisoned(global_position):
+		var se := SeasonEvents.instance()
+		var ev := se.get_active(&"poison_spring") if se else null
+		if ev:
+			ev.call(&"poison", ch)
+		return true
 	var t := float(ch.get(&"thirst")) if ch.get(&"thirst") != null else 0.0
 	if t >= 99.0:
 		toast(ch, "Не хочется пить")

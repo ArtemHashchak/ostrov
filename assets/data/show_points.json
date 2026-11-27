@@ -14,7 +14,9 @@
   "dive_find": 6,
   "airdrop_claimed": 12,
   "stealth_kill": 0,
-  "spot_rare_species": 10
+  "spot_rare_species": 10,
+  "bounty_kill": 80,
+  "viewer_task": 0
  },
  "tags": {
   "knife": 2.0,

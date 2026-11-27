@@ -140,6 +140,9 @@ func weather() -> StringName:
 
 ## Пресная ли вода в точке (озёра/родники). WORLD: fresh_water_at(pos) -> bool.
 func is_fresh_at(p: Vector3) -> bool:
+	# v5.2: отравленный родник (событие) — вода не годится (набрать — только прокипятить; пить — яд)
+	if SeasonEvents.is_poisoned(p):
+		return false
 	if world and world.has_method(&"fresh_water_at"):
 		return bool(world.call(&"fresh_water_at", p))
 	for s in get_tree().get_nodes_in_group(&"sv_fresh"):
@@ -290,8 +293,24 @@ func on_consumed(ch: Node, id: StringName) -> void:
 ## Игрок пьёт из моря/водоёма (E). true — Survival обработал.
 func on_drink_water(ch: Node) -> bool:
 	var p := look_water_point(ch)
-	var fresh := is_fresh_at(p)
 	var h_id := held(ch)
+	# v5.2: тест-полоска и отравленный родник (SeasonEvents)
+	if h_id == &"water_test_kit":
+		if SeasonEvents.is_poisoned(p):
+			toast(ch, "Полоска почернела: вода ОТРАВЛЕНА")
+		else:
+			toast(ch, "Полоска чистая: яда в воде нет")
+		return true
+	if SeasonEvents.is_poisoned(p):
+		if data(h_id).has("fill_fresh"):
+			toast(ch, "Вода пахнет тухлым — набирать не стал")
+			return true
+		var se := SeasonEvents.instance()
+		var ev := se.get_active(&"poison_spring") if se else null
+		if ev:
+			ev.call(&"poison", ch)
+		return true
+	var fresh := is_fresh_at(p)
 	if data(h_id).has("fill_fresh"):
 		fill_at(ch, h_id, fresh)
 		return true

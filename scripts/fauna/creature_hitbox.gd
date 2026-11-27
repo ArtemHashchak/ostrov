@@ -21,6 +21,8 @@ var solid := false
 var drops: Array[Dictionary] = []
 var dead := false
 var shape: CollisionShape3D
+## Кто нанёс последний урон (v5.2: задания зрителей — «добыть рыбу острогой»).
+var last_source: Node = null
 
 ## Повесить хитбокс на узел. opts: hp, solid (bool), drops [{id, n}], size (Vector3), pad (доля запаса),
 ## center (Vector3 локальный центр), name.
@@ -102,6 +104,8 @@ static func _rel_xform(root: Node3D, n: Node3D) -> Transform3D:
 func apply_damage(amount: float, source: Node = null, _kind: StringName = &"") -> void:
 	if dead:
 		return
+	if source and is_instance_valid(source):
+		last_source = source
 	hp -= amount
 	if is_instance_valid(target):
 		if target.has_method(&"on_hurt"):
@@ -121,6 +125,9 @@ func _die() -> void:
 	collision_layer = 0
 	if not is_instance_valid(target):
 		return
+	var se := get_tree().get_first_node_in_group(&"season_events") if is_inside_tree() else null
+	if se and last_source and is_instance_valid(last_source):
+		se.emit_signal(&"game_fact", &"creature_killed", last_source, {"target": target})
 	var pos := target.global_position
 	if not drops.is_empty() and target.is_inside_tree():
 		var host := target.get_parent()

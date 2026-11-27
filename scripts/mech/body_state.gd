@@ -89,6 +89,9 @@ func _update_wetness(delta: float) -> void:
 	if p.swimming or p.global_position.y < wl - 0.6:
 		wetness = move_toward(wetness, 1.0, b("wetness/swim_rate", 3.0) * delta)
 		return
+	var ev_heat := SeasonEvents.heat()
+	if ev_heat > 0.01:
+		causes["штиль, зной"] = ev_heat
 	var rain := _w(&"rain_intensity", 0.0)
 	if rain > 0.05 and not _sheltered():
 		wetness = minf(1.0, wetness + b("wetness/rain_rate", 0.25) * rain * delta / 6.0)

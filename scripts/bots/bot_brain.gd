@@ -94,6 +94,33 @@ func think(_dt: float) -> void:
 		"retreat": _do_retreat()
 		"prep": _do_prep()
 		"supply": _do_supply()
+		"evade": _do_goto()
+
+## v5.2: бот низко у моря во время цунами (отступ воды / волна).
+func _tsunami_danger() -> bool:
+	var se := SeasonEvents.instance()
+	var ev := se.get_active(&"tsunami") if se else null
+	return ev != null and bool(ev.call(&"bot_should_evade", bot))
+
+## Задание «уйти наверх»: ближайшая точка того же острова выше 7 м.
+func _tsunami_evade() -> Dictionary:
+	if not _tsunami_danger():
+		return {}
+	var p := bot.global_position
+	var best := Vector3.INF
+	for r: float in [15.0, 30.0, 50.0, 75.0, 110.0]:
+		for k in 12:
+			var a := TAU * k / 12.0
+			var q := p + Vector3(cos(a), 0, sin(a)) * r
+			var h := bot.nav.ground(q).y
+			if h > 7.0 and _same_side(q):
+				best = Vector3(q.x, h, q.z)
+				break
+		if best != Vector3.INF:
+			break
+	if best == Vector3.INF:
+		return {}
+	return {"type": "evade", "p": best, "arrive": 3.0}
 
 func _set_task(t: Dictionary) -> void:
 	_end_task()
@@ -245,6 +272,17 @@ func _urgent() -> Dictionary:
 			svm.consume_item(bot, &"medkit")
 	if tt in ["fight", "flee", "retreat"]:
 		return {}
+	# v5.2: цунами — уйти наверх; награда за лидера — охота
+	if tt == "evade":
+		return {}
+	var ev := _tsunami_evade()
+	if not ev.is_empty():
+		return ev
+	var bt := SeasonEvents.bounty_target()
+	if bt and bt != bot and int(bt.get(&"team")) != bot.team and bot.global_position.distance_to(bt.global_position) < 140.0 \
+			and bot.health > 50.0 and not is_instance_valid(enemy):
+		enemy = bt
+		return {"type": "fight", "target": bt}
 	if bot.poison > 0.0 and bot.poison_time > 2.0 and tt != "herb":
 		var sv := Survival.instance()
 		if sv and not sv.herb_sources(bot.global_position, 90.0).is_empty():
@@ -316,11 +354,13 @@ func _supply_job() -> Dictionary:
 		if c == null or not c.is_available() or _banned(c):
 			continue
 		var d := c.global_position.distance_to(bot.global_position)
-		if d > 190.0:
+		# v5.2: дрейфующий ящик (событие) — гонятся дальше и по воде
+		var drift := c.has_meta(&"drift")
+		if d > (float(c.get_meta(&"chase_r", 380.0)) if drift else 190.0):
 			continue
 		if d > 60.0 and (c.number + bot.index + bot.team) % 2 == 1:
 			continue
-		if not _same_side(c.global_position):
+		if not drift and not _same_side(c.global_position):
 			continue
 		return {"type": "supply", "node": c}
 	return {}
@@ -803,7 +843,7 @@ func _do_drink() -> void:
 		var sv2 := Survival.instance()
 		if sv2:
 			for s in sv2.drink_sources(bot.global_position, 160.0):
-				if _same_side(s.pos) and not _banned(s.node):
+				if _same_side(s.pos) and not _banned(s.node) and not SeasonEvents.bot_avoids_water(s.pos, bot):
 					node = s.node
 					break
 		if node == null:

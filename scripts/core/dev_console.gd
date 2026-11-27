@@ -43,6 +43,7 @@ const CMDS := {
 	"give": ["give", "дать"],
 	"fps": ["fps", "фпс"],
 	"replay": ["replay", "реплей", "повтор"],
+	"event": ["event", "событие", "ивент"],
 	"help": ["help", "помощь", "?", "справка"],
 	"cls": ["cls", "стереть"],
 }
@@ -61,6 +62,7 @@ const HELP := {
 	"fly": "fly — полёт сквозь стены вкл/выкл",
 	"give": "give <предмет> [n] — выдать предмет (id или название)",
 	"fps": "fps — счётчик кадров вкл/выкл",
+	"event": "event <migration|red_crabs|tsunami|bounty|poison_spring|drift_crate|viewer_task|calm> | event list | event stop — события сезона",
 	"replay": "replay [сек] — реплей последних секунд (до 60) в максимальной графике (только на полигоне)",
 	"help": "help [команда] — справка",
 	"cls": "cls — очистить журнал",
@@ -288,6 +290,10 @@ func completions(line: String) -> PackedStringArray:
 			for c: String in ["animals", "birds", "sea", "plants", "all", "животные", "птицы", "море", "растения"]:
 				if c.begins_with(w2):
 					out.append(c)
+		"event":
+			for c: String in ["migration", "red_crabs", "tsunami", "bounty", "poison_spring", "drift_crate", "viewer_task", "calm", "list", "stop"]:
+				if c.begins_with(w2):
+					out.append(c)
 		"weather":
 			for c: String in ["ясно", "облачно", "дождь", "гроза", "туман", "clear", "cloudy", "rain", "storm", "fog"]:
 				if c.begins_with(w2):
@@ -372,6 +378,7 @@ func execute(line: String) -> String:
 			close()
 			var path := ReplayRecorder.request(get_tree(), secs)
 			res = ("Реплей: рендер %d с в максимальной графике…" % int(secs)) if path != "" else "!Реплей — только на полигоне (и после нескольких секунд игры)"
+		"event": res = _c_event(args)
 		"help": res = _c_help(args)
 		"cls":
 			_log.clear()
@@ -602,6 +609,31 @@ func _c_weather(args: PackedStringArray) -> String:
 	else:
 		w.call(&"set_weather", wv, false)
 	return "Погода: " + String(SandboxCheats.WEATHER_NAMES.get(wv, wv))
+
+const EVENT_RU := {"миграция": &"migration", "манты": &"migration", "крабы": &"red_crabs", "цунами": &"tsunami",
+	"награда": &"bounty", "родник": &"poison_spring", "яд": &"poison_spring", "ящик": &"drift_crate",
+	"задание": &"viewer_task", "штиль": &"calm"}
+
+func _c_event(args: PackedStringArray) -> String:
+	var se := SeasonEvents.ensure()
+	if se == null:
+		return "!Нет мира."
+	if args.is_empty() or args[0] == "list" or args[0] == "список":
+		var act := se.active_ids().map(func(x: StringName) -> String: return String(SeasonEvents.NAMES.get(x, x)))
+		return "События: %s. Активны: %s" % [", ".join(SeasonEvents.IDS.map(func(x: StringName) -> String: return String(x))),
+			", ".join(act) if not act.is_empty() else "нет"]
+	var a := args[0].to_lower()
+	if a == "stop" or a == "стоп":
+		se.stop_all()
+		return "Все события остановлены"
+	var id: StringName = EVENT_RU.get(a, StringName(a))
+	if not SeasonEvents.SCRIPTS.has(id):
+		return "!Нет такого события. event list — список"
+	var opts := {}
+	if args.size() > 1 and id == &"viewer_task":
+		opts["task_id"] = args[1]
+	var e := se.start(id, opts)
+	return ("Событие: " + String(SeasonEvents.NAMES[id])) if e else "!Событие «%s» не запустилось (нет места/условий)" % String(SeasonEvents.NAMES[id])
 
 func _c_god() -> String:
 	var sb := _sandbox()
