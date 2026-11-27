@@ -1,5 +1,5 @@
 ## test-class: render
-## test-timeout: 900
+## test-timeout: 1100
 extends TestCase
 ## v5.1 (агент I): раны и кровь на крупных существах; походка варана (поправка UserClipRig.gait);
 ## зелёный кокос в руке. Свой мир в SubViewport (пустая сцена). В рендере — снимки отдельными файлами
@@ -13,7 +13,7 @@ var cam: Camera3D
 
 func _init() -> void:
 	scene_path = "res://tests/empty_stage.tscn"
-	timeout_sec = 880.0
+	timeout_sec = 1080.0
 
 func run() -> void:
 	await wait_frames(5)
@@ -49,6 +49,15 @@ func run() -> void:
 	if w1 == null:
 		return
 	var spurts := get_tree().get_nodes_in_group(&"blood_spurt").size()
+	_look(w1.global_position + side * 0.75 + Vector3(0.0, 0.18, 0.25), w1.global_position)
+	await wait_frames(6)
+	await _save("wounds_spurt")
+	# сквозное ранение: выходное отверстие с другой стороны тела (винтовка через тело ≤ 0,6 м)
+	var exits := 0
+	for wn in get_tree().get_nodes_in_group(&"wound"):
+		if (wn as Node3D).global_basis.z.dot(side) < -0.3:
+			exits += 1
+	check(exits >= 1, "винтовочная пуля навылет — выходное отверстие с другой стороны (%d)" % exits)
 	check(w1.get_parent() is BoneAttachment3D, "рана пули прикреплена к кости (%s)" % w1.get_parent().get_class())
 	# рана на коже: ближе к кости спины, чем точка попадания (≈ толщина тела, 0.1–0.4 м)
 	var dsk := w1.global_position.distance_to(spine)
@@ -175,19 +184,46 @@ func _look(from: Vector3, at: Vector3) -> void:
 	cam.look_at(at, Vector3.UP)
 
 func _shots_wounds(root: Node3D, sk: Skeleton3D) -> void:
-	var c := sk.global_transform * sk.get_bone_global_pose(sk.find_bone("spine.01")).origin
 	var side := root.global_basis.x
+	# крупно: входное отверстие, разрез, выходное — каждое отдельным снимком
+	var ws := get_tree().get_nodes_in_group(&"wound")
+	var entry: Node3D = null
+	var gash: Node3D = null
+	var exitw: Node3D = null
+	for w in ws:
+		var n3 := w as Node3D
+		var q := (n3 as MeshInstance3D).mesh as QuadMesh
+		var zz := n3.global_basis.z
+		if zz.dot(side) < -0.3:
+			exitw = n3
+		elif q.size.x > q.size.y * 2.0:
+			gash = n3
+		elif entry == null:
+			entry = n3
+	var shots := [["wounds_entry_close", entry], ["wounds_gash_close", gash], ["wounds_exit_close", exitw]]
+	for sh: Array in shots:
+		var wn: Node3D = sh[1]
+		if wn == null:
+			continue
+		var zn := wn.global_basis.z
+		_look(wn.global_position + zn * 0.42 + Vector3(0, 0.12, 0) + wn.global_basis.x * 0.08, wn.global_position)
+		await wait_frames(4)
+		await _save(String(sh[0]))
+	var c := sk.global_transform * sk.get_bone_global_pose(sk.find_bone("spine.01")).origin
 	_look(c + side * 2.6 + Vector3(0, 0.9, 0.4), c + Vector3(0, -0.05, 0))
 	await wait_frames(4)
 	await _save("wounds_varan_side")
-	var h := sk.global_transform * sk.get_bone_global_pose(sk.find_bone("spine.02")).origin
-	_look(h + side * 0.9 + Vector3(0, 0.35, 0.25), h)
-	await wait_frames(3)
-	await _save("wounds_varan_close")
 	var g := Vector3(c.x, 0.0, c.z) + side * 0.6
 	_look(g + Vector3(1.2, 1.4, 0.9), g)
 	await wait_frames(3)
 	await _save("wounds_blood_ground")
+	# туша через ~25 с: кровь вокруг ран расползлась и запеклась
+	await wait(26.0)
+	if entry:
+		var zn2 := entry.global_basis.z
+		_look(entry.global_position + zn2 * 0.6 + Vector3(0, 0.2, 0), entry.global_position)
+		await wait_frames(4)
+		await _save("wounds_corpse_matted")
 	root.visible = false
 	for n in get_tree().get_nodes_in_group(&"blood_spot"):
 		(n as Node).queue_free()
