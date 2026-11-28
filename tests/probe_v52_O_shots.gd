@@ -1,4 +1,4 @@
-## test-timeout: 2000
+## test-timeout: 3600
 extends TestCase
 ## test-class: render
 ## Снимки агента O (v5.2): новые растения пользователя в мире v5 — лианы на деревьях и между
@@ -8,7 +8,7 @@ extends TestCase
 func _init() -> void:
 	OS.set_environment("OSTROVA_GEN", "5")
 	scene_path = "res://scenes/world/world_view.tscn"
-	timeout_sec = 1950.0
+	timeout_sec = 3550.0
 
 var cam: Camera3D
 var w: World
@@ -39,18 +39,18 @@ func run() -> void:
 	# 1) свисающая лиана на дереве джунглей
 	var hang := _first_of(["flora_liana_hang_curtain_05", "flora_liana_hang_ivy_06", "flora_liana_climb_07"], true)
 	if hang != Vector3.INF:
-		await _shot_at(hang, 7.0, 2.2, "jungle_liana_hang")
+		await _shot_at(hang, 6.5, 2.4, "jungle_liana_hang", true)
 	# 2) лиана, перекинутая между деревьями
 	var span := _first_of(["flora_liana_span_01", "flora_liana_span_leafy_04", "flora_liana_span_braid_02"], true)
 	if span != Vector3.INF:
-		await _shot_at(span, 9.0, 1.7, "jungle_liana_span")
+		await _shot_at(span, 7.5, 2.0, "jungle_liana_span", true)
 	# 3) подлесок: страусник и стрелиция
-	var fern := _first_of(["flora_strelitzia"], false)
+	var fern := _first_of(["flora_strelitzia"], false) if OS.get_environment("O_SKIP_STREL") == "" else Vector3.INF
 	if fern != Vector3.INF:
 		await _shot_at(fern, 4.5, 1.6, "understory_strelitzia")
-	var mat := _first_of(["flora_matteuccia_a", "flora_matteuccia_b"], false)
+	var mat := _first_of(["flora_matteuccia_a", "flora_matteuccia_b"], true)
 	if mat != Vector3.INF:
-		await _shot_at(mat, 4.0, 1.5, "understory_fern")
+		await _shot_at(mat, 5.0, 1.7, "understory_fern", true)
 	# 4) опушка: ховея / Kingsville / макрозамия
 	var hw := _first_of(["flora_howea_1", "flora_howea_2"], false)
 	if hw != Vector3.INF:
@@ -106,33 +106,75 @@ func _first_of(ids: Array, need_jungle: bool) -> Vector3:
 		var part := String(key).split("|")[0]
 		if not FloraV5World.is_key(part) or not ids.has(FloraV5World.id_of_key(part)):
 			continue
+		var ab := FloraV5World.mesh(FloraV5World.id_of_key(part)).get_aabb()
 		for xf: Transform3D in fl._bush[key]:
-			var o := xf.origin
+			var o := (xf * ab).get_center()   # центр модели в мире (у лиан origin — не там, где листья)
 			if need_jungle and w.zone_at(o.x, o.z) != &"jungle" and w.zone_at(o.x, o.z) != &"lowland_forest":
 				continue
 			var d := Vector2(o.x, o.z).distance_to(c0)
+			if need_jungle:
+				# у опушки: в 8–12 м есть открытое место (не чаща) — оттуда видно лиану
+				var open := false
+				for k in 12:
+					var q := Vector2(o.x, o.z) + Vector2.from_angle(k * TAU / 12.0) * 10.0
+					var zn: StringName = w.zone_at(q.x, q.y)
+					if zn != &"jungle" and zn != &"lowland_forest" and w.height_at(q.x, q.y) > w.water_level() + 0.3:
+						open = true
+						break
+				if not open:
+					continue
 			if d < bd:
 				bd = d
 				best = o
 	return best
 
-func _shot_at(target: Vector3, dist: float, eye_h: float, nm: String) -> void:
-	# ищем направление, откуда ближайшие 2/3 пути свободны от стволов
-	var best_dir := Vector2(1, 0)
-	var best_score := -INF
-	for k in 12:
-		var d := Vector2.from_angle(k * TAU / 12.0)
-		var score := 0.0
-		for s in 6:
-			var q := Vector2(target.x, target.z) + d * dist * (0.3 + s * 0.12)
-			score -= float(fl.trees_near(Vector3(q.x, 0, q.y), 1.2).size()) if fl.has_method(&"trees_near") else 0.0
-			score -= absf(w.height_at(q.x, q.y) - target.y) * 0.3
-		if score > best_score:
-			best_score = score
-			best_dir = d
-	var e := Vector2(target.x, target.z) + best_dir * dist
-	var ey := w.height_at(e.x, e.y) + eye_h
-	await _view(Vector3(e.x, ey, e.y), target + Vector3(0, eye_h * 0.6, 0), nm, 5.0)
+func _shot_at(target: Vector3, dist: float, eye_h: float, nm: String, look_center: bool = false) -> void:
+	# камера там, где отрезок «глаз → цель» не пересекают стволы и кусты (по записям флоры)
+	var trees: Array = []
+	for rec in fl._tree_recs:
+		var tp: Vector3 = rec["pos"]
+		if Vector2(tp.x - target.x, tp.z - target.z).length() < dist + 12.0:
+			trees.append(tp)
+	var bushes: Array = []
+	for key in fl._bush:
+		for xf: Transform3D in fl._bush[key]:
+			var o := xf.origin
+			if xf.basis.get_scale().x > 0.01 and Vector2(o.x - target.x, o.z - target.z).length() < dist + 3.0 \
+					and Vector2(o.x - target.x, o.z - target.z).length() > 1.2:
+				bushes.append(o)
+	var best_e := Vector3.ZERO
+	var best_score := INF
+	for dk: float in [0.7, 1.0, 1.4]:
+		for k in 24:
+			var d := Vector2.from_angle(k * TAU / 24.0)
+			var e2 := Vector2(target.x, target.z) + d * dist * dk
+			var e := Vector3(e2.x, w.height_at(e2.x, e2.y) + eye_h, e2.y)
+			if w.height_at(e2.x, e2.y) < w.water_level():
+				continue
+			var score := 0.0
+			var a := Vector2(e.x, e.z)
+			var b := Vector2(target.x, target.z)
+			for tp: Vector3 in trees:
+				var q := Geometry2D.get_closest_point_to_segment(Vector2(tp.x, tp.z), a, b)
+				if q.distance_to(Vector2(tp.x, tp.z)) < 1.3 and Vector2(tp.x, tp.z).distance_to(b) > 1.0:
+					score += 3.0
+				if Vector2(tp.x, tp.z).distance_to(a) < 2.5:
+					score += 6.0
+			for o: Vector3 in bushes:
+				var q2 := Geometry2D.get_closest_point_to_segment(Vector2(o.x, o.z), a, b)
+				if q2.distance_to(Vector2(o.x, o.z)) < 1.0:
+					score += 1.0
+			score += (0.0 if look_center else absf(e.y - eye_h - target.y) * 0.4)
+			# не из чащи: густота подлеска у глаза; звериная тропа — свободна
+			if w.has_method(&"vegetation_drag"):
+				score += 10.0 * float(w.call(&"vegetation_drag", e.x, e.z))
+			if w.has_method(&"trail_at") and String(w.call(&"trail_at", e.x, e.z)) != "":
+				score -= 2.0
+			if score < best_score:
+				best_score = score
+				best_e = e
+	print("[O] %s: помех %.1f" % [nm, best_score])
+	await _view(best_e, target if look_center else target + Vector3(0, eye_h * 0.6, 0), nm, 3.0)
 
 func _view(pos: Vector3, look: Vector3, nm: String, settle: float) -> void:
 	cam.global_position = pos
