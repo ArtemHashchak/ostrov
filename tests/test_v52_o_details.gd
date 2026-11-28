@@ -2,7 +2,7 @@
 extends TestCase
 ## v5.2 (агент O), мелочи 23.11: чайки дерутся за рыбу на берегу (кружат 2–5 с, хватает одна,
 ## остальные гонятся); водоросли в приливной полосе сохнут на отливе и намокают в прилив.
-## (Раки-отшельники ползают и черепахи всплывают дышать — уже были: fauna hermit_crab, sea_critter breathe.)
+## Раки-отшельники ползают (проверка здесь); черепахи всплывают дышать — SeaCritter._reflex (turtle_*: вдох каждые 30–90 с, клип breathe).
 
 var p: Player
 var fauna: Fauna
@@ -48,6 +48,23 @@ func run() -> void:
 		if g != thief and g.has_meta(&"dive") and (g.get_meta(&"dive") as Dictionary).get("chase") == thief:
 			chasers += 1
 	check(chasers >= 1, "остальные гонятся за воровкой: %d" % chasers)
+	# ---------- раки-отшельники ползают (раковина движется), вдали от игрока ----------
+	var hp := base + Vector3(30, 0, -30)
+	var hermits: Array[Animal] = []
+	for k in 3:
+		var h := fauna.spawn(&"hermit_crab", hp + Vector3(k * 1.5, 0, 0), 6.0)
+		if h:
+			hermits.append(h)
+	check(hermits.size() == 3, "раки-отшельники появились: %d" % hermits.size())
+	var start: Array[Vector3] = []
+	for h in hermits:
+		start.append(h.global_position)
+	await wait(40.0)
+	var moved := 0
+	for i in hermits.size():
+		if is_instance_valid(hermits[i]) and Vector2(hermits[i].global_position.x - start[i].x, hermits[i].global_position.z - start[i].z).length() > 0.3:
+			moved += 1
+	check(moved >= 1, "раковины ползают сами (сдвинулись %d из %d)" % [moved, hermits.size()])
 	# ---------- водоросли сохнут ----------
 	var fw := FakeWorld.new()
 	scene.add_child(fw)

@@ -10,6 +10,9 @@ func _init() -> void:
 	scene_path = "res://scenes/world/world_view.tscn"
 	timeout_sec = 1750.0
 
+var LO := 0.8
+var HI := 1.02
+var EYE_H := 2.0
 var cam: Camera3D
 var w: World
 
@@ -37,6 +40,18 @@ func run() -> void:
 	for pl in get_tree().get_nodes_in_group(&"player"):
 		(pl as Node).process_mode = Node.PROCESS_MODE_DISABLED
 		(pl as Node3D).global_position = Vector3(0, -500, 0)
+	# средняя дальность (0,45–0,85 vd), взгляд с высоты 18 м — так виден «призрак» плато
+	LO = 0.45; HI = 0.85; EYE_H = 18.0
+	for vd in [1800.0, 2800.0]:
+		Settings.view_distance = vd
+		if Settings.has_method(&"apply_view"):
+			Settings.call(&"apply_view")
+		var pk := _pick(vd)
+		if pk.is_empty():
+			print("[O] mid: нет пары для vd=%d" % int(vd))
+			continue
+		await _view(pk.eye, pk.look, "farmid_%d" % int(vd))
+	LO = 0.8; HI = 1.02; EYE_H = 2.0
 	for vd in [1000.0, 1800.0]:
 		Settings.view_distance = vd
 		if Settings.has_method(&"apply_view"):
@@ -52,6 +67,10 @@ func run() -> void:
 		await _view(eye, look, "farfade_before_%d" % int(vd))
 		OS.set_environment("OSTROVA_NO_VIEWFADE", "")
 		await _view(eye, look, "farfade_after_%d" % int(vd))
+		if OS.get_environment("O_DIAG_OCEAN") != "":
+			w.ocean.visible = false
+			await _view(eye, look, "diag_noocean_%d" % int(vd))
+			w.ocean.visible = true
 
 ## Камера на берегу одного острова, взгляд на высокий остров на 0,8–1,02 vd.
 func _pick(vd: float) -> Dictionary:
@@ -80,12 +99,26 @@ func _pick(vd: float) -> Dictionary:
 					break
 				e = q
 			var d := e.distance_to(cb)
-			if d < vd * 0.8 or d > vd * 1.02:
+			if d < vd * LO or d > vd * HI:
 				continue
-			var score := hb - absf(d - vd * 0.92) * 0.05
+			# между берегом и целью — только море
+			var blocked := false
+			for s in range(6, int((d - float(B.radius)) / 8.0)):
+				var q := e + dir * (s * 8.0)
+				if w.height_at(q.x, q.y) > 0.5:
+					blocked = true
+					break
+			if blocked:
+				continue
+			# плоская вершина (карст/скала-плато) — то, что выглядело призраком
+			var flat := 0.0
+			for k in 8:
+				var q2 := cb + Vector2.from_angle(k * TAU / 8.0) * float(B.radius) * 0.5
+				flat += absf(w.height_at(q2.x, q2.y) - hb)
+			var score := hb - flat * 0.6 - absf(d - vd * (LO + HI) * 0.5) * 0.05
 			if score > bscore:
 				bscore = score
-				best = {"eye": Vector3(e.x, maxf(w.height_at(e.x, e.y), w.water_level()) + 2.0, e.y), "look": Vector3(cb.x, hb * 0.5, cb.y)}
+				best = {"eye": Vector3(e.x, maxf(w.height_at(e.x, e.y), w.water_level()) + EYE_H, e.y), "look": Vector3(cb.x, hb * 0.5, cb.y)}
 	return best
 
 func _view(pos: Vector3, look: Vector3, nm: String) -> void:

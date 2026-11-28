@@ -42,6 +42,30 @@ func run() -> void:
 				wet += 1
 	check(keys > 0 and no_mesh == 0, "у всех видов v5 есть MultiMesh (%d групп, без меша %d)" % [keys, no_mesh])
 	check(wet == 0, "в воде растений v5 нет (%d из %d)" % [wet, total])
+	# лианы: только над сушей у деревьев, разумный размер (не «шесты» над морем)
+	var bad_l := 0
+	var n_l := 0
+	var worst := ""
+	for key in fl._bush:
+		var part := String(key).split("|")[0]
+		if not FloraV5World.is_key(part):
+			continue
+		var lid := FloraV5World.id_of_key(part)
+		var grp := FloraV5World.group_of(lid)
+		if grp != "hang" and grp != "span":
+			continue
+		var ab := FloraV5World.mesh(lid).get_aabb()
+		for xf: Transform3D in fl._bush[key]:
+			n_l += 1
+			var wb := xf * ab
+			var c := wb.get_center()
+			var land := w.height_at(c.x, c.z) >= w.water_level() + 0.2
+			var sane := wb.size.y < 22.0 and maxf(wb.size.x, wb.size.z) < 20.0
+			if not land or not sane:
+				bad_l += 1
+				if worst == "":
+					worst = "%s @%s size %s land=%s" % [lid, str(c.round()), str(wb.size.round()), str(land)]
+	check(bad_l == 0, "лианы над сушей и разумного размера: плохих %d из %d %s" % [bad_l, n_l, worst])
 	# коллизии: v5 solid/soft в индексе
 	var v5col := 0
 	for k in fl._pcol_index:

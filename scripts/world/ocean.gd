@@ -178,7 +178,8 @@ func _bake_depth(area: Rect2) -> void:
 	for j in h:
 		bytes.append_array(_bake_rows[j].px)
 	_bake_rows.clear()
-	var img := Image.create_from_data(_bake_w, h, false, Image.FORMAT_RGBA8, bytes)
+	var img := Image.create_from_data(_bake_w, h, false, Image.FORMAT_RGF, bytes)
+	img.convert(Image.FORMAT_RGH)   # половинная точность (~2 мм у берега), фильтруется везде
 	_img = img
 	_area = area
 	var tex := ImageTexture.create_from_image(img)
@@ -193,17 +194,17 @@ var _bake_w := 0
 var _bake_rows: Array[Dictionary] = []
 
 func _bake_row(j: int) -> void:
-	var px := PackedByteArray()
-	px.resize(_bake_w * 4)
+	# v5.2 (агент O): float, а не 8 бит — шаг 8 бит у берега (4 м / 255 ≈ 1,6 см) крупнее
+	# порогов кромки воды (0,01–0,07 м): кромка и пена шли «ступеньками»/квадратами по текселям
+	var px := PackedFloat32Array()
+	px.resize(_bake_w * 2)
 	var z := _bake_area.position.y + (j + 0.5) * _bake_res
 	for i in _bake_w:
 		var x := _bake_area.position.x + (i + 0.5) * _bake_res
 		var d := water_mean - float(_depth_fn.call(x, z))
-		px[i * 4] = int(clampf(d / 30.0, 0.0, 1.0) * 255.0 + 0.5)
-		px[i * 4 + 1] = int(clampf((d + 1.0) / 4.0, 0.0, 1.0) * 255.0 + 0.5)
-		px[i * 4 + 2] = 0
-		px[i * 4 + 3] = 255
-	_bake_rows[j]["px"] = px
+		px[i * 2] = clampf(d / 30.0, 0.0, 1.0)
+		px[i * 2 + 1] = clampf((d + 1.0) / 4.0, 0.0, 1.0)
+	_bake_rows[j]["px"] = px.to_byte_array()
 
 ## Шаг плотной части сетки (м); на этот шаг привязана позиция сетки.
 func inner_step() -> float:

@@ -60,6 +60,10 @@ uniform float mossy_tile = 0.42;              // 2.4 м на повтор (ма�
 global uniform sampler2D sand_tracks_map : filter_linear, repeat_disable;
 global uniform vec4 sand_tracks_rect;
 global uniform vec2 view_fade;        // край дальности видимости (ViewDistance)
+// v5.2 (агент O): дальние блоки рельефа (8 м, у вершин UV.x = 1) не рисуются ближе far_near_cut —
+// там подробные чанки; иначе грубая сетка под прозрачной водой мелководья протыкала дно гранями
+uniform float far_near_cut = 210.0;
+varying float v_far;
 const float TRACK_DEPTH = 0.055;   // м — полная глубина отпечатка (пятка взрослого в сухом песке)
 const float RIM_H = 0.32;          // высота валика в долях глубины
 float track_f(vec2 p) {            // «глубина» поля следов: >0 — лунка, <0 — валик
@@ -73,6 +77,7 @@ varying vec3 biome;
 varying float volcanic;
 
 void vertex() {
+	v_far = UV.x;
 	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	wnrm = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 	biome = COLOR.rgb;
@@ -142,9 +147,17 @@ vec3 tri(sampler2D t, vec3 p, vec3 n, float s) {
 
 void fragment() {
 	// край дальности видимости: дизер-растворение (см. ViewDistance._set_view_fade)
-	float vf = 1.0 - smoothstep(view_fade.x, view_fade.y, length(wpos - CAMERA_POSITION_WORLD));
-	if (vf < 1.0 && fract(sin(dot(floor(FRAGCOORD.xy), vec2(12.9898, 78.233))) * 43758.5453) > vf) {
+	float cam_d = length(wpos - CAMERA_POSITION_WORLD);
+	if (v_far > 0.5 && cam_d < far_near_cut) {
 		discard;
+	}
+	float vf = 1.0 - smoothstep(view_fade.x, view_fade.y, cam_d);
+	if (vf < 1.0) {
+		ivec2 bp = ivec2(FRAGCOORD.xy) % 4;
+		float bayer[16] = float[](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
+		if ((bayer[bp.x + bp.y * 4] + 0.5) / 16.0 > vf) {
+			discard;
+		}
 	}
 	vec2 uv = wpos.xz * tile;
 	float h = wpos.y;

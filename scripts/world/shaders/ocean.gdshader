@@ -244,7 +244,10 @@ void fragment() {
 	float amp_px = shoal(d) * vfade;
 	// глубина воды в ЭТОЙ точке с учётом волны: > 0 — здесь вода (в т.ч. набежавший
 	// на пляж заплеск), < 0 — сухо. Пена и прозрачность — только по ней.
-	float dl = d + (wpos.y - water_level);
+	// v5.2 (агент O): высота волны — попиксельно (аналитика), а не по вершинам сетки: иначе у
+	// берега прозрачность и кромка воды шли треугольниками сетки (≈1,8 м) — «ступеньки» и грани
+	float h_px = (wave_h_px(p) * amp_px);
+	float dl = d + mix(wpos.y - water_level, h_px, 1.0 - smoothstep(1.5, 6.0, d));
 	vec2 wg = wave_grad_px(p, amp_px);
 	vec3 n_waves = normalize(vec3(-wg.x, 1.0, -wg.y));
 	NORMAL = normalize((VIEW_MATRIX * vec4(n_waves, 0.0)).xyz);

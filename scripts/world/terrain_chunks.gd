@@ -46,6 +46,8 @@ var _jobs: Array[Dictionary] = []
 var streaming := false
 const STREAM_R := 430.0
 const UNLOAD_R := 560.0
+const SHADOW_PROXY_DROP := 0.5   # м: прокси тени ниже подробного рельефа
+const FAR_NEAR_CUT := 210.0     # м: ближе дальние блоки 8 м не рисуются (шейдер рельефа far_near_cut; подробные чанки синхронно в SYNC_R)
 const SYNC_R := 260.0            # после «прыжка» фокуса — синхронно в этом радиусе
 const MESH_BUDGET_MS := 6.0      # сборка мешей за кадр
 var _zm: ZoneMap
@@ -252,6 +254,10 @@ func _build_chunk(key: Vector2i, data: Dictionary, tris: Dictionary, no_far: boo
 				sh.mesh = mi.mesh
 				sh.material_override = material
 				sh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+				# v5.2 (агент O): прокси тени (сетка 2 м) опущен — где грубая сетка выше настоящего
+				# дна/берега 1 м, она отбрасывала на него угловатые тени-«грани» (особенно заметно
+				# сквозь прозрачную воду мелководья)
+				sh.position.y = -SHADOW_PROXY_DROP
 				sh.visibility_range_end = LOD1
 				sh.visibility_range_end_margin = MARGIN
 				add_child(sh)
@@ -273,7 +279,7 @@ var _sea_blocks: Dictionary = {}   # Vector2i блока → [массивы п�
 var _far_blocks: Dictionary = {}   # Vector2i блока → [массивы LOD3 чанков]
 
 ## Склейка массивов поверхностей чанков в один меш (вершины уже мировые); dy — сдвиг по высоте.
-static func _merge(parts: Array, dy: float = 0.0) -> ArrayMesh:
+static func _merge(parts: Array, dy: float = 0.0, far_flag: bool = false) -> ArrayMesh:
 	var v := PackedVector3Array()
 	var nr := PackedVector3Array()
 	var c := PackedColorArray()
@@ -297,6 +303,11 @@ static func _merge(parts: Array, dy: float = 0.0) -> ArrayMesh:
 	arr[Mesh.ARRAY_NORMAL] = nr
 	arr[Mesh.ARRAY_COLOR] = c
 	arr[Mesh.ARRAY_INDEX] = ix
+	if far_flag:
+		var uv := PackedVector2Array()
+		uv.resize(v.size())
+		uv.fill(Vector2(1.0, 0.0))
+		arr[Mesh.ARRAY_TEX_UV] = uv
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
 	return mesh
@@ -321,7 +332,7 @@ func _flush_far_blocks() -> void:
 	for bk: Vector2i in _far_blocks:
 		var mi := MeshInstance3D.new()
 		mi.name = "Tfar_%d_%d" % [bk.x, bk.y]
-		mi.mesh = _merge(_far_blocks[bk], -0.8)
+		mi.mesh = _merge(_far_blocks[bk], -0.8, true)
 		mi.material_override = material
 		mi.visibility_range_begin = maxf(LOD3 - half_diag, 0.0)
 		mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
@@ -506,9 +517,13 @@ func _flush_far_blocks_streaming() -> void:
 	for bk: Vector2i in _far_blocks:
 		var mi := MeshInstance3D.new()
 		mi.name = "Tfar_%d_%d" % [bk.x, bk.y]
-		mi.mesh = _merge(_far_blocks[bk], -0.8)
+		mi.mesh = _merge(_far_blocks[bk], -0.8, true)
 		mi.material_override = material
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# v5.2 (агент O): вблизи (FAR_NEAR_CUT) грубая сетка 8 м не рисуется — там уже подробные
+		# чанки (синхронно подгружены в SYNC_R); иначе под прозрачной водой мелководья её грани
+		# протыкали подробное дно (грубая билинейка выше настоящего дна на сбросах рифа).
+		# Признак «дальний блок» — UV.x = 1 у вершин (шейдер рельефа, far_near_cut)
 		ViewDistance.cap(mi, ViewDistance.MAXIMUM, ViewDistance.G_TERRAIN)
 		add_child(mi)
 	_far_blocks.clear()
